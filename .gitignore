@@ -1,0 +1,25 @@
+# Backend (Maven / Java)
+backend/target/
+*.class
+
+# Frontend (Next.js / Node)
+web/node_modules/
+web/.next/
+web/out/
+web/*.tsbuildinfo
+node_modules/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+!web/.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Original source archive (kept on disk, not versioned)
+document/kana-dojo-v2.zip
