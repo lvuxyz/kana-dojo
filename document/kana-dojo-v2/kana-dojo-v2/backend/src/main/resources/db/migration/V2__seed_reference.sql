@@ -1,0 +1,27 @@
+-- =====================================================================
+-- Dữ liệu tham chiếu bất biến: hạn mức gói cước và danh mục huy hiệu.
+-- Idempotent nhờ ON CONFLICT DO NOTHING để chạy lại an toàn khi repair.
+-- =====================================================================
+
+INSERT INTO plan_features (plan, feature_key, limit_value) VALUES
+    ('FREE', 'srs.daily_reviews',      60),
+    ('FREE', 'writing.daily_attempts', 100),
+    ('FREE', 'content.jlpt_levels',    5),
+    ('FREE', 'stats.history_days',     30),
+    ('PRO',  'srs.daily_reviews',      NULL),
+    ('PRO',  'writing.daily_attempts', NULL),
+    ('PRO',  'content.jlpt_levels',    1),
+    ('PRO',  'stats.history_days',     NULL)
+ON CONFLICT (plan, feature_key) DO NOTHING;
+
+INSERT INTO badges (code, name_vi, description_vi, icon, tier, criteria, sort_order) VALUES
+    ('FIRST_STROKE',    'Nét đầu tiên',        'Viết đạt ký tự kana đầu tiên của bạn.',                  '✏️', 'BRONZE', '{"type":"WRITING_PASSED","count":1}',              10),
+    ('HIRAGANA_MASTER', 'Bậc thầy Hiragana',   'Thuộc đủ 46 ký tự hiragana cơ bản.',                     '🌸', 'GOLD',   '{"type":"SCRIPT_MASTERED","script":"HIRAGANA"}',   20),
+    ('KATAKANA_MASTER', 'Bậc thầy Katakana',   'Thuộc đủ 46 ký tự katakana cơ bản.',                     '🗻', 'GOLD',   '{"type":"SCRIPT_MASTERED","script":"KATAKANA"}',   30),
+    ('STREAK_7',        'Kiên trì 7 ngày',     'Đạt mục tiêu học 7 ngày liên tiếp.',                     '🔥', 'BRONZE', '{"type":"STREAK","days":7}',                       40),
+    ('STREAK_30',       'Kiên trì 30 ngày',    'Đạt mục tiêu học 30 ngày liên tiếp.',                    '🔥', 'SILVER', '{"type":"STREAK","days":30}',                      50),
+    ('STREAK_100',      'Kiên trì 100 ngày',   'Đạt mục tiêu học 100 ngày liên tiếp.',                   '🔥', 'GOLD',   '{"type":"STREAK","days":100}',                     60),
+    ('PERFECT_10',      'Mười điểm tuyệt đối', '10 ký tự liên tiếp được chấm từ 95 điểm trở lên.',       '💯', 'SILVER', '{"type":"PERFECT_STREAK","count":10,"minScore":95}', 70),
+    ('NIGHT_OWL',       'Cú đêm',              'Học sau 23 giờ theo giờ địa phương của bạn.',            '🦉', 'BRONZE', '{"type":"NIGHT_OWL","hour":23}',                   80),
+    ('REVIEW_1000',     'Nghìn lượt ôn',       'Hoàn thành tổng cộng 1000 lượt ôn tập.',                 '📚', 'GOLD',   '{"type":"TOTAL_REVIEWS","count":1000}',            90)
+ON CONFLICT (code) DO NOTHING;

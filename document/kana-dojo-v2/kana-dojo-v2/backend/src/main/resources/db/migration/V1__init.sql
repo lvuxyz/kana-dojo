@@ -1,0 +1,361 @@
+-- =====================================================================
+-- Kana Dojo — lược đồ khởi tạo (V1)
+-- Mọi bảng: id BIGSERIAL PK, created_at NOT NULL DEFAULT now(), updated_at.
+-- =====================================================================
+
+CREATE EXTENSION IF NOT EXISTS citext;
+
+-- ---------------------------------------------------------------------
+-- 2.1 Danh tính & thanh toán
+-- ---------------------------------------------------------------------
+
+CREATE TABLE users (
+    id              BIGSERIAL PRIMARY KEY,
+    email           citext        NOT NULL UNIQUE,
+    username        varchar(32)   NOT NULL UNIQUE,
+    password_hash   varchar(100),
+    display_name    varchar(64)   NOT NULL,
+    avatar_url      text,
+    role            varchar(16)   NOT NULL DEFAULT 'USER',
+    plan            varchar(16)   NOT NULL DEFAULT 'FREE',
+    timezone        varchar(64)   NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
+    locale          varchar(8)    NOT NULL DEFAULT 'vi',
+    daily_goal_xp   int           NOT NULL DEFAULT 50,
+    email_verified  boolean       NOT NULL DEFAULT false,
+    status          varchar(16)   NOT NULL DEFAULT 'ACTIVE',
+    last_login_at   timestamptz,
+    created_at      timestamptz   NOT NULL DEFAULT now(),
+    updated_at      timestamptz,
+    CONSTRAINT ck_users_role   CHECK (role IN ('USER', 'ADMIN')),
+    CONSTRAINT ck_users_plan   CHECK (plan IN ('FREE', 'PRO')),
+    CONSTRAINT ck_users_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'DELETED')),
+    CONSTRAINT ck_users_goal   CHECK (daily_goal_xp > 0)
+);
+
+CREATE TABLE user_oauth (
+    id               BIGSERIAL PRIMARY KEY,
+    user_id          bigint       NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    provider         varchar(16)  NOT NULL,
+    provider_user_id varchar(128) NOT NULL,
+    email            citext,
+    created_at       timestamptz  NOT NULL DEFAULT now(),
+    updated_at       timestamptz,
+    CONSTRAINT uq_user_oauth_provider UNIQUE (provider, provider_user_id)
+);
+CREATE INDEX ix_user_oauth_user ON user_oauth (user_id);
+
+CREATE TABLE refresh_tokens (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     bigint      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    token_hash  char(64)    NOT NULL UNIQUE,
+    family_id   uuid        NOT NULL,
+    expires_at  timestamptz NOT NULL,
+    revoked_at  timestamptz,
+    replaced_by char(64),
+    user_agent  text,
+    ip          inet,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz
+);
+CREATE INDEX ix_refresh_tokens_user_expiry ON refresh_tokens (user_id, expires_at);
+CREATE INDEX ix_refresh_tokens_family ON refresh_tokens (family_id);
+
+CREATE TABLE subscriptions (
+    id                 BIGSERIAL PRIMARY KEY,
+    user_id            bigint      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    plan               varchar(16) NOT NULL,
+    status             varchar(16) NOT NULL,
+    started_at         timestamptz,
+    current_period_end timestamptz,
+    cancel_at          timestamptz,
+    provider           varchar(24),
+    provider_ref       varchar(128),
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz,
+    CONSTRAINT ck_subscriptions_plan   CHECK (plan IN ('FREE', 'PRO')),
+    CONSTRAINT ck_subscriptions_status CHECK (status IN ('ACTIVE', 'PAST_DUE', 'CANCELED', 'EXPIRED'))
+);
+CREATE INDEX ix_subscriptions_user ON subscriptions (user_id, status);
+
+CREATE TABLE plan_features (
+    id          BIGSERIAL PRIMARY KEY,
+    plan        varchar(16) NOT NULL,
+    feature_key varchar(48) NOT NULL,
+    limit_value int,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz,
+    CONSTRAINT uq_plan_features UNIQUE (plan, feature_key),
+    CONSTRAINT ck_plan_features_plan CHECK (plan IN ('FREE', 'PRO'))
+);
+
+-- ---------------------------------------------------------------------
+-- 2.2 Kho nội dung
+-- ---------------------------------------------------------------------
+
+-- kana_glyphs dùng chính ký tự làm khoá chính: bảng tra cứu bất biến,
+-- không cần surrogate key và giúp join theo glyph_sequence rẻ hơn.
+CREATE TABLE kana_glyphs (
+    glyph        char(1)     PRIMARY KEY,
+    stroke_paths jsonb       NOT NULL,
+    stroke_count int         NOT NULL,
+    view_box     int         NOT NULL DEFAULT 109,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz
+);
+
+CREATE TABLE kana_characters (
+    id             BIGSERIAL PRIMARY KEY,
+    "character"    varchar(4)  NOT NULL UNIQUE,
+    glyph_sequence varchar(4)  NOT NULL,
+    romaji         varchar(8)  NOT NULL,
+    script         varchar(12) NOT NULL,
+    kana_group     varchar(12) NOT NULL,
+    row_key        varchar(8)  NOT NULL,
+    col_index      smallint    NOT NULL,
+    stroke_count   smallint    NOT NULL,
+    reading_vi     varchar(64),
+    display_order  int         NOT NULL,
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    updated_at     timestamptz,
+    CONSTRAINT ck_kana_script CHECK (script IN ('HIRAGANA', 'KATAKANA')),
+    CONSTRAINT ck_kana_group  CHECK (kana_group IN ('BASIC', 'DAKUTEN', 'YOON'))
+);
+CREATE INDEX ix_kana_characters_browse ON kana_characters (script, kana_group, display_order);
+
+CREATE TABLE vocabulary (
+    id             BIGSERIAL PRIMARY KEY,
+    word           varchar(64),
+    reading        varchar(64),
+    romaji         varchar(64),
+    meaning_vi     text        NOT NULL,
+    meaning_en     text,
+    jlpt_level     smallint,
+    part_of_speech varchar(24),
+    example_ja     text,
+    example_vi     text,
+    audio_url      text,
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    updated_at     timestamptz,
+    CONSTRAINT ck_vocabulary_jlpt CHECK (jlpt_level IS NULL OR jlpt_level BETWEEN 1 AND 5)
+);
+CREATE INDEX ix_vocabulary_level ON vocabulary (jlpt_level);
+
+CREATE TABLE decks (
+    id          BIGSERIAL PRIMARY KEY,
+    owner_id    bigint      REFERENCES users (id) ON DELETE CASCADE,
+    name        varchar(128) NOT NULL,
+    description text,
+    is_public   boolean     NOT NULL DEFAULT false,
+    jlpt_level  smallint,
+    item_type   varchar(24) NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz
+);
+CREATE INDEX ix_decks_public ON decks (is_public, jlpt_level);
+CREATE INDEX ix_decks_owner ON decks (owner_id);
+
+CREATE TABLE deck_items (
+    id         BIGSERIAL PRIMARY KEY,
+    deck_id    bigint      NOT NULL REFERENCES decks (id) ON DELETE CASCADE,
+    item_type  varchar(24) NOT NULL,
+    item_id    bigint      NOT NULL,
+    position   int         NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz,
+    CONSTRAINT uq_deck_items UNIQUE (deck_id, item_type, item_id)
+);
+
+-- ---------------------------------------------------------------------
+-- 2.3 Học tập & SRS
+-- ---------------------------------------------------------------------
+
+CREATE TABLE review_cards (
+    id               BIGSERIAL PRIMARY KEY,
+    user_id          bigint           NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    item_type        varchar(24)      NOT NULL,
+    item_id          bigint           NOT NULL,
+    state            varchar(12)      NOT NULL,
+    stability        double precision NOT NULL DEFAULT 0,
+    difficulty       double precision NOT NULL DEFAULT 0,
+    due_at           timestamptz      NOT NULL,
+    last_reviewed_at timestamptz,
+    reps             int              NOT NULL DEFAULT 0,
+    lapses           int              NOT NULL DEFAULT 0,
+    learning_step    smallint         NOT NULL DEFAULT 0,
+    suspended        boolean          NOT NULL DEFAULT false,
+    created_at       timestamptz      NOT NULL DEFAULT now(),
+    updated_at       timestamptz,
+    CONSTRAINT uq_review_cards UNIQUE (user_id, item_type, item_id),
+    CONSTRAINT ck_review_cards_state CHECK (state IN ('NEW', 'LEARNING', 'REVIEW', 'RELEARNING')),
+    CONSTRAINT ck_review_cards_item_type CHECK (item_type IN ('KANA_WRITING', 'KANA_READING', 'VOCAB_MEANING', 'VOCAB_READING'))
+);
+CREATE INDEX ix_review_cards_due ON review_cards (user_id, due_at) WHERE NOT suspended;
+CREATE INDEX ix_review_cards_item ON review_cards (user_id, item_type, item_id);
+
+-- Bảng chỉ ghi thêm: nguồn dữ liệu để về sau tối ưu tham số FSRS theo từng người.
+CREATE TABLE review_logs (
+    id                BIGSERIAL PRIMARY KEY,
+    card_id           bigint           NOT NULL REFERENCES review_cards (id) ON DELETE CASCADE,
+    user_id           bigint           NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    grade             smallint         NOT NULL,
+    score             smallint,
+    state_before      varchar(12)      NOT NULL,
+    stability_before  double precision NOT NULL,
+    stability_after   double precision NOT NULL,
+    difficulty_before double precision NOT NULL,
+    difficulty_after  double precision NOT NULL,
+    elapsed_days      double precision NOT NULL,
+    scheduled_days    double precision NOT NULL,
+    duration_ms       int,
+    reviewed_at       timestamptz      NOT NULL,
+    created_at        timestamptz      NOT NULL DEFAULT now(),
+    updated_at        timestamptz,
+    CONSTRAINT ck_review_logs_grade CHECK (grade BETWEEN 1 AND 4),
+    CONSTRAINT ck_review_logs_score CHECK (score IS NULL OR score BETWEEN 0 AND 100)
+);
+CREATE INDEX ix_review_logs_user_time ON review_logs (user_id, reviewed_at);
+CREATE INDEX ix_review_logs_card ON review_logs (card_id);
+
+CREATE TABLE writing_attempts (
+    id                BIGSERIAL PRIMARY KEY,
+    user_id           bigint      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    kana_character_id bigint      NOT NULL REFERENCES kana_characters (id) ON DELETE CASCADE,
+    mode              varchar(8)  NOT NULL,
+    avg_score         smallint    NOT NULL,
+    stroke_scores     jsonb,
+    stroke_errors     jsonb,
+    passed            boolean     NOT NULL DEFAULT false,
+    duration_ms       int,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    updated_at        timestamptz,
+    CONSTRAINT ck_writing_mode  CHECK (mode IN ('TRACE', 'TEST')),
+    CONSTRAINT ck_writing_score CHECK (avg_score BETWEEN 0 AND 100)
+);
+CREATE INDEX ix_writing_attempts_lookup ON writing_attempts (user_id, kana_character_id, created_at DESC);
+
+-- ---------------------------------------------------------------------
+-- 2.4 Trò chơi hóa
+-- ---------------------------------------------------------------------
+
+CREATE TABLE user_stats (
+    id               BIGSERIAL PRIMARY KEY,
+    user_id          bigint      NOT NULL UNIQUE REFERENCES users (id) ON DELETE CASCADE,
+    xp_total         bigint      NOT NULL DEFAULT 0,
+    level            int         NOT NULL DEFAULT 1,
+    current_streak   int         NOT NULL DEFAULT 0,
+    longest_streak   int         NOT NULL DEFAULT 0,
+    last_active_date date,
+    streak_freezes   smallint    NOT NULL DEFAULT 2,
+    total_reviews    bigint      NOT NULL DEFAULT 0,
+    total_writing_ms bigint      NOT NULL DEFAULT 0,
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    updated_at       timestamptz
+);
+
+CREATE TABLE daily_activity (
+    id            BIGSERIAL PRIMARY KEY,
+    user_id       bigint      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    activity_date date        NOT NULL,
+    xp_earned     int         NOT NULL DEFAULT 0,
+    reviews_done  int         NOT NULL DEFAULT 0,
+    chars_written int         NOT NULL DEFAULT 0,
+    study_ms      int         NOT NULL DEFAULT 0,
+    goal_met      boolean     NOT NULL DEFAULT false,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz,
+    CONSTRAINT uq_daily_activity UNIQUE (user_id, activity_date)
+);
+CREATE INDEX ix_daily_activity_leaderboard ON daily_activity (activity_date, xp_earned DESC);
+
+CREATE TABLE badges (
+    id             BIGSERIAL PRIMARY KEY,
+    code           varchar(48)  NOT NULL UNIQUE,
+    name_vi        varchar(128) NOT NULL,
+    description_vi text         NOT NULL,
+    icon           varchar(16),
+    tier           varchar(12)  NOT NULL,
+    criteria       jsonb,
+    sort_order     int          NOT NULL DEFAULT 0,
+    created_at     timestamptz  NOT NULL DEFAULT now(),
+    updated_at     timestamptz,
+    CONSTRAINT ck_badges_tier CHECK (tier IN ('BRONZE', 'SILVER', 'GOLD'))
+);
+
+CREATE TABLE user_badges (
+    id         BIGSERIAL PRIMARY KEY,
+    user_id    bigint      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    badge_id   bigint      NOT NULL REFERENCES badges (id) ON DELETE CASCADE,
+    earned_at  timestamptz NOT NULL DEFAULT now(),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz,
+    CONSTRAINT uq_user_badges UNIQUE (user_id, badge_id)
+);
+
+CREATE TABLE leaderboard_snapshots (
+    id         BIGSERIAL PRIMARY KEY,
+    week_start date        NOT NULL,
+    user_id    bigint      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    xp         int         NOT NULL DEFAULT 0,
+    rank       int         NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz,
+    CONSTRAINT uq_leaderboard_snapshots UNIQUE (week_start, user_id)
+);
+CREATE INDEX ix_leaderboard_snapshots_rank ON leaderboard_snapshots (week_start, rank);
+
+-- ---------------------------------------------------------------------
+-- 2.5 Quiz
+-- ---------------------------------------------------------------------
+
+CREATE TABLE quizzes (
+    id             BIGSERIAL PRIMARY KEY,
+    title          varchar(160) NOT NULL,
+    description    text,
+    quiz_type      varchar(24)  NOT NULL,
+    jlpt_level     smallint,
+    time_limit_sec int,
+    is_published   boolean      NOT NULL DEFAULT false,
+    created_at     timestamptz  NOT NULL DEFAULT now(),
+    updated_at     timestamptz
+);
+CREATE INDEX ix_quizzes_published ON quizzes (is_published, jlpt_level);
+
+CREATE TABLE questions (
+    id             BIGSERIAL PRIMARY KEY,
+    quiz_id        bigint      NOT NULL REFERENCES quizzes (id) ON DELETE CASCADE,
+    prompt         text        NOT NULL,
+    question_type  varchar(24) NOT NULL,
+    options        jsonb,
+    correct_answer text        NOT NULL,
+    explanation_vi text,
+    position       int         NOT NULL DEFAULT 0,
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    updated_at     timestamptz
+);
+CREATE INDEX ix_questions_quiz ON questions (quiz_id, position);
+
+CREATE TABLE quiz_attempts (
+    id            BIGSERIAL PRIMARY KEY,
+    user_id       bigint      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    quiz_id       bigint      NOT NULL REFERENCES quizzes (id) ON DELETE CASCADE,
+    score         smallint,
+    correct_count int         NOT NULL DEFAULT 0,
+    total_count   int         NOT NULL DEFAULT 0,
+    duration_ms   int,
+    started_at    timestamptz NOT NULL DEFAULT now(),
+    submitted_at  timestamptz,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz
+);
+CREATE INDEX ix_quiz_attempts_user ON quiz_attempts (user_id, quiz_id);
+
+CREATE TABLE quiz_answers (
+    id           BIGSERIAL PRIMARY KEY,
+    attempt_id   bigint      NOT NULL REFERENCES quiz_attempts (id) ON DELETE CASCADE,
+    question_id  bigint      NOT NULL REFERENCES questions (id) ON DELETE CASCADE,
+    given_answer text,
+    is_correct   boolean     NOT NULL DEFAULT false,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz,
+    CONSTRAINT uq_quiz_answers UNIQUE (attempt_id, question_id)
+);

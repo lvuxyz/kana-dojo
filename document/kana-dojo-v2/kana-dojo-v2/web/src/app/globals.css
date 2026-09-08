@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Hệ thống thiết kế Kana Dōjō — lấy màu từ giấy tập viết 原稿用紙:
+   lưới in xanh rêu · mực viết đen · lời phê và con dấu đỏ chu sa.
+   Khai báo biến thô ở :root, rồi định nghĩa lại cho cả 3 trạng thái giao diện
+   (sáng / tối theo hệ thống / tối do người dùng chọn).
+   ========================================================================== */
+:root {
+  color-scheme: light;
+  --paper: #f6f6f2;
+  --paper-sunk: #edeee8;
+  --surface: #ffffff;
+  --surface-2: #fafaf7;
+  --rule: #e0e1d8;
+  --rule-firm: #c7c9bc;
+  --sumi: #1a1f1c;
+  --sumi-2: #4e554f;
+  --sumi-3: #838a83;
+  --genko: #3e7154;
+  --genko-2: #5c8e71;
+  --genko-tint: #e4ede6;
+  --shu: #c33c2b;
+  --shu-2: #a62f20;
+  --shu-tint: #f7e3df;
+  --gold: #9c7c24;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #141815;
+    --paper-sunk: #101310;
+    --surface: #1b211d;
+    --surface-2: #202722;
+    --rule: #2e362f;
+    --rule-firm: #414b43;
+    --sumi: #edefe9;
+    --sumi-2: #b4bcb4;
+    --sumi-3: #838d84;
+    --genko: #6fa985;
+    --genko-2: #8cbf9f;
+    --genko-tint: #1e2b22;
+    --shu: #e2705f;
+    --shu-2: #ee8878;
+    --shu-tint: #33201c;
+    --gold: #cba65a;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #141815;
+  --paper-sunk: #101310;
+  --surface: #1b211d;
+  --surface-2: #202722;
+  --rule: #2e362f;
+  --rule-firm: #414b43;
+  --sumi: #edefe9;
+  --sumi-2: #b4bcb4;
+  --sumi-3: #838d84;
+  --genko: #6fa985;
+  --genko-2: #8cbf9f;
+  --genko-tint: #1e2b22;
+  --shu: #e2705f;
+  --shu-2: #ee8878;
+  --shu-tint: #33201c;
+  --gold: #cba65a;
+}
+
+/* Nối biến thô vào token của Tailwind v4 → sinh ra bg-paper, text-sumi, border-rule… */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-sunk: var(--paper-sunk);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-rule: var(--rule);
+  --color-rule-firm: var(--rule-firm);
+  --color-sumi: var(--sumi);
+  --color-sumi-2: var(--sumi-2);
+  --color-sumi-3: var(--sumi-3);
+  --color-genko: var(--genko);
+  --color-genko-2: var(--genko-2);
+  --color-genko-tint: var(--genko-tint);
+  --color-shu: var(--shu);
+  --color-shu-2: var(--shu-2);
+  --color-shu-tint: var(--shu-tint);
+  --color-gold: var(--gold);
+
+  --font-sans: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+  --font-mincho: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+}
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--paper);
+    color: var(--sumi);
+    font-family: var(--font-sans);
+  }
+  :focus-visible { outline: 2px solid var(--shu); outline-offset: 2px; border-radius: 4px; }
+  ::selection { background: var(--shu-tint); }
+}
+
+@layer utilities {
+  .tnum { font-variant-numeric: tabular-nums; }
+  .label-xs {
+    font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--sumi-3); font-weight: 500;
+  }
+}
+
+/* --- lưới giấy genkō + nét viết, dùng chung cho mọi khung tập viết --- */
+.cellbg { fill: var(--surface); stroke: var(--genko); stroke-width: 0.9; }
+.cellcross { stroke: var(--genko); stroke-width: 0.7; stroke-dasharray: 3 3.6; opacity: 0.5; }
+.celldiag { stroke: var(--genko); stroke-width: 0.55; stroke-dasharray: 2 4.5; opacity: 0.3; }
+.gstroke {
+  fill: none; stroke: var(--sumi); stroke-width: 6;
+  stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0.13; transition: opacity 0.25s, stroke 0.25s;
+}
+.gstroke.is-next { opacity: 0.3; stroke: var(--shu); }
+.gstroke.is-done { opacity: 0; }
+[data-mode="test"] .gstroke { opacity: 0; }
+[data-mode="test"][data-peek="true"] .gstroke { opacity: 0.13; }
+[data-mode="test"][data-peek="true"] .gstroke.is-next { opacity: 0.3; stroke: var(--shu); }
+.astroke {
+  fill: none; stroke: var(--shu); stroke-width: 6.4;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.brushdot { fill: var(--shu); }
+.brushring { fill: none; stroke: var(--shu); stroke-width: 1.2; opacity: 0.45; }
+.cstroke {
+  fill: none; stroke: var(--genko); stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round; opacity: 0.85;
+}
+.snum circle { fill: var(--shu); }
+.snum text {
+  fill: #fff; font-size: 7px; font-weight: 700;
+  text-anchor: middle; dominant-baseline: central;
+}
