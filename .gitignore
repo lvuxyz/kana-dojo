@@ -20,6 +20,3 @@ node_modules/
 Thumbs.db
 .vscode/
 .idea/
-
-# Original source archive (kept on disk, not versioned)
-document/kana-dojo-v2.zip
