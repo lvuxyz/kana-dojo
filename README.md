@@ -1,108 +1,241 @@
-# Kana Dōjō — nền tảng học viết tiếng Nhật
+# Kana Dōjō — Nền tảng học viết tiếng Nhật
 
-Monorepo. Frontend Next.js 15 + backend Spring Boot 3.2.5 + PostgreSQL 16.
-
-Bản offline một-file trước đây (v1) được giữ nguyên trong [`archive/legacy-v1/`](archive/legacy-v1/README.md) —
-xem thư mục đó nếu chỉ cần một trang HTML chạy ngay, không tài khoản, không server.
+Ứng dụng web dạy viết Hiragana và Katakana đúng thứ tự nét, kết hợp thuật toán lặp lại ngắt quãng FSRS-6 để tối ưu hóa việc ghi nhớ lâu dài.
 
 ```
 kana-dojo/
 ├── docs/
-│   ├── SPEC.md          ĐẶC TẢ — nguồn sự thật cho cả BE và FE. Đọc file này trước.
-│   └── kana-data.json   208 ký tự · 148 glyph, trích từ KanjiVG
-├── backend/             Spring Boot: JWT + Google OAuth, FSRS-6, gamification, 28 bảng
-│   ├── src/main/java/com/japanese/learning/
-│   │   ├── srs/FsrsEngine.java        ← thuật toán lõi, thuần hàm, unit test được
-│   │   ├── domain/ repository/ service/ controller/ dto/ security/ config/
-│   │   └── seed/KanaSeeder.java
-│   └── src/main/resources/db/migration/   Flyway V1__init.sql, V2__seed_reference.sql
-├── web/                 Next.js 15 App Router, TypeScript, Tailwind v4
-│   └── src/
-│       ├── components/kana/StrokeStage.tsx   ← engine tập viết SVG + Canvas
-│       ├── lib/stroke-match.ts               ← bộ chấm điểm nét, thuần hàm
-│       └── app/                              23 route
-└── archive/legacy-v1/   Bản HTML/CSS/JS thuần trước đây — zero dependency, 1 file, offline
+│   ├── SPEC.md            Đặc tả kỹ thuật — nguồn sự thật cho cả BE và FE
+│   ├── ARCHITECTURE.md    Kiến trúc hệ thống, luồng dữ liệu, quyết định thiết kế
+│   ├── DEVELOPMENT.md     Hướng dẫn thiết lập môi trường phát triển
+│   ├── DEPLOYMENT.md      Hướng dẫn triển khai production
+│   └── kana-data.json     208 ký tự · 148 glyph, trích từ KanjiVG (CC BY-SA 3.0)
+├── backend/               Spring Boot 3.2.5 · Java 17 · PostgreSQL 16
+├── web/                   Next.js 15 App Router · TypeScript · Tailwind CSS v4
+└── archive/legacy-v1/     Bản offline HTML/CSS/JS thuần — không server, không tài khoản
 ```
 
-## Nguồn gốc thuật toán chấm nét
+---
 
-Engine chấm nét của `web/src/lib/stroke-match.ts` (và bản Java song song trong
-`FsrsEngine.gradeFromScore`) dùng **đúng thuật toán** đã thiết kế ở v1: lấy lại
-điểm theo độ dài cung (arc-length resampling, 24 điểm), so khớp theo chiều xuôi
-(không lấy `min(xuôi, ngược)` vì sẽ thưởng nhầm nét vẽ ngược chiều), phạt theo
-tỉ lệ độ dài bằng logarit. Điểm khác biệt ở bản này: lỗi được trả về như **dữ
-liệu có cấu trúc** (`reason: REVERSED | TOO_SHORT | TOO_LONG | OFF_PATH`) thay
-vì chỉ suy ra một chuỗi thông báo — nhờ vậy `POST /writing/attempts` có thể ghi
-lỗi từng nét vào `writing_attempts.stroke_errors` để tính `grade` cho FSRS và
-dùng cho gamification. Xem [archive/legacy-v1/README.md](archive/legacy-v1/README.md#33-thuật-toán-chấm-điểm)
-để đọc phần lý giải đầy đủ (vì sao arc-length, vì sao không lấy min, đơn vị của
-sai lệch nghĩa là gì).
+## Tính năng chính
 
-## Chạy lần đầu
+| Tính năng | Mô tả |
+|---|---|
+| **Tập viết có hướng dẫn** | Vẽ nét trên canvas, so khớp với dữ liệu KanjiVG, điểm 0–100 |
+| **FSRS-6** | Lặp lại ngắt quãng thế hệ mới — điểm tập viết tự động xác định cấp độ |
+| **Streak & XP** | Chuỗi ngày học, điểm kinh nghiệm, level, 9 huy hiệu thành tích |
+| **Bảng xếp hạng** | Bảng tuần, snapshot mỗi thứ Hai 00:05 giờ Việt Nam |
+| **Xác thực đầy đủ** | Email/mật khẩu + Google OAuth, JWT 15 phút, refresh token httpOnly |
+| **Phân quyền gói** | FREE (60 lượt ôn/ngày, N5) và PRO (không giới hạn, N1–N5) |
+| **Quiz** | Nhiều loại câu hỏi, ghi nhận kết quả đầy đủ |
+| **Từ vựng JLPT** | N1–N5, nghĩa tiếng Việt, câu ví dụ |
+| **Swagger UI** | `http://localhost:8080/swagger-ui.html` |
 
-### 1. Cơ sở dữ liệu
+---
+
+## Khởi động nhanh (5 phút)
+
+### Yêu cầu hệ thống
+
+- Java 17+
+- Maven 3.9+
+- Node.js 20+
+- Docker (để chạy PostgreSQL)
+
+### Bước 1 — Cơ sở dữ liệu
 
 ```bash
 docker run -d --name kanadojo-db -p 5432:5432 \
-  -e POSTGRES_DB=kanadojo -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=kanadojo \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
   postgres:16
 ```
 
-### 2. Backend
+Flyway tự tạo toàn bộ lược đồ (28 bảng) và `KanaSeeder` tự nạp 208 ký tự khi backend khởi động lần đầu — không cần chạy script SQL thủ công.
+
+### Bước 2 — Backend
 
 ```bash
 cd backend
+
+# Windows
 set DB_URL=jdbc:postgresql://localhost:5432/kanadojo
 set DB_USER=postgres
 set DB_PASSWORD=postgres
-set JWT_SECRET=<chuỗi base64 ít nhất 256 bit>
+set JWT_SECRET=<chuỗi base64, ít nhất 256 bit — xem bên dưới>
 set CORS_ORIGINS=http://localhost:3000
 
 mvn spring-boot:run
 ```
 
-Flyway tự tạo lược đồ, `KanaSeeder` tự nạp 208 ký tự ở lần khởi động đầu.
-Swagger: <http://localhost:8080/swagger-ui.html>
+```bash
+# macOS / Linux
+export DB_URL=jdbc:postgresql://localhost:5432/kanadojo
+export DB_USER=postgres
+export DB_PASSWORD=postgres
+export JWT_SECRET=<chuỗi base64>
+export CORS_ORIGINS=http://localhost:3000
+
+mvn spring-boot:run
+```
 
 Sinh `JWT_SECRET`:
 ```bash
 openssl rand -base64 48
 ```
 
-### 3. Frontend
+Backend sẵn sàng khi thấy log `Started KanaDojoApplication`.
+
+### Bước 3 — Frontend
 
 ```bash
 cd web
-copy .env.example .env.local     # sửa BACKEND_URL nếu backend không ở cổng 8080
+copy .env.example .env.local   # Windows
+# cp .env.example .env.local   # macOS/Linux
+
 npm install
-npm run dev                      # http://localhost:3000
+npm run dev
 ```
 
-## Trạng thái đã kiểm chứng
+Mở <http://localhost:3000>.
 
-Khác với bản gốc README của v2 (môi trường dựng ra nó bị chặn Maven Central nên
-chưa từng `mvn compile`), bản trong repo này **đã build và test thật**:
+---
 
-* **Backend:** `mvn compile`, `mvn test` (11 test, bao gồm `FsrsEngineTest` với
-  hàng nghìn assertion cho công thức FSRS-6) và `mvn package` đều **BUILD
-  SUCCESS**. Đã sửa 1 lỗi thật trong `pom.xml`: `flyway-database-postgresql`
-  khai báo thiếu version — module này chỉ tồn tại từ Flyway 10 trở lên, còn
-  Spring Boot 3.2.5 quản lý Flyway 9.22.3 (đã có sẵn hỗ trợ PostgreSQL trong
-  `flyway-core`, không cần module riêng) → đã xóa dependency thừa đó.
-* **Frontend:** `npm install`, `tsc --noEmit`, `next build` sạch, đủ 23 route
-  như README gốc mô tả. `npm audit` phát hiện 3 lỗ hổng ở `next@15.1.6` (1
-  **critical** — RCE qua React flight protocol) → đã nâng lên `next@15.5.25`
-  (cùng major, không đổi API) để vá các lỗ hổng nghiêm trọng. Còn 1 lỗ hổng
-  `postcss` mức **high** (đọc file `.map` tùy ý qua `sourceMappingURL`) chỉ hết
-  hẳn nếu nâng lên Next 16 — đây là **breaking change** nên chưa áp dụng tự
-  động, cần đánh giá và test riêng.
-* **Chưa làm (kế thừa từ v2, cố ý):** màn hình làm bài quiz (API máy chủ đã
-  xong), cổng thanh toán (lược đồ `subscriptions` + `plan_features` đã sẵn
-  sàng).
+## Biến môi trường
+
+### Backend (bắt buộc)
+
+| Biến | Ví dụ | Mô tả |
+|---|---|---|
+| `DB_URL` | `jdbc:postgresql://localhost:5432/kanadojo` | JDBC URL PostgreSQL |
+| `DB_USER` | `postgres` | Tên người dùng DB |
+| `DB_PASSWORD` | `postgres` | Mật khẩu DB |
+| `JWT_SECRET` | *(base64, ≥256 bit)* | Khóa ký JWT — **bắt buộc trên production** |
+| `CORS_ORIGINS` | `http://localhost:3000` | Origin được phép, cách nhau bằng dấu phẩy |
+| `GOOGLE_CLIENT_ID` | `xxx.apps.googleusercontent.com` | Chỉ bắt buộc nếu dùng đăng nhập Google |
+
+### Backend (tùy chọn, có giá trị mặc định)
+
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `SERVER_PORT` | `8080` | Cổng HTTP |
+| `DB_POOL_SIZE` | `10` | Kích thước pool Hikari |
+| `JWT_ACCESS_TTL` | `900` | Thời gian sống access token (giây) |
+| `JWT_REFRESH_TTL` | `2592000` | Thời gian sống refresh token (giây) |
+| `SRS_NEW_CARDS_PER_DAY` | `10` | Số thẻ mới tối đa mỗi ngày |
+
+### Frontend (`.env.local`)
+
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `BACKEND_URL` | `http://localhost:8080` | URL backend (server-side only) |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | URL công khai của site |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | *(trống)* | Client ID Google OAuth |
+
+---
+
+## Cấu trúc thư mục chi tiết
+
+```
+backend/src/main/java/com/japanese/learning/
+├── KanaDojoApplication.java
+├── common/             ApiException, ErrorTypes, GlobalExceptionHandler
+├── config/             AppProperties, SecurityConfig, WebConfig, OpenApiConfig
+│                       SchedulingConfig, ProdSecretsValidator
+├── domain/
+│   ├── entity/         28 JPA entity (users, kana_chars, srs_cards, …)
+│   ├── enums/          CardState, ItemType, KanaGroup, Script, BadgeTier, …
+│   └── StrokeError.java
+├── repository/         Spring Data JPA repositories
+├── security/           JwtService, JwtAuthFilter, GoogleTokenVerifier
+│                       RefreshTokenService
+├── seed/               KanaSeeder — ApplicationRunner, idempotent
+├── service/            AuthService, ReviewService, WritingService
+│                       BadgeService, GamificationService, …
+├── srs/                FsrsEngine.java — thuần hàm, không Spring, unit test được
+└── web/
+    ├── controller/     14 REST controller
+    └── dto/            AuthDtos, ContentDtos, LearningDtos, GamificationDtos, …
+
+web/src/
+├── app/
+│   ├── (app)/          Route group yêu cầu đăng nhập (layout.tsx có shell)
+│   │   ├── bang-dieu-khien/    Dashboard
+│   │   ├── luyen-viet/         Tập viết
+│   │   ├── on-tap/             Ôn tập SRS
+│   │   ├── bang-xep-hang/      Bảng xếp hạng
+│   │   ├── ho-so/              Hồ sơ cá nhân
+│   │   ├── quiz/               Quiz
+│   │   └── tu-vung/            Từ vựng
+│   ├── (auth)/         Route group xác thực (dang-nhap, dang-ky)
+│   ├── bang-chu-cai/[script]/  Bảng chữ cái công khai
+│   └── api/auth/       BFF route handlers (login, register, google, logout, refresh)
+├── components/
+│   ├── app/            Brand, Nav, ThemeToggle, GoogleButton
+│   ├── kana/           StrokeStage, KanaGrid, PracticePanel, HeroDemo
+│   └── ui/index.tsx    Design system: Button, Card, Field, Chip, Progress, Stat, …
+├── data/kana-data.json  Dữ liệu nét bundle sẵn vào JS (57 KB, ~20 KB gzip)
+└── lib/
+    ├── api.ts           Fetch wrapper: auto-refresh token, coalesce 401
+    ├── auth-context.tsx React context xác thực
+    ├── auth-proxy.ts    Tách refresh token → httpOnly cookie
+    ├── stroke-match.ts  Bộ chấm điểm nét — arc-length resampling, thuần hàm
+    └── types.ts         TypeScript types khớp với SPEC.md
+```
+
+---
+
+## Kiểm thử
+
+```bash
+# Backend — 11 test, bao gồm hàng nghìn assertion cho FsrsEngine
+cd backend
+mvn test
+
+# Frontend — kiểm tra kiểu
+cd web
+npm run typecheck
+
+# Frontend — build production
+cd web
+npm run build
+```
+
+---
+
+## Trạng thái build đã kiểm chứng
+
+- **Backend:** `mvn compile` · `mvn test` (11 test) · `mvn package` — BUILD SUCCESS
+- **Frontend:** `tsc --noEmit` · `next build` — thành công, 23 route
+
+Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#sự-cố-đã-gặp-và-cách-xử-lý).
+
+---
+
+## Tính năng chưa hoàn thiện (cố ý)
+
+| Tính năng | Trạng thái |
+|---|---|
+| Màn hình làm bài quiz | API backend xong, UI chưa làm |
+| Cổng thanh toán | Lược đồ DB (`subscriptions`, `plan_features`) sẵn sàng, tích hợp chưa làm |
+
+---
+
+## Tài liệu liên quan
+
+| Tài liệu | Mục đích |
+|---|---|
+| [docs/SPEC.md](docs/SPEC.md) | Đặc tả kỹ thuật đầy đủ — lược đồ DB, API, thuật toán |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Kiến trúc hệ thống, luồng xác thực, quyết định thiết kế |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Thiết lập môi trường dev, gỡ lỗi, quy ước code |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Triển khai production với Docker và Nginx |
+| [archive/legacy-v1/README.md](archive/legacy-v1/README.md) | Giải thích đầy đủ thuật toán chấm nét (arc-length, forward-only) |
+
+---
 
 ## Giấy phép
 
 Dữ liệu thứ tự nét trích từ [KanjiVG](http://kanjivg.tagaini.net) © Ulrich Apel,
-[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) — share-alike, cho phép dùng
-thương mại. Nếu phát hành lại `kana-data.json` hoặc bản dẫn xuất, phải ghi công KanjiVG và giữ
-nguyên giấy phép đó cho phần dữ liệu.
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) — share-alike, cho phép dùng thương mại.
+Nếu phát hành lại `kana-data.json` hoặc bản dẫn xuất, phải ghi công KanjiVG và giữ nguyên giấy phép đó cho phần dữ liệu.
