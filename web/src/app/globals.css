@@ -1,74 +1,88 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Hệ thống thiết kế Kana Dōjō — lấy màu từ giấy tập viết 原稿用紙:
-   lưới in xanh rêu · mực viết đen · lời phê và con dấu đỏ chu sa.
-   Khai báo biến thô ở :root, rồi định nghĩa lại cho cả 3 trạng thái giao diện
-   (sáng / tối theo hệ thống / tối do người dùng chọn).
+   Hệ thống thiết kế Kana Dōjō — Modern Zen Luxury:
+   Lấy cảm hứng từ giấy tập viết 原稿用紙 (genkō yōshi), mực sumi sâu thẳm,
+   dấu triện chu sa hoàng gia (hanko cinnabar), dát vàng kinpaku và sóng nước Seigaiha.
    ========================================================================== */
 :root {
   color-scheme: light;
-  --paper: #f6f6f2;
-  --paper-sunk: #edeee8;
+  --paper: #faf8f5;
+  --paper-sunk: #f2eee6;
   --surface: #ffffff;
-  --surface-2: #fafaf7;
-  --rule: #e0e1d8;
-  --rule-firm: #c7c9bc;
-  --sumi: #1a1f1c;
-  --sumi-2: #4e554f;
-  --sumi-3: #838a83;
-  --genko: #3e7154;
-  --genko-2: #5c8e71;
-  --genko-tint: #e4ede6;
-  --shu: #c33c2b;
-  --shu-2: #a62f20;
-  --shu-tint: #f7e3df;
-  --gold: #9c7c24;
+  --surface-2: #fcfbfa;
+  --rule: #e6e3da;
+  --rule-firm: #cfcbc0;
+  --sumi: #151a17;
+  --sumi-2: #3f4a42;
+  --sumi-3: #6b776e;
+  --genko: #1b5e3b;
+  --genko-2: #2d8254;
+  --genko-tint: #e8f4ed;
+  --genko-glow: rgba(45, 130, 84, 0.18);
+  --shu: #cf2f1d;
+  --shu-2: #aa2011;
+  --shu-tint: #faebe6;
+  --shu-glow: rgba(207, 47, 29, 0.22);
+  --gold: #b07d14;
+  --gold-2: #cf9b2b;
+  --gold-tint: #fcf5e5;
+  --gold-glow: rgba(207, 155, 43, 0.2);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --paper: #141815;
-    --paper-sunk: #101310;
-    --surface: #1b211d;
-    --surface-2: #202722;
-    --rule: #2e362f;
-    --rule-firm: #414b43;
-    --sumi: #edefe9;
-    --sumi-2: #b4bcb4;
-    --sumi-3: #838d84;
-    --genko: #6fa985;
-    --genko-2: #8cbf9f;
-    --genko-tint: #1e2b22;
-    --shu: #e2705f;
-    --shu-2: #ee8878;
-    --shu-tint: #33201c;
-    --gold: #cba65a;
+    --paper: #0b100d;
+    --paper-sunk: #060907;
+    --surface: #121814;
+    --surface-2: #18221b;
+    --rule: #233126;
+    --rule-firm: #354638;
+    --sumi: #f3f6f0;
+    --sumi-2: #b8c4b9;
+    --sumi-3: #7d8b80;
+    --genko: #45a772;
+    --genko-2: #65bf8e;
+    --genko-tint: #13271b;
+    --genko-glow: rgba(69, 167, 114, 0.25);
+    --shu: #f24935;
+    --shu-2: #f86f5e;
+    --shu-tint: #2a130f;
+    --shu-glow: rgba(242, 73, 53, 0.3);
+    --gold: #e5b03e;
+    --gold-2: #f3c760;
+    --gold-tint: #2d2109;
+    --gold-glow: rgba(229, 176, 62, 0.25);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #141815;
-  --paper-sunk: #101310;
-  --surface: #1b211d;
-  --surface-2: #202722;
-  --rule: #2e362f;
-  --rule-firm: #414b43;
-  --sumi: #edefe9;
-  --sumi-2: #b4bcb4;
-  --sumi-3: #838d84;
-  --genko: #6fa985;
-  --genko-2: #8cbf9f;
-  --genko-tint: #1e2b22;
-  --shu: #e2705f;
-  --shu-2: #ee8878;
-  --shu-tint: #33201c;
-  --gold: #cba65a;
+  --paper: #0b100d;
+  --paper-sunk: #060907;
+  --surface: #121814;
+  --surface-2: #18221b;
+  --rule: #233126;
+  --rule-firm: #354638;
+  --sumi: #f3f6f0;
+  --sumi-2: #b8c4b9;
+  --sumi-3: #7d8b80;
+  --genko: #45a772;
+  --genko-2: #65bf8e;
+  --genko-tint: #13271b;
+  --genko-glow: rgba(69, 167, 114, 0.25);
+  --shu: #f24935;
+  --shu-2: #f86f5e;
+  --shu-tint: #2a130f;
+  --shu-glow: rgba(242, 73, 53, 0.3);
+  --gold: #e5b03e;
+  --gold-2: #f3c760;
+  --gold-tint: #2d2109;
+  --gold-glow: rgba(229, 176, 62, 0.25);
 }
 
-/* Nối biến thô vào token của Tailwind v4 → sinh ra bg-paper, text-sumi, border-rule… */
+/* Nối biến thô vào token của Tailwind v4 */
 @theme inline {
   --color-paper: var(--paper);
   --color-paper-sunk: var(--paper-sunk);
@@ -86,53 +100,205 @@
   --color-shu-2: var(--shu-2);
   --color-shu-tint: var(--shu-tint);
   --color-gold: var(--gold);
+  --color-gold-2: var(--gold-2);
+  --color-gold-tint: var(--gold-tint);
 
-  --font-sans: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
-  --font-mincho: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  /* Hỗ trợ 100% tiếng Việt kèm chữ Kana & Kanji Nhật Bản */
+  --font-sans: "Plus Jakarta Sans", "Zen Kaku Gothic New", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mincho: "Lora", "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --font-japanese: "Zen Old Mincho", "Noto Serif JP", serif;
 }
 
 @layer base {
-  html { -webkit-tap-highlight-color: transparent; }
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
   body {
-    background: var(--paper);
+    background-color: var(--paper);
     color: var(--sumi);
     font-family: var(--font-sans);
+    font-size-adjust: from-font;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  :focus-visible { outline: 2px solid var(--shu); outline-offset: 2px; border-radius: 4px; }
-  ::selection { background: var(--shu-tint); }
+  :focus-visible {
+    outline: 2px solid var(--shu);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  ::selection {
+    background: var(--shu-tint);
+    color: var(--shu-2);
+  }
+}
+
+/* Animations */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.03); }
+}
+
+@keyframes hankoStamp {
+  0% { transform: scale(2.4) rotate(-12deg); opacity: 0; filter: blur(4px); }
+  60% { transform: scale(0.92) rotate(2deg); opacity: 1; filter: blur(0); }
+  85% { transform: scale(1.05) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%) rotate(25deg); }
+  100% { transform: translateX(250%) rotate(25deg); }
 }
 
 @layer utilities {
   .tnum { font-variant-numeric: tabular-nums; }
+  
   .label-xs {
-    font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase;
-    color: var(--sumi-3); font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sumi-3);
+    font-weight: 700;
+  }
+
+  /* Kính mờ siêu thực (Multi-layered Frosted Glass) */
+  .glass-panel {
+    background-color: color-mix(in srgb, var(--surface) 86%, transparent);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid color-mix(in srgb, var(--rule) 75%, transparent);
+  }
+
+  .glass-card {
+    background-color: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid color-mix(in srgb, var(--rule) 85%, transparent);
+    box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.04), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
+  }
+
+  .glass-luxury {
+    background-color: color-mix(in srgb, var(--surface) 94%, transparent);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid color-mix(in srgb, var(--rule) 85%, transparent);
+    box-shadow:
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
+      0 12px 36px -4px rgba(0, 0, 0, 0.06),
+      0 4px 12px -2px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Con dấu triện son hoàng gia (Royal Hanko Seal) */
+  .hanko-seal {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--shu);
+    border-radius: 6px;
+    color: var(--shu);
+    background: var(--shu-tint);
+    font-family: var(--font-mincho);
+    font-weight: 800;
+    box-shadow:
+      inset 0 0 0 1px rgba(207, 47, 29, 0.3),
+      0 2px 8px -1px var(--shu-glow);
+  }
+
+  .hanko-seal-stamp {
+    animation: hankoStamp 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  /* Vệt sáng quét qua nút bấm (Shimmer button) */
+  .shimmer-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer-sweep::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.18) 50%,
+      transparent 100%
+    );
+    transform: rotate(30deg);
+    animation: shimmerSweep 5s infinite;
+    pointer-events: none;
+  }
+
+  /* Hào quang màu */
+  .ambient-glow {
+    position: relative;
+  }
+  .ambient-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--shu) 22%, transparent) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Hoa văn giấy Genkō Yōshi mờ ảo */
+  .bg-genko-grid {
+    background-size: 32px 32px;
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--rule) 40%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--rule) 40%, transparent) 1px, transparent 1px);
+  }
+
+  /* Hoa văn sóng nước Seigaiha cổ điển bằng SVG data-uri */
+  .bg-seigaiha {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='30' viewBox='0 0 60 30'%3E%3Cpath d='M30 30c0-8.284-6.716-15-15-15S0 21.716 0 30h3c0-6.627 5.373-12 12-12s12 5.373 12 12h3zm30 0c0-8.284-6.716-15-15-15s-15 6.716-15 15h3c0-6.627 5.373-12 12-12s12 5.373 12 12h3zm-15-15c0-8.284-6.716-15-15-15S15 6.716 15 15h3c0-6.627 5.373-12 12-12s12 5.373 12 12h3z' fill='%23236746' fill-opacity='0.035' fill-rule='evenodd'/%3E%3C/svg%3E");
+  }
+
+  .float-slow {
+    animation: floatSlow 7s ease-in-out infinite;
+  }
+
+  .pulse-glow {
+    animation: pulseGlow 4s ease-in-out infinite;
   }
 }
 
-/* --- lưới giấy genkō + nét viết, dùng chung cho mọi khung tập viết --- */
+/* --- lưới giấy genkō + nét viết canvas --- */
 .cellbg { fill: var(--surface); stroke: var(--genko); stroke-width: 0.9; }
-.cellcross { stroke: var(--genko); stroke-width: 0.7; stroke-dasharray: 3 3.6; opacity: 0.5; }
-.celldiag { stroke: var(--genko); stroke-width: 0.55; stroke-dasharray: 2 4.5; opacity: 0.3; }
+.cellcross { stroke: var(--genko); stroke-width: 0.7; stroke-dasharray: 3 3.6; opacity: 0.45; }
+.celldiag { stroke: var(--genko); stroke-width: 0.55; stroke-dasharray: 2 4.5; opacity: 0.25; }
 .gstroke {
-  fill: none; stroke: var(--sumi); stroke-width: 6;
+  fill: none; stroke: var(--sumi); stroke-width: 6.2;
   stroke-linecap: round; stroke-linejoin: round;
-  opacity: 0.13; transition: opacity 0.25s, stroke 0.25s;
+  opacity: 0.12; transition: opacity 0.25s, stroke 0.25s;
 }
-.gstroke.is-next { opacity: 0.3; stroke: var(--shu); }
+.gstroke.is-next { opacity: 0.42; stroke: var(--shu); }
 .gstroke.is-done { opacity: 0; }
 [data-mode="test"] .gstroke { opacity: 0; }
-[data-mode="test"][data-peek="true"] .gstroke { opacity: 0.13; }
-[data-mode="test"][data-peek="true"] .gstroke.is-next { opacity: 0.3; stroke: var(--shu); }
+[data-mode="test"][data-peek="true"] .gstroke { opacity: 0.12; }
+[data-mode="test"][data-peek="true"] .gstroke.is-next { opacity: 0.42; stroke: var(--shu); }
 .astroke {
-  fill: none; stroke: var(--shu); stroke-width: 6.4;
+  fill: none; stroke: var(--shu); stroke-width: 6.8;
   stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 2px 6px rgba(207, 47, 29, 0.35));
 }
 .brushdot { fill: var(--shu); }
-.brushring { fill: none; stroke: var(--shu); stroke-width: 1.2; opacity: 0.45; }
+.brushring { fill: none; stroke: var(--shu); stroke-width: 1.4; opacity: 0.5; }
 .cstroke {
-  fill: none; stroke: var(--genko); stroke-width: 2;
-  stroke-linecap: round; stroke-linejoin: round; opacity: 0.85;
+  fill: none; stroke: var(--genko); stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round; opacity: 0.9;
 }
 .snum circle { fill: var(--shu); }
 .snum text {

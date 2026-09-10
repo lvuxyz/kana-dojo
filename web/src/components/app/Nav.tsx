@@ -27,7 +27,7 @@ export const NAV = [
 function Icon({ name }: { name: string }) {
   return (
     <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
-         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       {ICONS[name]}
     </svg>
   );
@@ -36,7 +36,7 @@ function Icon({ name }: { name: string }) {
 export function SideNav() {
   const path = usePathname();
   return (
-    <nav className="hidden lg:flex lg:flex-col lg:gap-0.5">
+    <nav className="hidden lg:flex lg:flex-col lg:gap-1">
       {NAV.map((item) => {
         const active = path.startsWith(item.href);
         return (
@@ -45,12 +45,24 @@ export function SideNav() {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={clsx(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-              active ? "bg-paper-sunk font-medium text-sumi" : "text-sumi-2 hover:bg-paper-sunk hover:text-sumi",
+              "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
+              active
+                ? "bg-surface text-sumi font-semibold shadow-xs border border-rule/70"
+                : "text-sumi-2 hover:bg-paper-sunk hover:text-sumi",
             )}
           >
-            <span className={active ? "text-shu" : "text-sumi-3"}><Icon name={item.icon} /></span>
-            {item.label}
+            {active && (
+              <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-shu shadow-xs shadow-shu" />
+            )}
+            <span
+              className={clsx(
+                "transition-colors duration-200",
+                active ? "text-shu" : "text-sumi-3 group-hover:text-sumi",
+              )}
+            >
+              <Icon name={item.icon} />
+            </span>
+            <span>{item.label}</span>
           </Link>
         );
       })}
@@ -58,14 +70,15 @@ export function SideNav() {
   );
 }
 
-/** Trên điện thoại thanh điều hướng nằm dưới cùng — ngón cái với tới được,
- *  và đó là chỗ người dùng đã quen tìm ở mọi ứng dụng học ngôn ngữ. */
+/** Trên điện thoại thanh điều hướng nằm dưới cùng — kính mờ cao cấp với điểm nhấn triện son */
 export function BottomNav() {
   const path = usePathname();
   const items = NAV.slice(0, 5);
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-rule bg-surface/95 backdrop-blur lg:hidden"
-         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-rule/80 bg-surface/90 shadow-lg backdrop-blur-xl lg:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       {items.map((item) => {
         const active = path.startsWith(item.href);
         return (
@@ -73,11 +86,18 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={clsx("flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px]",
-              active ? "text-shu" : "text-sumi-3")}
+            className={clsx(
+              "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all duration-150",
+              active ? "text-shu font-bold" : "text-sumi-3 hover:text-sumi",
+            )}
           >
-            <Icon name={item.icon} />
-            {item.label}
+            {active && (
+              <span className="absolute top-0 h-0.5 w-6 rounded-full bg-shu shadow-xs shadow-shu" />
+            )}
+            <span className={clsx("transition-transform duration-200", active && "scale-110")}>
+              <Icon name={item.icon} />
+            </span>
+            <span>{item.label}</span>
           </Link>
         );
       })}
