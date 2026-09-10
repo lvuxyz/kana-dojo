@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Brand } from "@/components/app/Brand";
 import { ThemeToggle } from "@/components/app/ThemeToggle";
 import { HeroDemo } from "@/components/kana/HeroDemo";
-import { Button } from "@/components/ui";
+import { Badge, Button } from "@/components/ui";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -11,173 +11,548 @@ export const metadata: Metadata = {
 
 const FAQ = [
   {
-    q: "Học Hiragana mất bao lâu?",
-    a: "Với 15–20 phút mỗi ngày, phần lớn người học viết thạo 46 chữ Hiragana cơ bản trong 2–3 tuần. Điều quyết định không phải học bao lâu mỗi buổi, mà là có quay lại đúng ngày hệ thống nhắc hay không.",
+    q: "Học bảng chữ cái Hiragana mất bao lâu?",
+    a: "Chỉ với 15–20 phút luyện tập mỗi ngày, phần lớn người học viết thạo toàn bộ 46 chữ Hiragana cơ bản trong vòng 2–3 tuần. Điều quyết định hiệu quả không phải là học dồn bao lâu mỗi buổi, mà là quay lại luyện tập đúng thời điểm được thuật toán FSRS nhắc nhở.",
   },
   {
-    q: "Vì sao phải viết đúng thứ tự nét?",
-    a: "Thứ tự nét quyết định hình dáng chữ khi viết nhanh, và là cơ sở để sau này tra Kanji theo bộ thủ. Viết sai thứ tự thì chữ vẫn đọc được lúc viết chậm, nhưng sẽ méo khi viết nhanh và rất khó sửa về sau.",
+    q: "Vì sao nhất định phải viết đúng thứ tự nét?",
+    a: "Thứ tự nét quyết định trực tiếp đến hình dáng cân đối của chữ khi viết nhanh, đồng thời là nền tảng cốt lõi để sau này nhận diện và tra cứu chữ Hán (Kanji) theo bộ thủ. Viết sai thứ tự khiến chữ bị méo mó khi viết tốc ký và tạo thói quen sai rất khó sửa sau này.",
   },
   {
     q: "Nên học Hiragana hay Katakana trước?",
-    a: "Hiragana trước. Nó xuất hiện trong hầu hết câu tiếng Nhật và là nền tảng ngữ pháp. Katakana chủ yếu dùng cho từ mượn, học sau sẽ nhẹ hơn vì nhiều nét đã quen tay.",
+    a: "Bạn nên học Hiragana trước vì đây là bảng chữ cái xuất hiện trong hầu hết các câu tiếng Nhật và đóng vai trò ngữ pháp chính. Katakana chủ yếu dùng cho các từ mượn nước ngoài, học sau sẽ rất nhanh vì cơ tay đã quen với các nét chữ cơ bản.",
   },
   {
-    q: "Có cần cài ứng dụng không?",
-    a: "Không. Kana Dōjō chạy thẳng trên trình duyệt của điện thoại lẫn máy tính, hỗ trợ cả ngón tay, bút cảm ứng và chuột. Tiến độ đồng bộ theo tài khoản nên đổi thiết bị vẫn học tiếp được.",
+    q: "Ứng dụng có hỗ trợ bút cảm ứng (Apple Pencil, S-Pen) không?",
+    a: "Có, hoàn toàn mượt mà. Kana Dōjō được tối ưu hóa đặc biệt cho màn hình cảm ứng, nhận diện nét vẽ bằng bút stylus, ngón tay trên điện thoại/máy tính bảng cũng như chuột trên máy tính để bàn. Tiến độ học được đồng bộ theo thời gian thực.",
   },
+];
+
+const COMPARISON = [
+  {
+    feature: "Luyện viết tay tương tác",
+    kanadojo: "Có, chấm điểm từng nét theo thời gian thực",
+    duolingo: "Không (chỉ ghép chữ / trắc nghiệm)",
+    anki: "Không (chỉ lật thẻ flashcard)",
+    book: "Có (tự nhìn mẫu chép tay)",
+  },
+  {
+    feature: "Kiểm tra chiều & thứ tự nét",
+    kanadojo: "Chỉ rõ lỗi ngược chiều / sai thứ tự nét",
+    duolingo: "Không hỗ trợ kiểm tra nét",
+    anki: "Không hỗ trợ",
+    book: "Không có ai chấm lỗi",
+  },
+  {
+    feature: "Lịch ôn lặp lại ngắt quãng",
+    kanadojo: "Thuật toán FSRS-6 đo lường độ nhớ sinh học",
+    duolingo: "Lặp lại ngẫu nhiên cố định",
+    anki: "FSRS (người dùng tự bấm cảm tính)",
+    book: "Tự ghi nhớ thủ công",
+  },
+  {
+    feature: "Giao diện tiếng Việt chuẩn mực",
+    kanadojo: "100% tiếng Việt chuẩn Unicode & ngữ pháp",
+    duolingo: "Hỗ trợ một phần",
+    anki: "Phải tự cài đặt plugin phức tạp",
+    book: "Tùy thuộc từng giáo trình",
+  },
+  {
+    feature: "Chi phí & cài đặt",
+    kanadojo: "Miễn phí 100%, học ngay trên trình duyệt",
+    duolingo: "Có quảng cáo / gói Super trả phí",
+    anki: "Trả phí cao trên iOS",
+    book: "Tốn chi phí mua nhiều tập vở",
+  },
+];
+
+const METRIC_PILLS = [
+  { label: "100% Miễn phí trọn đời", icon: "✨" },
+  { label: "Chấm nét 24 điểm Arc-length", icon: "🎯" },
+  { label: "Chuẩn 208 ký tự Hiragana & Katakana", icon: "📜" },
+  { label: "Thuật toán FSRS-6 thế hệ mới", icon: "🧠" },
 ];
 
 export default function Landing() {
   return (
-    <>
-      <header className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-4">
-        <Brand />
-        <nav className="ml-auto flex items-center gap-2">
-          <Link href="/bang-chu-cai/hiragana" className="hidden px-3 text-sm text-sumi-2 hover:text-sumi sm:block">
-            Bảng chữ cái
-          </Link>
-          <ThemeToggle />
-          <Link href="/dang-nhap"><Button size="sm">Đăng nhập</Button></Link>
-          <Link href="/dang-ky"><Button size="sm" variant="solid">Bắt đầu</Button></Link>
-        </nav>
+    <div className="relative min-h-screen overflow-x-hidden bg-paper text-sumi selection:bg-shu-tint selection:text-shu-2">
+      {/* ------------------------------------------------------------- HỌA TIẾT THƯ PHÁP VÀ ÁNH SÁNG NỀN */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Lưới ô vuông mờ Genko Yōshi */}
+        <div className="bg-genko-grid absolute inset-0 opacity-[0.45] dark:opacity-[0.25]" />
+
+        {/* Quầng sáng quang phổ ấm */}
+        <div className="absolute -top-48 left-1/2 -translate-x-1/2 h-[600px] w-[1100px] rounded-full bg-gradient-to-b from-shu/10 via-gold/5 to-transparent blur-3xl" />
+        <div className="absolute top-[40%] -left-48 h-[500px] w-[500px] rounded-full bg-genko/8 blur-3xl" />
+        <div className="absolute top-[70%] -right-48 h-[500px] w-[500px] rounded-full bg-shu/8 blur-3xl" />
+
+        {/* Chữ Kanji nghệ thuật bay bổng làm hình mờ (Calligraphy Watermark) */}
+        <div className="float-slow absolute top-28 right-8 select-none font-mincho text-[160px] font-bold text-sumi/[0.035] dark:text-white/[0.03] leading-none">
+          道
+        </div>
+        <div className="float-slow absolute top-[48%] left-6 select-none font-mincho text-[180px] font-bold text-sumi/[0.03] dark:text-white/[0.025] leading-none" style={{ animationDelay: "-3s" }}>
+          書
+        </div>
+        <div className="float-slow absolute top-[78%] right-12 select-none font-mincho text-[150px] font-bold text-sumi/[0.03] dark:text-white/[0.025] leading-none" style={{ animationDelay: "-5s" }}>
+          心
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------- HEADER */}
+      <header className="sticky top-0 z-50 border-b border-rule/70 bg-paper/85 backdrop-blur-xl transition-colors">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
+          <Brand />
+
+          <nav className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden md:flex items-center gap-1.5 mr-2">
+              <Link
+                href="/bang-chu-cai/hiragana"
+                className="rounded-xl px-3 py-1.5 text-xs font-semibold text-sumi-2 hover:bg-rule/40 hover:text-sumi transition-colors"
+              >
+                Hiragana
+              </Link>
+              <Link
+                href="/bang-chu-cai/katakana"
+                className="rounded-xl px-3 py-1.5 text-xs font-semibold text-sumi-2 hover:bg-rule/40 hover:text-sumi transition-colors"
+              >
+                Katakana
+              </Link>
+              <Link
+                href="/luyen-viet"
+                className="rounded-xl px-3 py-1.5 text-xs font-semibold text-sumi-2 hover:bg-rule/40 hover:text-sumi transition-colors"
+              >
+                Luyện viết
+              </Link>
+            </div>
+
+            <ThemeToggle />
+
+            <Link href="/dang-nhap">
+              <Button size="sm" variant="outline" className="hidden sm:inline-flex">
+                Đăng nhập
+              </Button>
+            </Link>
+            <Link href="/dang-ky">
+              <Button size="sm" variant="solid">
+                Bắt đầu học
+              </Button>
+            </Link>
+          </nav>
+        </div>
       </header>
 
-      {/* ------------------------------------------------------------- hero */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-10 lg:grid-cols-[1.05fr_1fr] lg:py-16">
-        <div className="flex flex-col gap-5">
-          <span className="w-fit rounded-full border border-genko/30 bg-genko-tint px-3 py-1 text-[12px] font-medium text-genko">
-            208 ký tự · thứ tự nét chuẩn KanjiVG
-          </span>
+      <main className="relative z-10">
+        {/* ------------------------------------------------------------- HERO SECTION */}
+        <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-10 pb-16 lg:grid-cols-[1.1fr_1fr] lg:pt-16 lg:pb-24">
+          <div className="flex flex-col gap-6 text-left">
+            {/* Imperial pill badge */}
+            <div className="inline-flex w-fit items-center gap-2.5 rounded-full border border-shu/30 bg-shu-tint/90 px-4 py-1.5 shadow-xs backdrop-blur-md">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-shu opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-shu shadow-xs shadow-shu" />
+              </span>
+              <span className="font-sans text-xs font-bold tracking-wide text-shu-2">
+                Chuẩn 208 ký tự · KanjiVG Vector · FSRS-6 Spaced Repetition
+              </span>
+            </div>
 
-          <h1 className="text-balance font-mincho text-4xl font-semibold leading-[1.15] sm:text-5xl">
-            Học viết tiếng Nhật <span className="text-shu">đúng nét</span> ngay từ ngày đầu
-          </h1>
+            {/* Main Headline */}
+            <h1 className="font-mincho text-4xl font-bold leading-[1.2] tracking-tight text-sumi sm:text-5xl lg:text-[56px]">
+              Học viết tiếng Nhật{" "}
+              <span className="relative inline-block">
+                <span className="bg-gradient-to-r from-shu via-shu to-shu-2 bg-clip-text text-transparent">
+                  đúng từng nét
+                </span>
+                {/* Vệt gạch chân mực thư pháp */}
+                <svg
+                  className="absolute -bottom-1.5 left-0 w-full text-shu/30 overflow-visible"
+                  viewBox="0 0 100 8"
+                  preserveAspectRatio="none"
+                  height="7"
+                >
+                  <path
+                    d="M0,5 Q30,1 60,4 T100,2"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>{" "}
+              ngay từ ngày đầu tiên
+            </h1>
 
-          <p className="max-w-[52ch] text-[15px] leading-relaxed text-sumi-2">
-            Hầu hết ứng dụng chỉ dạy bạn <em>nhận mặt chữ</em>. Kana Dōjō bắt bạn viết ra —
-            rồi chấm từng nét một: sai hình, sai chiều, sai thứ tự đều được chỉ rõ.
-            Điểm đó cũng chính là thứ quyết định khi nào bạn cần ôn lại.
-          </p>
+            {/* Description */}
+            <p className="max-w-[54ch] text-base leading-relaxed text-sumi-2 sm:text-[17px]">
+              Hầu hết ứng dụng chỉ dạy bạn <em>nhận mặt chữ thụ động qua trắc nghiệm</em>. Kana Dōjō đưa bạn vào không gian
+              rèn luyện thực thụ: cầm bút vẽ từng nét trên giấy ô vuông Nhật Bản — máy chấm điểm tức thì, phát hiện vẽ ngược chiều
+              hay sai thứ tự để khắc phục ngay.
+            </p>
 
-          <div className="flex flex-wrap gap-3">
-            <Link href="/dang-ky"><Button variant="solid" size="lg">Học miễn phí</Button></Link>
-            <Link href="/bang-chu-cai/hiragana"><Button size="lg">Xem bảng Hiragana</Button></Link>
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap items-center gap-3.5 pt-1">
+              <Link href="/dang-ky">
+                <Button variant="solid" size="lg" className="group text-[15px] px-7 shadow-lg shadow-shu/25">
+                  <span>Học miễn phí ngay</span>
+                  <svg
+                    className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </Button>
+              </Link>
+              <Link href="/bang-chu-cai/hiragana">
+                <Button size="lg" variant="outline" className="font-semibold text-[15px] px-6">
+                  Xem bảng Hiragana
+                </Button>
+              </Link>
+            </div>
+
+            {/* Floating Metric Pills */}
+            <div className="grid grid-cols-2 gap-2.5 pt-3 sm:flex sm:flex-wrap">
+              {METRIC_PILLS.map((pill, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 rounded-xl border border-rule/80 bg-surface/70 px-3 py-1.5 text-xs font-semibold text-sumi-2 backdrop-blur-xs shadow-2xs"
+                >
+                  <span>{pill.icon}</span>
+                  <span>{pill.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <p className="text-[12.5px] text-sumi-3">
-            Không quảng cáo · Không cần thẻ ngân hàng · Toàn bộ Kana miễn phí vĩnh viễn
-          </p>
-        </div>
+          {/* Interactive Studio Demo */}
+          <div className="flex justify-center lg:justify-end">
+            <HeroDemo />
+          </div>
+        </section>
 
-        <HeroDemo />
-      </section>
-
-      {/* ------------------------------------------------------ khác biệt */}
-      <section className="mx-auto max-w-6xl px-5 py-12">
-        <h2 className="font-mincho text-2xl font-semibold">Ba thứ không app nào khác làm cùng lúc</h2>
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
-          {[
-            {
-              n: "01",
-              t: "Máy chấm, không phải bạn tự chấm",
-              d: "Nét bạn vẽ được lấy lại mẫu theo độ dài cung rồi so với đường tâm nét chuẩn. Sai lệch hình dáng, chiều viết và độ dài đều bị trừ điểm — không có chỗ cho cảm tính.",
-            },
-            {
-              n: "02",
-              t: "Lịch ôn tính từ chính điểm viết",
-              d: "Anki và WaniKani hỏi bạn “có nhớ không” rồi tin câu trả lời. Ở đây thuật toán FSRS nhận điểm đo được từ nét viết làm đầu vào, nên lịch ôn bám sát trí nhớ thật.",
-            },
-            {
-              n: "03",
-              t: "Chạy trên web, viết bằng ngón tay",
-              d: "Không cài đặt, không kho ứng dụng. Mở trình duyệt trên điện thoại là viết được ngay, tiến độ đồng bộ sang máy tính.",
-            },
-          ].map((f) => (
-            <div key={f.n} className="flex flex-col gap-2 border-t-2 border-shu pt-4">
-              <span className="font-mincho text-[13px] font-semibold text-shu tnum">{f.n}</span>
-              <h3 className="font-mincho text-lg">{f.t}</h3>
-              <p className="text-[14px] leading-relaxed text-sumi-2">{f.d}</p>
+        {/* ------------------------------------------------------------- DẢI CHÂM NGÔN THƯ PHÁP (ZEN BANNER) */}
+        <section className="border-y border-rule/70 bg-gradient-to-r from-paper-sunk/60 via-surface/80 to-paper-sunk/60 py-6 px-5 backdrop-blur-md">
+          <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-3 text-center sm:flex-row sm:gap-6">
+            <span className="hanko-seal px-3 py-1 text-base">
+              道場
+            </span>
+            <div className="flex flex-col sm:text-left">
+              <div className="flex items-center justify-center sm:justify-start gap-3">
+                <span className="font-mincho text-xl font-bold tracking-widest text-sumi sm:text-2xl">
+                  「継続は力なり」
+                </span>
+                <span className="text-xs font-semibold text-sumi-3 uppercase tracking-wider">
+                  — Tục ngữ Nhật Bản
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs font-medium text-sumi-3">
+                <em>Keizoku wa chikara nari</em> · Kiên trì chính là sức mạnh. 15 phút viết tay mỗi ngày mở lối cho toàn bộ ngôn ngữ tiếng Nhật.
+              </p>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* ------------------------------------------------------- so sánh */}
-      <section className="mx-auto max-w-6xl px-5 py-12">
-        <h2 className="font-mincho text-2xl font-semibold">So với những cách học phổ biến</h2>
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[620px] border-collapse text-[14px]">
-            <thead>
-              <tr className="border-b border-rule text-left">
-                <th className="py-2.5 pr-4 font-medium text-sumi-3">&nbsp;</th>
-                <th className="py-2.5 pr-4 font-mincho font-semibold text-shu">Kana Dōjō</th>
-                <th className="py-2.5 pr-4 font-medium text-sumi-2">Duolingo</th>
-                <th className="py-2.5 pr-4 font-medium text-sumi-2">Anki</th>
-                <th className="py-2.5 font-medium text-sumi-2">Sách tập viết</th>
-              </tr>
-            </thead>
-            <tbody className="text-sumi-2">
-              {[
-                ["Tập viết tay", "Có, chấm từng nét", "Không", "Không", "Có, không chấm"],
-                ["Kiểm tra thứ tự nét", "Có", "Không", "Không", "Tự kiểm tra"],
-                ["Lịch ôn theo trí nhớ", "FSRS, lấy điểm viết", "Cố định", "FSRS, tự chấm", "Không"],
-                ["Giao diện tiếng Việt", "Có", "Có", "Cần cài thêm", "Tùy sách"],
-                ["Cần cài đặt", "Không", "Có", "Có", "—"],
-              ].map((row) => (
-                <tr key={row[0]} className="border-b border-rule">
-                  <th className="py-2.5 pr-4 text-left font-medium text-sumi">{row[0]}</th>
-                  {row.slice(1).map((cell, i) => (
-                    <td key={i} className={`py-2.5 pr-4 ${i === 0 ? "font-medium text-genko" : ""}`}>{cell}</td>
-                  ))}
+        {/* ------------------------------------------------------------- 3 BENTO CARDS */}
+        <section className="mx-auto max-w-6xl px-5 py-18">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <Badge variant="genko" className="mb-3">
+              CÔNG NGHỆ THIẾT KẾ ĐỘT PHÁ
+            </Badge>
+            <h2 className="font-mincho text-3xl font-bold tracking-tight text-sumi sm:text-4xl">
+              Ba giá trị cốt lõi tạo nên sự khác biệt
+            </h2>
+            <p className="mt-3 text-sm text-sumi-2 sm:text-base leading-relaxed">
+              Phương pháp học được thiết kế khoa học, kết hợp cảm giác viết giấy truyền thống với thuật toán ghi nhớ hiện đại.
+            </p>
+          </div>
+
+          <div className="grid gap-7 md:grid-cols-3">
+            {/* Card 1: 筆 */}
+            <div className="glass-luxury group relative flex flex-col justify-between overflow-hidden rounded-[26px] p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-shu/40">
+              {/* Thư pháp chìm */}
+              <span className="pointer-events-none absolute -right-3 -top-5 select-none font-mincho text-[110px] font-bold text-sumi/[0.04] dark:text-white/[0.03] transition-transform duration-300 group-hover:scale-110">
+                筆
+              </span>
+
+              <div className="flex flex-col gap-4 relative z-10">
+                <div className="grid h-13 w-13 place-items-center rounded-2xl bg-gradient-to-br from-shu to-shu-2 text-white shadow-md shadow-shu/30 ring-1 ring-white/25">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+                <h3 className="font-mincho text-xl font-bold text-sumi">
+                  Máy chấm nét cọ tự động, không để bạn tự đoán
+                </h3>
+                <p className="text-sm leading-relaxed text-sumi-2">
+                  Thuật toán Arc-length Resampling lấy mẫu 24 điểm cung chuẩn xác. Hệ thống phát hiện ngay lập tức nét vẽ
+                  ngược chiều, nét quá ngắn hoặc lệch hướng để bạn kịp thời sửa đổi.
+                </p>
+              </div>
+
+              <div className="mt-7 flex items-center gap-2 border-t border-rule/70 pt-4 text-xs font-bold text-shu">
+                <span>Chấm điểm từ 0–100 khách quan</span>
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+              </div>
+            </div>
+
+            {/* Card 2: 記 */}
+            <div className="glass-luxury group relative flex flex-col justify-between overflow-hidden rounded-[26px] p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-genko/40">
+              {/* Thư pháp chìm */}
+              <span className="pointer-events-none absolute -right-3 -top-5 select-none font-mincho text-[110px] font-bold text-sumi/[0.04] dark:text-white/[0.03] transition-transform duration-300 group-hover:scale-110">
+                記
+              </span>
+
+              <div className="flex flex-col gap-4 relative z-10">
+                <div className="grid h-13 w-13 place-items-center rounded-2xl bg-gradient-to-br from-genko to-genko-2 text-white shadow-md shadow-genko/30 ring-1 ring-white/25">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="font-mincho text-xl font-bold text-sumi">
+                  Lịch ôn FSRS-6 tính từ chính độ chính xác nét vẽ
+                </h3>
+                <p className="text-sm leading-relaxed text-sumi-2">
+                  Không giống Anki bắt bạn tự bấm &ldquo;Dễ&rdquo; hay &ldquo;Khó&rdquo;. Điểm nét viết thực tế được nạp thẳng vào bộ lập lịch
+                  FSRS-6 thế hệ mới, tối ưu hóa khoảng cách ngày ôn tập theo đúng trí nhớ sinh học.
+                </p>
+              </div>
+
+              <div className="mt-7 flex items-center gap-2 border-t border-rule/70 pt-4 text-xs font-bold text-genko">
+                <span>Mục tiêu ghi nhớ 90% lâu dài</span>
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+              </div>
+            </div>
+
+            {/* Card 3: 機 */}
+            <div className="glass-luxury group relative flex flex-col justify-between overflow-hidden rounded-[26px] p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-gold/40">
+              {/* Thư pháp chìm */}
+              <span className="pointer-events-none absolute -right-3 -top-5 select-none font-mincho text-[110px] font-bold text-sumi/[0.04] dark:text-white/[0.03] transition-transform duration-300 group-hover:scale-110">
+                機
+              </span>
+
+              <div className="flex flex-col gap-4 relative z-10">
+                <div className="grid h-13 w-13 place-items-center rounded-2xl bg-gradient-to-br from-gold to-gold-2 text-white shadow-md shadow-gold/30 ring-1 ring-white/25">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="font-mincho text-xl font-bold text-sumi">
+                  Học tức thì trên trình duyệt, không cần cài ứng dụng
+                </h3>
+                <p className="text-sm leading-relaxed text-sumi-2">
+                  Chỉ cần mở trình duyệt web trên điện thoại, máy tính bảng hoặc laptop. Hỗ trợ mượt mà cả ngón tay cảm ứng,
+                  bút stylus và chuột máy tính với dữ liệu nét vector sắc nét ở mọi kích cỡ màn hình.
+                </p>
+              </div>
+
+              <div className="mt-7 flex items-center gap-2 border-t border-rule/70 pt-4 text-xs font-bold text-gold">
+                <span>Đồng bộ tiến độ học liên tục</span>
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------------- SO SÁNH PHƯƠNG PHÁP (SPOTLIGHT TABLE) */}
+        <section className="mx-auto max-w-6xl px-5 py-16">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <Badge variant="shu" className="mb-3">
+              TẠI SAO CHỌN KANA DŌJŌ
+            </Badge>
+            <h2 className="font-mincho text-3xl font-bold tracking-tight text-sumi sm:text-4xl">
+              So sánh với các phương pháp học hiện nay
+            </h2>
+            <p className="mt-3 text-sm text-sumi-2 sm:text-base leading-relaxed">
+              Hiểu rõ vì sao người học chuyển sang luyện viết cùng Kana Dōjō thay vì các ứng dụng trắc nghiệm thụ động.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto rounded-3xl border border-rule/80 bg-surface/90 shadow-lg shadow-sumi/5 backdrop-blur-xl">
+            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-rule/80 bg-paper-sunk/60 text-xs uppercase tracking-wider text-sumi-3">
+                  <th className="py-5 px-6 font-bold">Tính năng</th>
+                  {/* Cột nổi bật Kana Dōjō */}
+                  <th className="relative py-5 px-6 font-bold text-shu bg-shu-tint/60 border-x-2 border-t-2 border-shu/40">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 text-sm font-extrabold">
+                        <span className="h-2.5 w-2.5 rounded-full bg-shu shadow-xs shadow-shu" />
+                        Kana Dōjō
+                      </span>
+                      <span className="rounded-full bg-shu px-2 py-0.5 text-[9.5px] font-bold uppercase text-white shadow-2xs">
+                        Khuyên dùng
+                      </span>
+                    </div>
+                  </th>
+                  <th className="py-5 px-6 font-semibold text-sumi-2">Duolingo</th>
+                  <th className="py-5 px-6 font-semibold text-sumi-2">Anki</th>
+                  <th className="py-5 px-6 font-semibold text-sumi-2">Sách tập viết</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody className="divide-y divide-rule/60 text-sumi-2">
+                {COMPARISON.map((row, idx) => (
+                  <tr key={idx} className="transition-colors hover:bg-paper-sunk/40">
+                    <td className="py-4.5 px-6 font-semibold text-sumi">{row.feature}</td>
+                    {/* Cột nổi bật Kana Dōjō */}
+                    <td className="py-4.5 px-6 font-bold text-genko bg-shu-tint/30 border-x-2 border-shu/40">
+                      <div className="flex items-center gap-2">
+                        <span className="grid h-5 w-5 place-items-center rounded-full bg-genko-tint text-genko border border-genko/30 shrink-0">
+                          <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                        <span className="text-[13.5px]">{row.kanadojo}</span>
+                      </div>
+                    </td>
+                    <td className="py-4.5 px-6 text-sumi-3 text-[13px]">{row.duolingo}</td>
+                    <td className="py-4.5 px-6 text-sumi-3 text-[13px]">{row.anki}</td>
+                    <td className="py-4.5 px-6 text-sumi-3 text-[13px]">{row.book}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-      {/* ----------------------------------------------------------- FAQ */}
-      <section className="mx-auto max-w-3xl px-5 py-12">
-        <h2 className="font-mincho text-2xl font-semibold">Câu hỏi thường gặp</h2>
-        <div className="mt-5 flex flex-col">
-          {FAQ.map((f) => (
-            <details key={f.q} className="group border-b border-rule py-4">
-              <summary className="cursor-pointer list-none font-mincho text-[17px] marker:hidden">
-                {f.q}
-              </summary>
-              <p className="mt-2.5 text-[14px] leading-relaxed text-sumi-2">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+        {/* ------------------------------------------------------------- FAQ ACCORDION */}
+        <section className="mx-auto max-w-3xl px-5 py-16">
+          <div className="text-center mb-12">
+            <Badge variant="neutral" className="mb-3">
+              CÂU HỎI PHỔ BIẾN
+            </Badge>
+            <h2 className="font-mincho text-3xl font-bold tracking-tight text-sumi sm:text-4xl">
+              Giải đáp thắc mắc thường gặp
+            </h2>
+            <p className="mt-2 text-sm text-sumi-2">
+              Những điều người mới bắt đầu học tiếng Nhật hay quan tâm nhất.
+            </p>
+          </div>
 
-      <section className="mx-auto max-w-6xl px-5 py-14">
-        <div className="flex flex-col items-center gap-4 rounded-xl border border-rule bg-surface px-6 py-12 text-center">
-          <h2 className="text-balance font-mincho text-3xl font-semibold">Viết chữ đầu tiên trong 30 giây</h2>
-          <p className="max-w-[46ch] text-[15px] text-sumi-2">
-            Không cần thẻ ngân hàng, không quảng cáo. Toàn bộ 208 ký tự Hiragana và Katakana miễn phí vĩnh viễn.
-          </p>
-          <Link href="/dang-ky"><Button variant="solid" size="lg">Tạo tài khoản miễn phí</Button></Link>
-        </div>
-      </section>
+          <div className="flex flex-col gap-3.5">
+            {FAQ.map((f, idx) => (
+              <details
+                key={idx}
+                className="group glass-luxury rounded-2xl p-5.5 shadow-xs transition-all duration-200 hover:border-rule-firm"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between font-mincho text-lg font-bold text-sumi marker:hidden">
+                  <span className="group-hover:text-shu transition-colors">{f.q}</span>
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-paper-sunk text-sumi-2 transition-transform duration-200 group-open:rotate-180 group-open:bg-shu group-open:text-white">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </summary>
+                <p className="mt-4 text-sm leading-relaxed text-sumi-2 pt-3 border-t border-rule/50">
+                  {f.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
 
-      <footer className="mx-auto max-w-6xl border-t border-rule px-5 py-8 text-[12.5px] leading-relaxed text-sumi-3">
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          <Link href="/bang-chu-cai/hiragana" className="hover:text-sumi">Bảng chữ cái Hiragana</Link>
-          <Link href="/bang-chu-cai/katakana" className="hover:text-sumi">Bảng chữ cái Katakana</Link>
-          <Link href="/dang-nhap" className="hover:text-sumi">Đăng nhập</Link>
+        {/* ------------------------------------------------------------- FINAL CALL TO ACTION */}
+        <section className="mx-auto max-w-6xl px-5 py-16">
+          <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-shu via-shu to-shu-2 px-8 py-16 text-center text-white shadow-2xl shadow-shu/35 sm:px-14 sm:py-22">
+            {/* Hoa văn Seigaiha sóng nước chìm */}
+            <div className="bg-seigaiha pointer-events-none absolute inset-0 opacity-15" />
+
+            {/* Background decorative Kanji */}
+            <div className="pointer-events-none absolute right-4 -bottom-10 select-none font-mincho text-[220px] font-bold text-white/[0.08] leading-none">
+              書
+            </div>
+            <div className="pointer-events-none absolute left-6 -top-10 select-none font-mincho text-[180px] font-bold text-white/[0.06] leading-none">
+              道
+            </div>
+
+            <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center gap-7">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+                <span>🌸</span>
+                <span>Học trực tuyến hoàn toàn miễn phí</span>
+              </span>
+
+              <h2 className="font-mincho text-3xl font-bold tracking-tight sm:text-5xl sm:leading-tight">
+                Bắt đầu viết chữ tiếng Nhật đầu tiên ngay hôm nay
+              </h2>
+
+              <p className="max-w-[48ch] text-base leading-relaxed text-white/90 sm:text-lg">
+                Không cần thẻ tín dụng, không quảng cáo làm phiền. Mở trình duyệt và cầm bút luyện nét cùng hàng ngàn học viên.
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+                <Link href="/dang-ky">
+                  <Button
+                    size="lg"
+                    className="bg-white text-shu hover:bg-white/95 hover:scale-[1.02] shadow-xl font-bold text-base px-9 py-4 cursor-pointer"
+                  >
+                    Tạo tài khoản miễn phí
+                  </Button>
+                </Link>
+                <Link href="/bang-chu-cai/hiragana">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-white/40 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md text-base px-7 py-4"
+                  >
+                    Khám phá bảng chữ cái
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* ------------------------------------------------------------- FOOTER */}
+      <footer className="border-t border-rule/70 bg-paper-sunk/50 px-5 py-12 text-xs leading-relaxed text-sumi-3 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 font-medium">
+            <Link href="/bang-chu-cai/hiragana" className="hover:text-sumi transition-colors">
+              Bảng chữ cái Hiragana
+            </Link>
+            <Link href="/bang-chu-cai/katakana" className="hover:text-sumi transition-colors">
+              Bảng chữ cái Katakana
+            </Link>
+            <Link href="/luyen-viet" className="hover:text-sumi transition-colors">
+              Studio luyện viết
+            </Link>
+            <Link href="/dang-nhap" className="hover:text-sumi transition-colors">
+              Đăng nhập tài khoản
+            </Link>
+            <Link href="/dang-ky" className="hover:text-sumi transition-colors">
+              Đăng ký mới
+            </Link>
+          </div>
+          <div className="flex items-center gap-2 text-sumi-3">
+            <span className="hanko-seal px-1.5 py-0.5 text-[10px]">済</span>
+            <span>© {new Date().getFullYear()} Kana Dōjō. Nền tảng học viết tiếng Nhật thông minh.</span>
+          </div>
         </div>
-        <p className="mt-4">
-          Dữ liệu thứ tự nét lấy từ{" "}
-          <a href="http://kanjivg.tagaini.net" target="_blank" rel="noopener noreferrer" className="text-genko hover:underline">KanjiVG</a>{" "}
-          © Ulrich Apel, giấy phép{" "}
-          <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener noreferrer" className="text-genko hover:underline">CC BY-SA 3.0</a>.
-          Bản dẫn xuất giữ nguyên giấy phép đó.
-        </p>
+
+        <div className="mx-auto max-w-6xl mt-6 pt-6 border-t border-rule/40 text-[11.5px] text-sumi-3/80">
+          Dữ liệu đường nét vector trích xuất từ{" "}
+          <a
+            href="http://kanjivg.tagaini.net"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-genko font-semibold hover:underline"
+          >
+            KanjiVG
+          </a>{" "}
+          © Ulrich Apel, phát hành theo giấy phép{" "}
+          <a
+            href="https://creativecommons.org/licenses/by-sa/3.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-genko font-semibold hover:underline"
+          >
+            CC BY-SA 3.0
+          </a>
+          . Toàn bộ tác phẩm dẫn xuất tuân thủ cùng điều khoản cấp phép.
+        </div>
       </footer>
 
-      {/* Dữ liệu có cấu trúc để Google hiện FAQ ngay trên trang kết quả */}
+      {/* Dữ liệu có cấu trúc SEO FAQ */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -192,6 +567,6 @@ export default function Landing() {
           }),
         }}
       />
-    </>
+    </div>
   );
 }
