@@ -30,33 +30,79 @@ export default function RegisterPage() {
   };
 
   return (
-    <Card className="flex flex-col gap-5 px-6 py-7">
-      <div>
-        <h1 className="font-mincho text-2xl font-semibold">Tạo tài khoản</h1>
-        <p className="mt-1 text-sm text-sumi-3">Miễn phí. Toàn bộ 208 ký tự Kana không giới hạn.</p>
+    <Card variant="luxury" className="flex flex-col gap-5 px-7 py-8 shadow-xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-mincho text-2xl font-bold text-sumi">Tạo tài khoản</h1>
+          <p className="mt-1 text-sm font-medium text-sumi-3">
+            Miễn phí trọn đời. 208 ký tự Kana không giới hạn.
+          </p>
+        </div>
+        <span className="hanko-seal px-2 py-0.5 text-xs">
+          入門
+        </span>
       </div>
 
       <form onSubmit={submit} className="flex flex-col gap-4">
-        <Field label="Tên hiển thị" value={f.displayName} onChange={set("displayName")} required maxLength={64} />
-        <Field label="Tên đăng nhập" value={f.username} onChange={set("username")} required
-               pattern="[a-zA-Z0-9_]{3,32}" title="3–32 ký tự: chữ, số hoặc dấu gạch dưới" autoComplete="username" />
-        <Field label="Email" type="email" value={f.email} onChange={set("email")} required autoComplete="email" />
-        <Field label="Mật khẩu" type="password" value={f.password} onChange={set("password")} required
-               minLength={8} autoComplete="new-password" />
-        {err && <p className="rounded-lg border border-shu/30 bg-shu-tint px-3 py-2 text-[13px] text-shu-2">{err}</p>}
-        <Button type="submit" variant="solid" size="lg" disabled={busy}>
-          {busy ? "Đang tạo tài khoản…" : "Đăng ký"}
+        <Field
+          label="Tên hiển thị"
+          value={f.displayName}
+          onChange={set("displayName")}
+          required
+          maxLength={64}
+          placeholder="Ví dụ: Minh Nhật"
+        />
+        <Field
+          label="Tên đăng nhập"
+          value={f.username}
+          onChange={set("username")}
+          required
+          pattern="[a-zA-Z0-9_]{3,32}"
+          title="3–32 ký tự: chữ, số hoặc dấu gạch dưới"
+          autoComplete="username"
+          placeholder="minhnhat_jp"
+        />
+        <Field
+          label="Email"
+          type="email"
+          value={f.email}
+          onChange={set("email")}
+          required
+          autoComplete="email"
+          placeholder="email@example.com"
+        />
+        <Field
+          label="Mật khẩu (tối thiểu 8 ký tự)"
+          type="password"
+          value={f.password}
+          onChange={set("password")}
+          required
+          minLength={8}
+          autoComplete="new-password"
+        />
+        {err && (
+          <p className="rounded-xl border border-shu/30 bg-shu-tint px-3.5 py-2.5 text-[13px] font-semibold text-shu-2">
+            {err}
+          </p>
+        )}
+        <Button type="submit" variant="solid" size="lg" disabled={busy} className="mt-1 shadow-md shadow-shu/25">
+          {busy ? "Đang tạo tài khoản…" : "Gia nhập Dōjō miễn phí"}
         </Button>
       </form>
 
-      <div className="flex items-center gap-3 text-[11px] text-sumi-3">
-        <span className="h-px flex-1 bg-rule" />hoặc<span className="h-px flex-1 bg-rule" />
+      <div className="flex items-center gap-3 text-xs font-semibold text-sumi-3 uppercase tracking-wider">
+        <span className="h-px flex-1 bg-rule/70" />
+        hoặc
+        <span className="h-px flex-1 bg-rule/70" />
       </div>
 
-      <GoogleButton label="Đăng ký với Google" />
+      <GoogleButton label="Đăng ký nhanh với Google" />
 
-      <p className="text-center text-[13px] text-sumi-3">
-        Đã có tài khoản? <Link href="/dang-nhap" className="text-shu hover:underline">Đăng nhập</Link>
+      <p className="text-center text-[13.5px] font-medium text-sumi-3 pt-1">
+        Đã có tài khoản?{" "}
+        <Link href="/dang-nhap" className="font-semibold text-shu hover:underline">
+          Đăng nhập ngay
+        </Link>
       </p>
     </Card>
   );

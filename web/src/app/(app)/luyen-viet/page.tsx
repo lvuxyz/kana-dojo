@@ -83,42 +83,59 @@ export default function WritingPage() {
   const due = [...states.values()].filter((s) => s.due).length;
 
   return (
-    <div className="flex flex-col gap-5" style={{ ["--cell" as string]: "116px" }}>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="flex flex-col gap-6" style={{ ["--cell" as string]: "116px" }}>
+      {/* Tiêu đề trang & Bộ chọn bảng chữ cái */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule/60 pb-4">
         <div>
-          <h1 className="font-mincho text-2xl font-semibold">Luyện viết</h1>
-          <p className="mt-0.5 text-sm text-sumi-3">
-            Chọn một ký tự để tập viết. Máy chấm từng nét và tự xếp lịch ôn lại.
+          <h1 className="font-mincho text-2xl font-bold sm:text-3xl text-sumi">
+            Phòng Luyện Viết
+          </h1>
+          <p className="mt-1 text-sm font-medium text-sumi-3">
+            Bấm vào bất kỳ ký tự nào để bắt đầu viết. Máy chấm điểm từng nét và tự xếp lịch ôn lại cho bạn.
           </p>
         </div>
         <Seg
           value={script}
           onChange={setScript}
-          options={[{ value: "h", label: "ひらがな" }, { value: "k", label: "カタカナ" }]}
+          options={[
+            { value: "h", label: <span className="font-mincho font-bold text-sm px-1">ひらがな</span> },
+            { value: "k", label: <span className="font-mincho font-bold text-sm px-1">カタカナ</span> },
+          ]}
         />
       </div>
 
-      <Card className="grid grid-cols-3 gap-4 px-5 py-4">
-        <Stat label="Đã học" value={learned} sub={`trên ${list.length} ký tự`} tone="genko" />
-        <Stat label="Đã thuộc" value={mastered} sub="đạt 80đ ở chế độ Tự viết" tone="shu" />
-        <Stat label="Đến hạn ôn" value={due} sub={due > 0 ? "nên ôn hôm nay" : "không còn thẻ nào"} tone="gold" />
-      </Card>
+      {/* Thẻ thống kê 3 chỉ số */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card variant="interactive" className="p-5">
+          <Stat label="Đã rèn luyện" value={learned} sub={`trên tổng số ${list.length} ký tự`} tone="genko" />
+        </Card>
+        <Card variant="interactive" className="p-5">
+          <Stat label="Đã tinh thông" value={mastered} sub="Đạt từ 80đ ở chế độ Tự viết" tone="shu" />
+        </Card>
+        <Card variant="interactive" className="p-5">
+          <Stat label="Đến hạn cần ôn" value={due} sub={due > 0 ? "Ưu tiên ôn tập hôm nay" : "Không còn thẻ tồn đọng"} tone="gold" />
+        </Card>
+      </div>
 
       {(catalog.isError || progress.isError) && (
-        <p className="rounded-lg border border-shu/30 bg-shu-tint px-4 py-2.5 text-[13px] text-shu-2">
-          Chưa kết nối được máy chủ nên tiến độ chưa hiện. Bạn vẫn tập viết và chấm điểm bình thường,
-          chỉ là kết quả lần này không được lưu.
+        <p className="rounded-2xl border border-shu/30 bg-shu-tint/90 px-4.5 py-3 text-xs font-semibold text-shu-2 shadow-xs">
+          Chưa kết nối được máy chủ nên tiến độ chưa được đồng bộ từ tài khoản. Bạn vẫn có thể tập viết và chấm điểm hoàn toàn bình thường trên máy!
         </p>
       )}
 
-      <div className="flex flex-wrap gap-1.5">
+      {/* Bộ lọc nhóm chữ */}
+      <div className="flex flex-wrap items-center gap-2">
         {GROUPS.map((g) => (
           <Chip key={g.value} active={group === g.value} onClick={() => setGroup(g.value)}>
-            {g.label}<em className="ml-1.5 text-[11.5px] not-italic opacity-55">{g.count}</em>
+            <span>{g.label}</span>
+            <span className="ml-1.5 rounded-full bg-black/10 dark:bg-white/15 px-1.5 py-0.2 text-[10.5px] font-bold">
+              {g.count}
+            </span>
           </Chip>
         ))}
       </div>
 
+      {/* Lưới chữ Kana */}
       <KanaGrid
         script={script}
         group={group}
@@ -126,6 +143,7 @@ export default function WritingPage() {
         onPick={(c) => setOpenAt(list.findIndex((x) => x.c === c.c))}
       />
 
+      {/* Hộp thoại tập viết khi người dùng click vào chữ */}
       {openAt !== null && list[openAt] && (
         <PracticePanel
           char={list[openAt]}
