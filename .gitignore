@@ -16,6 +16,11 @@ node_modules/
 !web/.env.example
 
 # OS / editor
+# Local tools & portable database
+.tools/
+*.log
+
+# OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
