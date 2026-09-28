@@ -41,6 +41,10 @@ docker ps --filter name=kanadojo-db
 
 ### 3. Cấu hình và chạy backend
 
+Ở profile dev, **mọi biến đều có giá trị mặc định** (DB `postgres/postgres` trên `localhost:5432`, khoá JWT dev,
+CORS cho `localhost:3000` và `localhost:3001`) — với Postgres chạy như bước 2 thì chỉ cần `mvn spring-boot:run`.
+Các lệnh dưới đây chỉ cần khi muốn ghi đè.
+
 ```bash
 cd backend
 ```
@@ -51,7 +55,7 @@ $env:DB_URL       = "jdbc:postgresql://localhost:5432/kanadojo"
 $env:DB_USER      = "postgres"
 $env:DB_PASSWORD  = "postgres"
 $env:JWT_SECRET   = (& openssl rand -base64 48)
-$env:CORS_ORIGINS = "http://localhost:3000"
+$env:CORS_ORIGINS = "http://localhost:3001"
 
 mvn spring-boot:run
 ```
@@ -62,7 +66,7 @@ set DB_URL=jdbc:postgresql://localhost:5432/kanadojo
 set DB_USER=postgres
 set DB_PASSWORD=postgres
 set JWT_SECRET=<chuỗi base64 — xem bên dưới>
-set CORS_ORIGINS=http://localhost:3000
+set CORS_ORIGINS=http://localhost:3001
 
 mvn spring-boot:run
 ```
@@ -73,7 +77,7 @@ export DB_URL=jdbc:postgresql://localhost:5432/kanadojo
 export DB_USER=postgres
 export DB_PASSWORD=postgres
 export JWT_SECRET=$(openssl rand -base64 48)
-export CORS_ORIGINS=http://localhost:3000
+export CORS_ORIGINS=http://localhost:3001
 
 mvn spring-boot:run
 ```
@@ -96,10 +100,27 @@ cp .env.example .env.local    # macOS/Linux
 copy .env.example .env.local  # Windows
 
 npm install
-npm run dev
+npm run dev          # chạy ở cổng 3001 (xem "scripts" trong package.json)
 ```
 
-Mở <http://localhost:3000>.
+Mở <http://localhost:3001>.
+
+> **Cổng frontend:** dev dùng **3001** (`npm run dev`, `start-services.ps1`). Production (`next start`, Docker) dùng 3000.
+> `CORS_ORIGINS` phải chứa đúng origin đang mở trình duyệt — xem mục *Sự cố đã gặp* bên dưới.
+
+### Cách nhanh trên Windows: `start-services.bat`
+
+`start-services.ps1` (và bản `.bat` bọc ngoài) bật lần lượt PostgreSQL → backend → frontend, bỏ qua dịch vụ nào đã chạy;
+`stop-services.*` tắt chúng. Script giả định:
+
+- PostgreSQL 16 bản portable ở `.tools\pgsql` (thư mục `.tools/` bị `.gitignore`, mỗi máy tự chuẩn bị) với cluster đã khởi tạo ở `.tools\pgsql\data`:
+  ```powershell
+  .tools\pgsql\bin\initdb.exe -D .tools\pgsql\data -U postgres -A trust -E UTF8
+  .tools\pgsql\bin\pg_ctl.exe -D .tools\pgsql\data start
+  .tools\pgsql\bin\psql.exe -U postgres -c "CREATE DATABASE kanadojo"
+  ```
+- JAR backend đã build sẵn: `mvn clean package -DskipTests` (script **không** tự build).
+- Java: script tìm JDK 21 ở vài đường dẫn quen thuộc rồi mới dùng `java` trong `PATH`; JDK 17 trở lên đều chạy được.
 
 ---
 
@@ -110,7 +131,7 @@ Mở <http://localhost:3000>.
 BACKEND_URL=http://localhost:8080
 
 # URL công khai của site — dùng cho Open Graph, sitemap, v.v.
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=http://localhost:3001
 
 # Google OAuth (tùy chọn — bỏ trống nếu không cần đăng nhập Google)
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=
@@ -135,10 +156,11 @@ mvn test -Dtest=FsrsEngineTest
 mvn package
 ```
 
-Test sử dụng H2 in-memory — không cần PostgreSQL đang chạy.
+Không cần PostgreSQL đang chạy: test hiện tại không khởi động Spring context. (H2 đã khai báo trong `pom.xml` cho integration test sau này,
+nhưng H2 không có kiểu `citext` nên `V1__init.sql` sẽ không chạy trên H2 — integration test nên dùng Testcontainers + PostgreSQL.)
 
-**11 test hiện tại:**
-- `FsrsEngineTest` — hàng nghìn assertion cho các công thức FSRS-6 (stability, difficulty, scheduling)
+**11 test hiện tại**, tất cả trong `FsrsEngineTest`: khoá hành vi FSRS-6 (khoảng cách tăng khi nhớ, giảm khi quên,
+biên của difficulty, bước học, ngưỡng quy điểm nét → grade).
 
 ### Frontend
 
@@ -148,12 +170,12 @@ cd web
 # Kiểm tra kiểu TypeScript
 npm run typecheck
 
-# Lint
-npm run lint
-
 # Build production (phát hiện lỗi build)
 npm run build
 ```
+
+> `npm run lint` **chưa dùng được**: dự án chưa cài `eslint` / `eslint-config-next` và chưa có file cấu hình
+> (vì vậy `next.config.mjs` đặt `eslint.ignoreDuringBuilds: true`).
 
 ---
 
@@ -176,18 +198,21 @@ com.japanese.learning/
 ├── common/
 │   ├── ApiException.java          RuntimeException có HTTP status và error code
 │   ├── ErrorTypes.java            Hằng số error code (AUTH_*, CONTENT_*, SRS_*, …)
-│   └── GlobalExceptionHandler.java  @RestControllerAdvice → RFC 7807 Problem Details
+│   ├── GlobalExceptionHandler.java  @RestControllerAdvice → RFC 7807 Problem Details
+│   ├── QuotaExceededException.java  429 khi vượt hạn mức gói
+│   ├── PageResponse.java          {content, page, size, totalElements, totalPages}
+│   └── LocalDay.java              Quy đổi "hôm nay" theo múi giờ người dùng
 │
 ├── config/
 │   ├── AppProperties.java         @ConfigurationProperties — tất cả config nghiệp vụ
 │   ├── SecurityConfig.java        Cấu hình Spring Security, CORS, endpoints public
-│   ├── WebConfig.java             CORS configuration bean
+│   ├── WebConfig.java             Cấu hình Web MVC
 │   ├── OpenApiConfig.java         springdoc, BearerAuth scheme
 │   ├── SchedulingConfig.java      @EnableScheduling
 │   └── ProdSecretsValidator.java  Fail-fast nếu thiếu secret trên production
 │
 ├── domain/
-│   ├── entity/                    28 JPA entity (@Entity, @Table)
+│   ├── entity/                    22 JPA entity (+ BaseEntity) — một entity cho mỗi bảng
 │   ├── enums/                     CardState, ItemType, KanaGroup, Script, BadgeTier, …
 │   └── StrokeError.java           @Embeddable — lưu lỗi từng nét trong writing_attempts
 │
@@ -197,7 +222,11 @@ com.japanese.learning/
 │   ├── JwtService.java            Phát và xác thực JWT bằng JJWT 0.12.5
 │   ├── JwtAuthenticationFilter.java  OncePerRequestFilter — trích và xác thực Bearer token
 │   ├── GoogleTokenVerifier.java   Xác thực Google ID token qua google-api-client
-│   └── RefreshTokenService.java   Tạo, xoay vòng, thu hồi refresh token
+│   ├── RefreshTokenService.java   Tạo, xoay vòng, thu hồi refresh token
+│   ├── TokenHasher.java           SHA-256 cho refresh token
+│   ├── AuthRateLimitFilter.java   Bucket4j 10 req/phút/IP cho login & register
+│   ├── ClientIpResolver.java      Lấy IP thật sau proxy
+│   └── ProblemDetail*Handler/EntryPoint  401/403 theo RFC 7807
 │
 ├── seed/
 │   └── KanaSeeder.java            ApplicationRunner — nạp kana-data.json, idempotent
@@ -208,13 +237,14 @@ com.japanese.learning/
 │   ├── WritingService.java        Ghi lượt tập viết (transaction 5 bước)
 │   ├── BadgeService.java          Kiểm tra và phát huy hiệu
 │   ├── GamificationService.java   Cộng XP, cập nhật streak, tính level
-│   └── …                          UserService, DeckService, QuizService, …
+│   └── …                          CurrentUserService, DeckService, EntitlementService, KanaService,
+│                                  LeaderboardService, ProgressService, QuizService, VocabularyService
 │
 ├── srs/
 │   └── FsrsEngine.java            FSRS-6 — toàn bộ là static method, không có @Component
 │
 └── web/
-    ├── controller/                14 @RestController với @RequestMapping("/api/v1/…")
+    ├── controller/                12 @RestController với @RequestMapping("/api/v1/…")
     └── dto/                       Request/Response DTO (record hoặc class với Lombok)
 ```
 
@@ -248,12 +278,13 @@ Flyway tự động chạy khi backend khởi động:
 
 ```
 src/main/resources/db/migration/
-├── V1__init.sql           Toàn bộ lược đồ 28 bảng
-└── V2__seed_reference.sql plan_features + badges (dữ liệu seed tham chiếu)
+├── V1__init.sql           Toàn bộ lược đồ 22 bảng
+├── V2__seed_reference.sql plan_features + badges (dữ liệu seed tham chiếu)
+└── V3__seed_content.sql   80 từ vựng (N5, N4), 1 bộ thẻ hệ thống, 4 quiz mẫu
 ```
 
 **Thêm migration mới:**
-1. Tạo file `V3__<mô_tả>.sql` trong thư mục trên
+1. Tạo file `V4__<mô_tả>.sql` trong thư mục trên (số phiên bản kế tiếp)
 2. Đặt tên theo quy ước Flyway: `V{số}__{mô_tả_dấu_gạch_dưới}.sql`
 3. Không bao giờ sửa file migration đã commit — tạo file mới để sửa
 
@@ -265,15 +296,24 @@ mvn flyway:info -Dflyway.url=jdbc:postgresql://localhost:5432/kanadojo \
 
 ---
 
-## Thêm kana / từ vựng
+## Thêm kana / từ vựng / quiz
+
+### Kana
 
 Dữ liệu kana được nạp từ `src/main/resources/data/kana-data.json` qua `KanaSeeder`. Bản frontend (`web/src/data/kana-data.json`) là bản sao để bundle vào JS.
+Ba file hiện giống hệt nhau.
 
 Nếu cập nhật dữ liệu:
 1. Sửa `docs/kana-data.json` (nguồn sự thật)
 2. Copy vào `backend/src/main/resources/data/kana-data.json`
 3. Copy vào `web/src/data/kana-data.json`
-4. `KanaSeeder` sẽ upsert dữ liệu mới khi backend khởi động lại
+4. **`KanaSeeder` chỉ nạp khi bảng còn rỗng** (`kana_glyphs`, `kana_characters` kiểm tra riêng) — nó *không* upsert.
+   Với CSDL đã có dữ liệu, phải cập nhật bằng một migration mới (hoặc ở dev: xoá DB rồi khởi động lại).
+
+### Từ vựng và quiz
+
+Chưa có trang quản trị. Thêm nội dung bằng migration mới (`V4__…sql`) theo mẫu `V3__seed_content.sql`;
+quy ước giá trị `quiz_type` / `question_type` / `part_of_speech` xem [SPEC.md §2.5](SPEC.md).
 
 ---
 
@@ -292,6 +332,21 @@ Nếu cập nhật dữ liệu:
 **Xử lý:** Nâng lên `next@15.5.25` (cùng major 15, không đổi API).
 
 **Còn tồn tại:** 1 lỗ hổng `postcss` mức **high** (đọc file `.map` tùy ý). Chỉ hết khi nâng lên Next.js 16 — là breaking change, cần đánh giá riêng.
+
+### Thao tác ghi (POST/PATCH) bị 403 dù đã đăng nhập
+
+**Vấn đề:** Đọc dữ liệu bình thường nhưng bắt đầu quiz, nộp bài viết, chấm thẻ… đều trả 403.
+
+**Nguyên nhân:** rewrite `/api/v1/*` trong `next.config.mjs` chuyển tiếp nguyên header `Origin`. Trình duyệt luôn gửi `Origin`
+cho request POST/PATCH, và Spring từ chối nếu origin đó không nằm trong `CORS_ORIGINS`. Tài liệu cũ hướng dẫn đặt
+`CORS_ORIGINS=http://localhost:3000` trong khi `npm run dev` chạy ở cổng 3001 → dính đúng lỗi này.
+
+**Xử lý:** không đặt `CORS_ORIGINS` ở dev (mặc định đã gồm 3000 và 3001), hoặc đặt đúng origin đang dùng.
+
+### Trang Ôn tập / Quiz trống hoặc lỗi dù backend có dữ liệu
+
+**Vấn đề (đã sửa):** frontend đọc `/reviews/queue` và `/quizzes` như mảng, trong khi backend trả object (`{content, …}`).
+Khi thêm endpoint mới, khai báo kiểu trong `web/src/lib/types.ts` đúng theo DTO `record` ở `backend/.../web/dto/*.java`.
 
 ### Backend không nhận biến môi trường trên Windows CMD
 
@@ -330,6 +385,12 @@ Extensions được khuyến nghị:
 ---
 
 ## Kiểm thử tính năng trong trình duyệt
+
+### Quiz
+
+1. Vào `/quiz` → chọn một trong 4 bài mẫu → **Bắt đầu làm bài**
+2. Trắc nghiệm: bấm đáp án hoặc phím `1`–`4`; tự luận: gõ romaji. `Enter` sang câu kế / nộp ở câu cuối
+3. Hết giờ bài tự nộp; màn kết quả hiện đáp án đúng và giải thích cho từng câu
 
 ### Tập viết
 

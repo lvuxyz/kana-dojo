@@ -178,6 +178,26 @@ Seed từ `docs/kana-data.json`: **208 ký tự, 148 glyph**. Viết seeder Java
 **quiz_attempts** — `user_id FK`, `quiz_id FK`, `score smallint`, `correct_count int`, `total_count int`, `duration_ms int`, `started_at`, `submitted_at`
 **quiz_answers** — `attempt_id FK`, `question_id FK`, `given_answer text`, `is_correct boolean`
 
+Giá trị hợp lệ (không có CHECK trong CSDL, do quy ước):
+
+| cột | giá trị |
+|---|---|
+| `quizzes.quiz_type` | KANA_READING \| VOCAB_MEANING \| ROMAJI_INPUT |
+| `questions.question_type` | MULTIPLE_CHOICE (`options` bắt buộc, chứa `correct_answer`) \| TEXT_INPUT (`options = []`) |
+| `vocabulary.part_of_speech` | NOUN \| PRONOUN \| VERB \| I_ADJ \| NA_ADJ \| ADVERB \| EXPRESSION |
+
+Chấm điểm: so khớp `correct_answer` với câu trả lời sau khi bỏ khoảng trắng hai đầu, **không phân biệt hoa thường**.
+
+### 2.6 Dữ liệu khởi đầu (migration)
+
+| File | Nội dung |
+|---|---|
+| `V1__init.sql` | 22 bảng, chỉ mục, ràng buộc |
+| `V2__seed_reference.sql` | `plan_features` (8 dòng) + 9 huy hiệu |
+| `V3__seed_content.sql` | 70 từ N5 + 10 từ N4, bộ thẻ hệ thống "Từ vựng N5 cơ bản", 4 quiz đã xuất bản (38 câu) |
+
+Kana (208 ký tự, 148 glyph) **không** nằm trong migration mà do `KanaSeeder` nạp từ JSON.
+
 ---
 
 ## 3. Thuật toán FSRS-6
@@ -327,18 +347,18 @@ Tất cả đường dẫn có tiền tố `/api/v1`. 🔒 = cần đăng nhập
 ### Nội dung
 | Method | Path | Ghi chú |
 |---|---|---|
-| GET | `/kana?script=&group=` | danh sách ký tự, **không** kèm dữ liệu nét |
+| GET | `/kana?script=&group=` | `KanaCharacterDto[] = {id, character, romaji, script, group, rowKey, colIndex, strokeCount, readingVi, displayOrder}`, **không** kèm dữ liệu nét |
 | GET | `/kana/{id}` | kèm `glyphs: [{glyph, strokePaths, strokeCount}]` |
 | GET | `/kana/strokes` | **toàn bộ** 148 glyph, `Cache-Control: public, max-age=31536000, immutable` + ETag |
-| GET | `/vocabulary?level=&page=&size=&q=` | phân trang |
+| GET | `/vocabulary?level=&page=&size=&q=` | `Page<VocabularyDto>`; gói FREE chỉ thấy N5 (lọc theo `content.jlpt_levels`) |
 | GET | `/decks?public=true` | |
 
 ### Học tập 🔒
 | Method | Path | Ghi chú |
 |---|---|---|
-| GET | `/reviews/queue?limit=20&types=KANA_WRITING,VOCAB_MEANING` | thẻ đến hạn + thẻ mới (tối đa 10 thẻ mới/ngày), sắp theo `due_at` |
+| GET | `/reviews/queue?limit=20&types=KANA_WRITING,VOCAB_MEANING` | `ReviewQueueDto{content: ReviewQueueItemDto[], dueCount, newCount}` — thẻ đến hạn trước, rồi thẻ mới (tối đa `app.srs.new-cards-per-day`/ngày). Không truyền `types` = mọi loại |
 | POST | `/reviews/grade` | `{cardId, grade, score?, durationMs}` → `GradeResultDto{cardId, nextDueAt, intervalDays, stability, difficulty, state, xpEarned}` |
-| POST | `/writing/attempts` | `{kanaCharacterId, mode, strokeScores[], strokeErrors[], avgScore, durationMs}` → `WritingResultDto{passed, avgScore, grade, xpEarned, card: GradeResultDto?, newBadges[]}` |
+| POST | `/writing/attempts` | `{kanaCharacterId, mode, strokeScores[], strokeErrors[], avgScore, durationMs}` → `WritingResultDto{passed, avgScore, grade, xpEarned, card: GradeResultDto?, newBadges: string[]}` (`newBadges` là **mã** huy hiệu, tra tên qua `GET /badges`) |
 | GET | `/progress/kana?script=` | `[{characterId, character, state, dueAt, bestScore, level}]` — cấp cho lưới bảng chữ |
 | GET | `/progress/summary` | `{kanaLearned, kanaMastered, vocabLearned, dueToday, newAvailable}` |
 
@@ -356,8 +376,15 @@ vì tách sẽ tạo trạng thái nửa vời khi mạng rớt giữa chừng.
 | GET | `/leaderboard/weekly?limit=50` → `{weekStart, myRank, entries:[{rank, userId, displayName, avatarUrl, xp}]}` |
 
 ### Quiz 🔒
-`GET /quizzes`, `GET /quizzes/{id}`, `POST /quizzes/{id}/attempts`,
-`POST /quiz-attempts/{id}/submit` `{answers:[{questionId, givenAnswer}]}`
+| Method | Path | Trả về |
+|---|---|---|
+| GET | `/quizzes?page=&size=` | `Page<QuizDto{id, title, description, quizType, jlptLevel, timeLimitSec, questionCount}>` — chỉ bài đã xuất bản |
+| GET | `/quizzes/{id}` | `QuizDetailDto{…, questions:[{id, prompt, questionType, options[], position}]}` — **không bao giờ** kèm đáp án |
+| POST | `/quizzes/{id}/attempts` | `QuizAttemptDto{attemptId, quizId, startedAt, totalCount}` |
+| POST | `/quiz-attempts/{id}/submit` | body `{answers:[{questionId, givenAnswer?}]}` → `QuizResultDto{attemptId, quizId, score, correctCount, totalCount, xpEarned, answers:[{questionId, givenAnswer, correct, correctAnswer, explanationVi}]}` |
+
+Mỗi lượt chỉ nộp được một lần. `score` = % câu đúng trên tổng số câu của đề (câu không gửi tính là sai).
+Hết `timeLimitSec` thì client tự nộp; backend hiện không chặn nộp muộn.
 
 ### Gói cước 🔒
 `GET /me/entitlements` → `{plan, features:{"srs.daily_reviews":60,...}, usage:{"srs.daily_reviews":12}}`

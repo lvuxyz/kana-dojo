@@ -16,6 +16,9 @@ Internet
 
 Next.js phục vụ frontend và các BFF route handler (`/api/auth/*`). Tất cả request đến `/api/v1/*` được rewrite đến Spring Boot (qua `next.config.mjs` hoặc Nginx proxy_pass).
 
+> Rewrite chuyển tiếp nguyên header `Origin` của trình duyệt, nên `CORS_ORIGINS` của backend **vẫn phải** chứa domain công khai
+> (vd. `https://kanadojo.app`) dù trình duyệt không gọi thẳng backend. Thiếu → mọi request POST/PATCH trả 403.
+
 ---
 
 ## Biến môi trường production
@@ -27,7 +30,7 @@ Next.js phục vụ frontend và các BFF route handler (`/api/auth/*`). Tất c
 | Biến | Mô tả | Ví dụ |
 |---|---|---|
 | `JWT_SECRET` | Khóa ký JWT, base64, **ít nhất 256 bit** | `$(openssl rand -base64 48)` |
-| `CORS_ORIGINS` | Danh sách origin được phép | `https://kanadojo.app` |
+| `CORS_ORIGINS` | Danh sách origin được phép — phải gồm domain công khai của frontend | `https://kanadojo.app` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | `xxx.apps.googleusercontent.com` |
 
 ### Backend — cấu hình DB
@@ -43,7 +46,10 @@ Next.js phục vụ frontend và các BFF route handler (`/api/auth/*`). Tất c
 | Biến | Mặc định | Mô tả |
 |---|---|---|
 | `SERVER_PORT` | `8080` | Cổng HTTP |
-| `DB_POOL_SIZE` | `10` | Kích thước pool Hikari |
+| `DB_POOL_SIZE` | `20` (prod), `10` (dev) | Kích thước pool Hikari |
+| `JWT_ACCESS_TTL` | `15m` | Thời gian sống access token — kiểu Duration của Spring (`15m`, `900s`…); số trần không đơn vị bị hiểu là **mili giây** |
+| `JWT_REFRESH_TTL` | `30d` | Thời gian sống refresh token (Duration) |
+| `SRS_NEW_CARDS_PER_DAY` | `10` | Số thẻ mới tối đa mỗi ngày cho một người học |
 | `SPRING_PROFILES_ACTIVE` | *(không đặt)* | Đặt `prod` để kích hoạt `application-prod.yml` |
 
 ### Frontend
@@ -57,6 +63,10 @@ Next.js phục vụ frontend và các BFF route handler (`/api/auth/*`). Tất c
 ---
 
 ## Docker Compose
+
+> **Trạng thái:** repo **chưa có** `docker-compose.yml`, `backend/Dockerfile`, `web/Dockerfile`. Các khối dưới đây là mẫu để tạo
+> các file đó. Trước khi dùng mẫu Dockerfile frontend cần: bật `output: 'standalone'` trong `web/next.config.mjs`
+> và tạo thư mục `web/public/` (hiện chưa có — hoặc bỏ dòng `COPY … /app/public`).
 
 ```yaml
 # docker-compose.yml
@@ -138,11 +148,13 @@ docker compose logs -f
 
 ```dockerfile
 # backend/Dockerfile
-FROM eclipse-temurin:17-jdk-jammy AS build
+# Image temurin thuần không có Maven → dùng image maven cho bước build
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 COPY pom.xml .
+RUN mvn -B dependency:go-offline
 COPY src ./src
-RUN mvn -f pom.xml clean package -DskipTests
+RUN mvn -B clean package -DskipTests
 
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
@@ -276,8 +288,9 @@ systemctl status certbot.timer
 - [ ] Truy cập trang chủ, màn hình đăng ký, đăng nhập
 - [ ] Thử đăng ký tài khoản mới và vào dashboard
 - [ ] Kiểm tra `docker compose logs backend` không có ERROR
-- [ ] Kiểm tra Swagger UI: `https://kanadojo.app/api/v1/swagger-ui.html` (nếu mở public)
-- [ ] Xác nhận `Set-Cookie: kd_refresh` có `Secure; HttpOnly; SameSite=Strict`
+- [ ] Xác nhận `/swagger-ui.html` và `/v3/api-docs` trả 404 (profile `prod` đã tắt springdoc)
+- [ ] Xác nhận `Set-Cookie: kd_rt=…` có `HttpOnly; Secure; SameSite=Lax; Path=/`
+- [ ] Làm thử một bài quiz đến màn kết quả (kiểm tra luôn CORS cho request POST)
 
 ### Bảo mật production
 
@@ -285,7 +298,7 @@ systemctl status certbot.timer
 - [ ] PostgreSQL không expose cổng 5432 ra ngoài (chỉ backend biết)
 - [ ] `application-prod.yml` đã được kích hoạt (`SPRING_PROFILES_ACTIVE=prod`)
 - [ ] Rate limiting Bucket4j đang hoạt động (10 req/phút/IP trên auth endpoints)
-- [ ] Swagger UI vô hiệu hóa hoặc đặt sau Basic Auth nếu không muốn public
+- [ ] Swagger UI: đã tắt sẵn ở `application-prod.yml`; nếu muốn bật lại thì đặt sau Basic Auth
 
 ---
 
