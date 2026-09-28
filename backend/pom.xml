@@ -24,6 +24,8 @@
         <springdoc.version>2.5.0</springdoc.version>
         <google-api-client.version>2.4.0</google-api-client.version>
         <bucket4j.version>8.10.1</bucket4j.version>
+        <!-- Ghi đè bản 1.19.x do Spring Boot 3.2 quản lý: Docker Engine 29+ từ chối API version cũ của nó. -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -107,9 +109,10 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Integration test chạy trên PostgreSQL thật: V1__init.sql cần citext, H2 không có. -->
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
