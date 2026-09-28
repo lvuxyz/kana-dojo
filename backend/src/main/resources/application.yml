@@ -13,7 +13,7 @@ spring:
     password: ${DB_PASSWORD:postgres}
     hikari:
       pool-name: kanadojo-pool
-      maximum-pool-size: 10
+      maximum-pool-size: ${DB_POOL_SIZE:10}
   jpa:
     open-in-view: false
     hibernate:
@@ -50,14 +50,15 @@ app:
   jwt:
     secret: ${JWT_SECRET:kana-dojo-local-development-secret-key-do-not-use-in-production}
     issuer: kana-dojo
-    access-token-ttl: 15m
-    refresh-token-ttl: 30d
+    # Kiểu Duration của Spring: 15m, 900s, 30d… (số trần không đơn vị bị hiểu là mili giây).
+    access-token-ttl: ${JWT_ACCESS_TTL:15m}
+    refresh-token-ttl: ${JWT_REFRESH_TTL:30d}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
   srs:
-    new-cards-per-day: 10
+    new-cards-per-day: ${SRS_NEW_CARDS_PER_DAY:10}
     desired-retention: 0.90
   gamification:
     max-streak-freezes: 2
