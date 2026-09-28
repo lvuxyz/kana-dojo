@@ -38,6 +38,16 @@ spring:
     virtual:
       enabled: false
 
+# Chỉ lộ health (UP/DOWN, không chi tiết) — dùng cho healthcheck của Docker và load balancer.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
