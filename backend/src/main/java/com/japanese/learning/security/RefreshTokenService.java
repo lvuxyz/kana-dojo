@@ -7,7 +7,10 @@ import com.japanese.learning.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -29,6 +32,7 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final AppProperties properties;
+    private final PlatformTransactionManager transactionManager;
 
     /** Kết quả cấp token: chuỗi bản rõ để trả cho client và bản ghi đã lưu. */
     public record IssuedToken(String rawToken, RefreshToken stored) {
@@ -62,7 +66,7 @@ public class RefreshTokenService {
         if (current.getRevokedAt() != null) {
             // Token đã bị thay thế nhưng vẫn được dùng lại: coi như bị lộ.
             log.warn("Phát hiện tái sử dụng refresh token, thu hồi họ token {}", current.getFamilyId());
-            refreshTokenRepository.revokeFamily(current.getFamilyId(), now);
+            revokeFamilyCommitted(current.getFamilyId(), now);
             throw ApiException.unauthorized("Phiên đăng nhập đã bị thu hồi vì lý do bảo mật, vui lòng đăng nhập lại");
         }
         if (!current.isActive(now)) {
@@ -98,6 +102,17 @@ public class RefreshTokenService {
         return refreshTokenRepository.findByTokenHash(TokenHasher.sha256Hex(rawToken))
                 .map(RefreshToken::getUserId)
                 .orElseThrow(() -> ApiException.unauthorized("Refresh token không hợp lệ hoặc đã hết hạn"));
+    }
+
+    /**
+     * Thu hồi cả họ token trong một transaction độc lập. Ngay sau đó {@link #rotate} ném 401, và
+     * exception đó rollback transaction đang bao ngoài — nếu thu hồi chạy chung transaction thì nó
+     * bị huỷ theo, token mới nhất của kẻ trộm vẫn dùng được.
+     */
+    private void revokeFamilyCommitted(UUID familyId, Instant now) {
+        TransactionTemplate independent = new TransactionTemplate(transactionManager);
+        independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        independent.executeWithoutResult(status -> refreshTokenRepository.revokeFamily(familyId, now));
     }
 
     private InetAddress parseIp(String ipAddress) {
