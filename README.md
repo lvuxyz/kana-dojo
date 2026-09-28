@@ -176,18 +176,19 @@ web/src/
 ## Kiểm thử
 
 ```bash
-# Backend — 11 test (FsrsEngineTest)
+# Backend — 11 unit test + 22 integration test (PostgreSQL thật qua Testcontainers, cần Docker)
 cd backend
 mvn test
 
-# Frontend — kiểm tra kiểu
+# Frontend — unit test (Vitest), lint, kiểm tra kiểu, build
 cd web
+npm test
+npm run lint
 npm run typecheck
-
-# Frontend — build production
-cd web
 npm run build
 ```
+
+Không có Docker thì integration test tự bỏ qua. Chi tiết từng bộ test: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#chạy-kiểm-thử).
 
 ---
 
@@ -195,8 +196,8 @@ npm run build
 
 Kiểm chứng ngày 2026-09-28:
 
-- **Backend:** `mvn clean package` — BUILD SUCCESS, 11/11 test qua; khởi động trên PostgreSQL 16 sạch, Flyway áp đủ V1–V3
-- **Frontend:** `tsc --noEmit` · `next build` — thành công, 23 route
+- **Backend:** `mvn test` — 33/33 test qua (11 unit + 22 integration trên PostgreSQL 16 qua Testcontainers)
+- **Frontend:** `npm test` 22/22 · `npm run lint` sạch · `tsc --noEmit` · `next build` — thành công, 23 route
 - **End-to-end:** đăng ký → danh sách từ vựng → làm quiz và nộp bài → hàng đợi ôn tập, chạy qua rewrite của Next
 
 Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#sự-cố-đã-gặp-và-cách-xử-lý).
@@ -210,7 +211,6 @@ Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPM
 | Cổng thanh toán | Lược đồ DB (`subscriptions`, `plan_features`) sẵn sàng, tích hợp chưa làm |
 | Quản trị nội dung | Chưa có trang admin — thêm từ vựng/quiz bằng migration Flyway mới |
 | Thẻ từ vựng trong hàng đợi ôn | Hạn mức thẻ mới/ngày dùng chung và thẻ `KANA_*` được cấp trước, nên thẻ `VOCAB_*` chỉ xuất hiện sau khi đã mở hết 416 thẻ kana (trừ khi client gọi `/reviews/queue?types=VOCAB_MEANING`) |
-| Lint frontend | Chưa cài ESLint (`npm run lint` chưa chạy được) |
 | Dockerfile / docker-compose | Mới có mẫu trong [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), chưa có file trong repo |
 
 ---

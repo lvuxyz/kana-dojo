@@ -146,26 +146,47 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 ```bash
 cd backend
 
-# Chạy tất cả test
+# Chạy tất cả test (unit + integration)
 mvn test
 
-# Chỉ chạy FsrsEngineTest
+# Chỉ một lớp / một nhóm
 mvn test -Dtest=FsrsEngineTest
+mvn test -Dtest='com.japanese.learning.it.*'
 
 # Build + test + đóng gói
 mvn package
 ```
 
-Không cần PostgreSQL đang chạy: test hiện tại không khởi động Spring context. (H2 đã khai báo trong `pom.xml` cho integration test sau này,
-nhưng H2 không có kiểu `citext` nên `V1__init.sql` sẽ không chạy trên H2 — integration test nên dùng Testcontainers + PostgreSQL.)
+**33 test**, chia hai loại:
 
-**11 test hiện tại**, tất cả trong `FsrsEngineTest`: khoá hành vi FSRS-6 (khoảng cách tăng khi nhớ, giảm khi quên,
-biên của difficulty, bước học, ngưỡng quy điểm nét → grade).
+| Loại | Lớp | Cần gì |
+|---|---|---|
+| Unit | `srs/FsrsEngineTest` (11) — công thức FSRS-6, bước học, ngưỡng điểm nét → grade | Chỉ JDK |
+| Integration | `it/AuthFlowTest` (6) — đăng ký, refresh xoay vòng, tái sử dụng token thu hồi cả họ, đăng xuất, 401/409 | Docker |
+| | `it/WritingAttemptFlowTest` (5) — `POST /writing/attempts` ghi đủ 5 bước, XP lần đầu/lần sau, nét hỏng, 404, validation | Docker |
+| | `it/WritingAttemptAtomicityTest` (1) — lỗi ở bước cuối rollback cả 4 bước trước | Docker |
+| | `it/QuizFlowTest` (5) — quiz seed V3, đề không lộ đáp án, chấm điểm, nộp một lần | Docker |
+| | `it/ReviewQueueFlowTest` (5) — hình dạng JSON hàng đợi, thẻ từ vựng, hạn mức thẻ mới, chấm thẻ | Docker |
+
+Integration test chạy **cả ứng dụng** trên PostgreSQL 16 thật do Testcontainers dựng (`postgres:16-alpine`, Flyway áp V1–V3,
+`KanaSeeder` nạp kana), gọi API qua MockMvc. Lớp nền `it/IntegrationTest` giữ một container và một Spring context cho cả lượt chạy;
+mỗi test tự đăng ký người dùng riêng nên không cần dọn dữ liệu. Không dùng H2: CSDL này không có kiểu `citext` mà `V1__init.sql` cần.
+
+- **Không có Docker** (hoặc Docker Desktop chưa bật): các lớp `it/*` bị bỏ qua (Maven báo 0 test cho chúng), `mvn test` vẫn xanh với 11 unit test.
+- Lần chạy đầu tải image `postgres:16-alpine` (~100 MB); các lần sau khởi động container trong vài giây.
+- Testcontainers được ghim 1.21.x trong `pom.xml` vì bản 1.19 đi kèm Spring Boot 3.2 dùng Docker API quá cũ cho Docker Engine 29+.
 
 ### Frontend
 
 ```bash
 cd web
+
+# Unit test (Vitest)
+npm test              # chạy một lần
+npm run test:watch    # chạy lại khi sửa file
+
+# Lint (ESLint 9, cấu hình eslint.config.mjs = next/core-web-vitals + next/typescript)
+npm run lint
 
 # Kiểm tra kiểu TypeScript
 npm run typecheck
@@ -174,8 +195,10 @@ npm run typecheck
 npm run build
 ```
 
-> `npm run lint` **chưa dùng được**: dự án chưa cài `eslint` / `eslint-config-next` và chưa có file cấu hình
-> (vì vậy `next.config.mjs` đặt `eslint.ignoreDuringBuilds: true`).
+- Unit test đặt cạnh mã nguồn, tên `*.test.ts`. Hiện có `src/lib/stroke-match.test.ts` (22 test): lấy mẫu theo độ dài cung,
+  bất biến với tốc độ vẽ, phạt nét ngược chiều, chẩn đoán `TOO_SHORT`/`TOO_LONG`/`OFF_PATH`, và các mốc
+  `gradeFromScore` — phải khớp tuyệt đối `FsrsEngine.gradeFromScore` bên backend.
+- `next build` **không** chạy lint (`eslint.ignoreDuringBuilds`) vì lint đã có lệnh riêng; `next lint` đã bị khai tử từ Next 15.5.
 
 ---
 
@@ -347,6 +370,21 @@ cho request POST/PATCH, và Spring từ chối nếu origin đó không nằm tr
 
 **Vấn đề (đã sửa):** frontend đọc `/reviews/queue` và `/quizzes` như mảng, trong khi backend trả object (`{content, …}`).
 Khi thêm endpoint mới, khai báo kiểu trong `web/src/lib/types.ts` đúng theo DTO `record` ở `backend/.../web/dto/*.java`.
+
+### Dùng lại refresh token cũ không thu hồi được cả họ token
+
+**Vấn đề (đã sửa, phát hiện nhờ `AuthFlowTest`):** khi phát hiện token đã bị thay thế được trình lại, `RefreshTokenService.rotate`
+gọi `revokeFamily` rồi ném 401. Exception đó rollback transaction bao ngoài (`AuthService.refresh`) — kéo theo cả lệnh thu hồi,
+nên token mới nhất (có thể nằm trong tay kẻ trộm) vẫn dùng được.
+
+**Xử lý:** lệnh thu hồi chạy trong transaction riêng (`REQUIRES_NEW`) nên được commit trước khi 401 được ném ra.
+
+### `npm install` báo `Cannot read properties of null (reading 'edgesOut')`
+
+**Vấn đề:** lỗi của npm 10 khi giải peer dependency nhóm `@emnapi` / `@napi-rs` (đi kèm Tailwind oxide, Vite).
+
+**Xử lý:** `npm ci` (cài theo lockfile) không bị ảnh hưởng. Khi cần *thêm/nâng* gói, chạy lệnh đó bằng npm 11:
+`npx -y npm@11 install -D <gói>` — lockfile vẫn là v3, npm 10 đọc bình thường.
 
 ### Backend không nhận biến môi trường trên Windows CMD
 

@@ -108,12 +108,15 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 ## 6. Kiểm thử
 
 ```bash
-mvn test                          # toàn bộ
-mvn test -Dtest=FsrsEngineTest    # riêng bộ lập lịch FSRS
+mvn test                                    # toàn bộ (33 test)
+mvn test -Dtest=FsrsEngineTest              # riêng bộ lập lịch FSRS
+mvn test -Dtest='com.japanese.learning.it.*' # riêng integration test
 ```
 
-`FsrsEngineTest` là bài kiểm thử quan trọng nhất: nó khoá hành vi của thuật toán lập lịch
-(khoảng cách tăng dần khi trả lời đúng, giảm khi quên, biên của difficulty, ngưỡng quy điểm nét → grade).
+* `FsrsEngineTest` khoá hành vi của thuật toán lập lịch (khoảng cách tăng dần khi trả lời đúng, giảm khi quên,
+  biên của difficulty, ngưỡng quy điểm nét → grade). Chỉ cần JDK.
+* `it/*Test` chạy cả ứng dụng trên PostgreSQL 16 thật qua **Testcontainers** (cần Docker; không có thì tự bỏ qua):
+  xác thực và refresh token, giao dịch 5 bước của `POST /writing/attempts` (kể cả rollback), quiz, hàng đợi ôn.
 
 ## 7. Bản đồ mã nguồn
 
