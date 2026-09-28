@@ -39,8 +39,12 @@ nên tài khoản kết nối cần quyền tạo extension ở lần chạy mig
 | `DB_PASSWORD` | prod | `postgres` | Mật khẩu CSDL |
 | `JWT_SECRET` | **prod** | khoá dev dùng chung | Khoá ký HS256, **tối thiểu 32 byte** |
 | `GOOGLE_CLIENT_ID` | prod | rỗng (tắt đăng nhập Google) | OAuth client id để kiểm tra `aud` |
-| `CORS_ORIGINS` | prod | `http://localhost:3000,http://127.0.0.1:3000` | Danh sách origin, phân tách bằng dấu phẩy |
+| `CORS_ORIGINS` | prod | `localhost` và `127.0.0.1`, cổng 3000 và 3001 | Danh sách origin, phân tách bằng dấu phẩy. Phải gồm origin của frontend kể cả khi gọi qua rewrite của Next (header `Origin` được chuyển tiếp) |
 | `SERVER_PORT` | không | `8080` | Cổng HTTP |
+| `DB_POOL_SIZE` | không | `10` (dev) / `20` (prod) | Kích thước pool Hikari |
+| `JWT_ACCESS_TTL` | không | `15m` | Duration của Spring (`15m`, `900s`…); số trần không đơn vị = mili giây |
+| `JWT_REFRESH_TTL` | không | `30d` | Duration |
+| `SRS_NEW_CARDS_PER_DAY` | không | `10` | Hạn mức thẻ mới mỗi ngày |
 
 Ở profile `prod`, thiếu `JWT_SECRET`, `CORS_ORIGINS` hoặc `GOOGLE_CLIENT_ID` sẽ khiến ứng dụng
 **dừng ngay khi khởi động** (`ProdSecretsValidator`) thay vì chạy với cấu hình rỗng.
@@ -63,7 +67,8 @@ java -jar target/kana-dojo-backend-1.0.0.jar --spring.profiles.active=prod
 ```
 
 Lần khởi động đầu tiên, `KanaSeeder` nạp **148 glyph** và **208 ký tự kana** từ
-`classpath:data/kana-data.json`. Seeder idempotent: chỉ chạy khi bảng `kana_glyphs` còn rỗng.
+`classpath:data/kana-data.json`. Seeder idempotent: mỗi bảng (`kana_glyphs`, `kana_characters`) chỉ được nạp khi còn rỗng —
+seeder **không** cập nhật dữ liệu đã có; sửa dữ liệu kana trên CSDL đang chạy thì phải viết migration.
 
 ## 4. Migration
 
@@ -78,8 +83,9 @@ mvn flyway:repair    -Dflyway.url=$DB_URL -Dflyway.user=$DB_USER -Dflyway.passwo
 
 | File | Nội dung |
 |---|---|
-| `V1__init.sql` | Toàn bộ bảng, chỉ mục và ràng buộc |
+| `V1__init.sql` | Toàn bộ 22 bảng, chỉ mục và ràng buộc |
 | `V2__seed_reference.sql` | Hạn mức `plan_features` và 9 huy hiệu |
+| `V3__seed_content.sql` | 70 từ N5 + 10 từ N4, bộ thẻ "Từ vựng N5 cơ bản", 4 quiz đã xuất bản |
 
 Không dùng `ddl-auto: update`. Hibernate chỉ được đặt ở chế độ `validate`, nên mọi thay đổi
 lược đồ **phải** đi qua một file migration mới.
@@ -90,6 +96,9 @@ lược đồ **phải** đi qua một file migration mới.
 * OpenAPI JSON: <http://localhost:8080/v3/api-docs>
 
 Ở profile `prod`, Swagger bị tắt.
+
+`GET /actuator/health` công khai, trả `{"status":"UP"}` không kèm chi tiết — dùng cho healthcheck của Docker.
+Các endpoint actuator khác không được mở.
 
 Nhấn **Authorize** rồi dán access token lấy từ `POST /api/v1/auth/login`.
 
@@ -102,12 +111,15 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 ## 6. Kiểm thử
 
 ```bash
-mvn test                          # toàn bộ
-mvn test -Dtest=FsrsEngineTest    # riêng bộ lập lịch FSRS
+mvn test                                    # toàn bộ (35 test)
+mvn test -Dtest=FsrsEngineTest              # riêng bộ lập lịch FSRS
+mvn test -Dtest='com.japanese.learning.it.*' # riêng integration test
 ```
 
-`FsrsEngineTest` là bài kiểm thử quan trọng nhất: nó khoá hành vi của thuật toán lập lịch
-(khoảng cách tăng dần khi trả lời đúng, giảm khi quên, biên của difficulty, ngưỡng quy điểm nét → grade).
+* `FsrsEngineTest` khoá hành vi của thuật toán lập lịch (khoảng cách tăng dần khi trả lời đúng, giảm khi quên,
+  biên của difficulty, ngưỡng quy điểm nét → grade). Chỉ cần JDK.
+* `it/*Test` chạy cả ứng dụng trên PostgreSQL 16 thật qua **Testcontainers** (cần Docker; không có thì tự bỏ qua):
+  xác thực và refresh token, giao dịch 5 bước của `POST /writing/attempts` (kể cả rollback), quiz, hàng đợi ôn.
 
 ## 7. Bản đồ mã nguồn
 

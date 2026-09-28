@@ -1,0 +1,208 @@
+-- =====================================================================
+-- Kana Dōjō — V3: nội dung khởi đầu (từ vựng, bộ thẻ hệ thống, quiz mẫu)
+-- Không có dữ liệu này thì trang Từ vựng, Quiz và thẻ VOCAB_* trong hàng đợi ôn đều trống.
+--
+-- Quy ước giá trị tự do (không có CHECK trong V1):
+--   vocabulary.part_of_speech : NOUN | PRONOUN | VERB | I_ADJ | NA_ADJ | ADVERB | EXPRESSION
+--   quizzes.quiz_type         : KANA_READING | VOCAB_MEANING | ROMAJI_INPUT
+--   questions.question_type   : MULTIPLE_CHOICE (options bắt buộc) | TEXT_INPUT (options rỗng)
+-- questions.correct_answer phải trùng khớp một phần tử của options (so khớp bỏ khoảng trắng, không phân biệt hoa thường).
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- Từ vựng JLPT N5
+-- ---------------------------------------------------------------------
+INSERT INTO vocabulary (word, reading, romaji, meaning_vi, meaning_en, jlpt_level, part_of_speech, example_ja, example_vi) VALUES
+    ('私',     'わたし',   'watashi',   'tôi',                        'I, me',              5, 'PRONOUN',    '私は学生です。',             'Tôi là sinh viên.'),
+    ('あなた', 'あなた',   'anata',     'bạn, anh, chị',              'you',                5, 'PRONOUN',    'あなたの名前は何ですか。',   'Tên bạn là gì?'),
+    ('学生',   'がくせい', 'gakusei',   'học sinh, sinh viên',        'student',            5, 'NOUN',       '兄は大学の学生です。',       'Anh tôi là sinh viên đại học.'),
+    ('先生',   'せんせい', 'sensei',    'giáo viên, thầy/cô',         'teacher',            5, 'NOUN',       '田中先生は優しいです。',     'Thầy Tanaka rất hiền.'),
+    ('友達',   'ともだち', 'tomodachi', 'bạn bè',                     'friend',             5, 'NOUN',       '友達と映画を見ます。',       'Tôi xem phim với bạn.'),
+    ('家族',   'かぞく',   'kazoku',    'gia đình',                   'family',             5, 'NOUN',       '家族は四人です。',           'Gia đình tôi có bốn người.'),
+    ('母',     'はは',     'haha',      'mẹ (của mình)',              'mother',             5, 'NOUN',       '母は料理が上手です。',       'Mẹ tôi nấu ăn giỏi.'),
+    ('父',     'ちち',     'chichi',    'bố (của mình)',              'father',             5, 'NOUN',       '父は会社員です。',           'Bố tôi là nhân viên công ty.'),
+    ('子供',   'こども',   'kodomo',    'trẻ con',                    'child',              5, 'NOUN',       '公園で子供が遊んでいます。', 'Trẻ con đang chơi ở công viên.'),
+    ('人',     'ひと',     'hito',      'người',                      'person',             5, 'NOUN',       'あの人は誰ですか。',         'Người kia là ai vậy?'),
+    ('日本',   'にほん',   'nihon',     'Nhật Bản',                   'Japan',              5, 'NOUN',       '来年日本へ行きます。',       'Năm sau tôi sẽ đi Nhật.'),
+    ('日本語', 'にほんご', 'nihongo',   'tiếng Nhật',                 'Japanese language',  5, 'NOUN',       '毎日日本語を勉強します。',   'Ngày nào tôi cũng học tiếng Nhật.'),
+    ('学校',   'がっこう', 'gakkou',    'trường học',                 'school',             5, 'NOUN',       '学校は八時に始まります。',   'Trường học bắt đầu lúc 8 giờ.'),
+    ('会社',   'かいしゃ', 'kaisha',    'công ty',                    'company',            5, 'NOUN',       '会社まで電車で行きます。',   'Tôi đi tàu điện đến công ty.'),
+    ('家',     'いえ',     'ie',        'nhà',                        'house, home',        5, 'NOUN',       '六時に家に帰ります。',       'Tôi về nhà lúc 6 giờ.'),
+    ('駅',     'えき',     'eki',       'nhà ga',                     'station',            5, 'NOUN',       '駅はどこですか。',           'Nhà ga ở đâu?'),
+    ('電車',   'でんしゃ', 'densha',    'tàu điện',                   'train',              5, 'NOUN',       '電車が来ました。',           'Tàu điện đến rồi.'),
+    ('車',     'くるま',   'kuruma',    'xe ô tô',                    'car',                5, 'NOUN',       '新しい車を買いました。',     'Tôi đã mua xe ô tô mới.'),
+    ('水',     'みず',     'mizu',      'nước',                       'water',              5, 'NOUN',       '水を一杯ください。',         'Cho tôi một cốc nước.'),
+    ('お茶',   'おちゃ',   'ocha',      'trà',                        'tea',                5, 'NOUN',       '温かいお茶を飲みます。',     'Tôi uống trà nóng.'),
+    ('ご飯',   'ごはん',   'gohan',     'cơm, bữa ăn',                'rice, meal',         5, 'NOUN',       '朝ご飯を食べましたか。',     'Bạn ăn sáng chưa?'),
+    ('魚',     'さかな',   'sakana',    'cá',                         'fish',               5, 'NOUN',       'この魚はおいしいです。',     'Con cá này ngon.'),
+    ('肉',     'にく',     'niku',      'thịt',                       'meat',               5, 'NOUN',       '肉と野菜を買います。',       'Tôi mua thịt và rau.'),
+    ('本',     'ほん',     'hon',       'sách',                       'book',               5, 'NOUN',       '図書館で本を借ります。',     'Tôi mượn sách ở thư viện.'),
+    ('手紙',   'てがみ',   'tegami',    'lá thư',                     'letter',             5, 'NOUN',       '母に手紙を書きます。',       'Tôi viết thư cho mẹ.'),
+    ('時計',   'とけい',   'tokei',     'đồng hồ',                    'clock, watch',       5, 'NOUN',       'この時計は高いです。',       'Chiếc đồng hồ này đắt.'),
+    ('天気',   'てんき',   'tenki',     'thời tiết',                  'weather',            5, 'NOUN',       '今日はいい天気ですね。',     'Hôm nay trời đẹp nhỉ.'),
+    ('雨',     'あめ',     'ame',       'mưa',                        'rain',               5, 'NOUN',       '雨が降っています。',         'Trời đang mưa.'),
+    ('山',     'やま',     'yama',      'núi',                        'mountain',           5, 'NOUN',       '夏に山へ登ります。',         'Mùa hè tôi leo núi.'),
+    ('花',     'はな',     'hana',      'hoa',                        'flower',             5, 'NOUN',       '庭に花が咲いています。',     'Hoa đang nở trong vườn.'),
+    ('犬',     'いぬ',     'inu',       'con chó',                    'dog',                5, 'NOUN',       '犬が好きです。',             'Tôi thích chó.'),
+    ('猫',     'ねこ',     'neko',      'con mèo',                    'cat',                5, 'NOUN',       '猫が寝ています。',           'Con mèo đang ngủ.'),
+    ('今日',   'きょう',   'kyou',      'hôm nay',                    'today',              5, 'NOUN',       '今日は月曜日です。',         'Hôm nay là thứ Hai.'),
+    ('明日',   'あした',   'ashita',    'ngày mai',                   'tomorrow',           5, 'NOUN',       '明日また会いましょう。',     'Mai gặp lại nhé.'),
+    ('昨日',   'きのう',   'kinou',     'hôm qua',                    'yesterday',          5, 'NOUN',       '昨日は忙しかったです。',     'Hôm qua tôi bận.'),
+    ('朝',     'あさ',     'asa',       'buổi sáng',                  'morning',            5, 'NOUN',       '朝六時に起きます。',         'Tôi dậy lúc 6 giờ sáng.'),
+    ('夜',     'よる',     'yoru',      'buổi tối, ban đêm',          'night',              5, 'NOUN',       '夜は静かです。',             'Buổi tối yên tĩnh.'),
+    ('時間',   'じかん',   'jikan',     'thời gian',                  'time',               5, 'NOUN',       '今日は時間がありません。',   'Hôm nay tôi không có thời gian.'),
+    ('右',     'みぎ',     'migi',      'bên phải',                   'right',              5, 'NOUN',       '銀行は右にあります。',       'Ngân hàng ở bên phải.'),
+    ('左',     'ひだり',   'hidari',    'bên trái',                   'left',               5, 'NOUN',       '次の角を左に曲がってください。', 'Hãy rẽ trái ở góc tiếp theo.'),
+    ('食べる', 'たべる',   'taberu',    'ăn',                         'to eat',             5, 'VERB',       'パンを食べます。',           'Tôi ăn bánh mì.'),
+    ('飲む',   'のむ',     'nomu',      'uống',                       'to drink',           5, 'VERB',       'コーヒーを飲みます。',       'Tôi uống cà phê.'),
+    ('行く',   'いく',     'iku',       'đi',                         'to go',              5, 'VERB',       '明日学校へ行きます。',       'Mai tôi đi học.'),
+    ('来る',   'くる',     'kuru',      'đến',                        'to come',            5, 'VERB',       '友達が家に来ます。',         'Bạn tôi đến nhà.'),
+    ('見る',   'みる',     'miru',      'nhìn, xem',                  'to see, to watch',   5, 'VERB',       'テレビを見ます。',           'Tôi xem tivi.'),
+    ('聞く',   'きく',     'kiku',      'nghe; hỏi',                  'to listen; to ask',  5, 'VERB',       '音楽を聞きます。',           'Tôi nghe nhạc.'),
+    ('書く',   'かく',     'kaku',      'viết',                       'to write',           5, 'VERB',       'ここに名前を書いてください。', 'Hãy viết tên vào đây.'),
+    ('読む',   'よむ',     'yomu',      'đọc',                        'to read',            5, 'VERB',       '新聞を読みます。',           'Tôi đọc báo.'),
+    ('話す',   'はなす',   'hanasu',    'nói chuyện',                 'to speak',           5, 'VERB',       '日本語で話しましょう。',     'Hãy nói chuyện bằng tiếng Nhật.'),
+    ('買う',   'かう',     'kau',       'mua',                        'to buy',             5, 'VERB',       'スーパーで野菜を買います。', 'Tôi mua rau ở siêu thị.'),
+    ('待つ',   'まつ',     'matsu',     'chờ đợi',                    'to wait',            5, 'VERB',       '駅で友達を待ちます。',       'Tôi đợi bạn ở ga.'),
+    ('起きる', 'おきる',   'okiru',     'thức dậy',                   'to wake up',         5, 'VERB',       '毎朝七時に起きます。',       'Mỗi sáng tôi dậy lúc 7 giờ.'),
+    ('寝る',   'ねる',     'neru',      'ngủ, đi ngủ',                'to sleep',           5, 'VERB',       '十一時に寝ます。',           'Tôi đi ngủ lúc 11 giờ.'),
+    ('勉強する', 'べんきょうする', 'benkyou suru', 'học',          'to study',           5, 'VERB',       '図書館で勉強します。',       'Tôi học ở thư viện.'),
+    ('大きい', 'おおきい', 'ookii',     'to, lớn',                    'big',                5, 'I_ADJ',      '大きい家ですね。',           'Nhà to nhỉ.'),
+    ('小さい', 'ちいさい', 'chiisai',   'nhỏ',                        'small',              5, 'I_ADJ',      '小さい猫がいます。',         'Có một con mèo nhỏ.'),
+    ('高い',   'たかい',   'takai',     'cao; đắt',                   'tall; expensive',    5, 'I_ADJ',      'このかばんは高いです。',     'Cái cặp này đắt.'),
+    ('安い',   'やすい',   'yasui',     'rẻ',                         'cheap',              5, 'I_ADJ',      'この店は安いです。',         'Cửa hàng này rẻ.'),
+    ('新しい', 'あたらしい', 'atarashii', 'mới',                      'new',                5, 'I_ADJ',      '新しい靴を買いました。',     'Tôi đã mua giày mới.'),
+    ('古い',   'ふるい',   'furui',     'cũ',                         'old (thing)',        5, 'I_ADJ',      '古い寺を見ました。',         'Tôi đã xem một ngôi chùa cổ.'),
+    ('暑い',   'あつい',   'atsui',     'nóng (thời tiết)',           'hot (weather)',      5, 'I_ADJ',      '今日はとても暑いです。',     'Hôm nay rất nóng.'),
+    ('寒い',   'さむい',   'samui',     'lạnh (thời tiết)',           'cold (weather)',     5, 'I_ADJ',      '冬は寒いです。',             'Mùa đông lạnh.'),
+    ('おいしい', 'おいしい', 'oishii',  'ngon',                       'delicious',          5, 'I_ADJ',      'このラーメンはおいしいです。', 'Món ramen này ngon.'),
+    ('元気',   'げんき',   'genki',     'khỏe mạnh',                  'healthy, energetic', 5, 'NA_ADJ',     'お元気ですか。',             'Bạn khỏe không?'),
+    ('好き',   'すき',     'suki',      'thích',                      'liked',              5, 'NA_ADJ',     '私は寿司が好きです。',       'Tôi thích sushi.'),
+    ('静か',   'しずか',   'shizuka',   'yên tĩnh',                   'quiet',              5, 'NA_ADJ',     'この公園は静かです。',       'Công viên này yên tĩnh.'),
+    ('有名',   'ゆうめい', 'yuumei',    'nổi tiếng',                  'famous',             5, 'NA_ADJ',     '富士山は有名な山です。',     'Núi Phú Sĩ là ngọn núi nổi tiếng.'),
+    ('とても', 'とても',   'totemo',    'rất',                        'very',               5, 'ADVERB',     'とても楽しかったです。',     'Đã rất vui.'),
+    ('ありがとう', 'ありがとう', 'arigatou', 'cảm ơn',                'thank you',          5, 'EXPRESSION', '手伝ってくれてありがとう。', 'Cảm ơn bạn đã giúp.'),
+    ('すみません', 'すみません', 'sumimasen', 'xin lỗi; xin phép',    'excuse me, sorry',   5, 'EXPRESSION', 'すみません、駅はどこですか。', 'Xin lỗi, nhà ga ở đâu ạ?');
+
+-- ---------------------------------------------------------------------
+-- Từ vựng JLPT N4 (chỉ gói PRO nhìn thấy — gói FREE giới hạn ở N5)
+-- ---------------------------------------------------------------------
+INSERT INTO vocabulary (word, reading, romaji, meaning_vi, meaning_en, jlpt_level, part_of_speech, example_ja, example_vi) VALUES
+    ('経験',   'けいけん', 'keiken',    'kinh nghiệm',                'experience',         4, 'NOUN',       '海外で働いた経験があります。', 'Tôi có kinh nghiệm làm việc ở nước ngoài.'),
+    ('準備',   'じゅんび', 'junbi',     'chuẩn bị',                   'preparation',        4, 'NOUN',       '旅行の準備をします。',       'Tôi chuẩn bị cho chuyến du lịch.'),
+    ('約束',   'やくそく', 'yakusoku',  'lời hứa; cuộc hẹn',          'promise',            4, 'NOUN',       '今晩友達と約束があります。', 'Tối nay tôi có hẹn với bạn.'),
+    ('趣味',   'しゅみ',   'shumi',     'sở thích',                   'hobby',              4, 'NOUN',       '私の趣味は写真です。',       'Sở thích của tôi là chụp ảnh.'),
+    ('急ぐ',   'いそぐ',   'isogu',     'vội, khẩn trương',           'to hurry',           4, 'VERB',       '時間がないので急ぎましょう。', 'Không còn thời gian nên nhanh lên nào.'),
+    ('届ける', 'とどける', 'todokeru',  'giao, chuyển đến',           'to deliver',         4, 'VERB',       '荷物を届けます。',           'Tôi giao hàng.'),
+    ('決める', 'きめる',   'kimeru',    'quyết định',                 'to decide',          4, 'VERB',       '旅行の日を決めました。',     'Tôi đã quyết định ngày đi du lịch.'),
+    ('優しい', 'やさしい', 'yasashii',  'hiền, tốt bụng',             'kind, gentle',       4, 'I_ADJ',      '彼はとても優しいです。',     'Anh ấy rất tốt bụng.'),
+    ('便利',   'べんり',   'benri',     'tiện lợi',                   'convenient',         4, 'NA_ADJ',     'この辞書は便利です。',       'Cuốn từ điển này tiện lợi.'),
+    ('特に',   'とくに',   'tokuni',    'đặc biệt là',                'especially',         4, 'ADVERB',     '特に数学が好きです。',       'Tôi đặc biệt thích môn toán.');
+
+-- ---------------------------------------------------------------------
+-- Bộ thẻ hệ thống (owner_id NULL)
+-- ---------------------------------------------------------------------
+WITH deck AS (
+    INSERT INTO decks (owner_id, name, description, is_public, jlpt_level, item_type)
+    VALUES (NULL, 'Từ vựng N5 cơ bản', '70 từ thường gặp nhất ở trình độ N5: người, nơi chốn, đồ ăn, động từ và tính từ cơ bản.',
+            true, 5, 'VOCAB_MEANING')
+    RETURNING id
+)
+INSERT INTO deck_items (deck_id, item_type, item_id, position)
+SELECT deck.id, 'VOCAB_MEANING', v.id, ROW_NUMBER() OVER (ORDER BY v.id) - 1
+FROM deck, vocabulary v
+WHERE v.jlpt_level = 5;
+
+-- ---------------------------------------------------------------------
+-- Quiz 1 — Hiragana: đọc âm
+-- ---------------------------------------------------------------------
+WITH quiz AS (
+    INSERT INTO quizzes (title, description, quiz_type, jlpt_level, time_limit_sec, is_published)
+    VALUES ('Hiragana cơ bản: đọc âm', 'Nhìn chữ hiragana, chọn cách đọc romaji đúng. Tập trung vào các cặp dễ nhầm.',
+            'KANA_READING', NULL, 180, true)
+    RETURNING id
+)
+INSERT INTO questions (quiz_id, prompt, question_type, options, correct_answer, explanation_vi, position)
+SELECT quiz.id, q.prompt, 'MULTIPLE_CHOICE', q.options::jsonb, q.answer, q.explanation, q.pos
+FROM quiz, (VALUES
+    ('あ', '["o","a","u","e"]',     'a',   'あ (a) và お (o) đều có nét cong lớn; あ có nét ngang cắt nét dọc ở trên.', 0),
+    ('き', '["ki","sa","chi","ke"]', 'ki',  'き có hai nét ngang; さ (sa) chỉ có một.', 1),
+    ('す', '["tsu","su","mu","ru"]', 'su',  'す có vòng xoắn ở giữa nét dọc.', 2),
+    ('ぬ', '["me","nu","ne","mu"]',  'nu',  'ぬ giống め (me) nhưng có vòng nhỏ ở cuối nét.', 3),
+    ('ね', '["re","wa","ne","nu"]',  'ne',  'ね, れ (re), わ (wa) chung phần bên trái; ね kết thúc bằng vòng xoắn.', 4),
+    ('ち', '["sa","chi","ra","ki"]', 'chi', 'ち là さ (sa) lật ngược: nét cong mở sang phải.', 5),
+    ('つ', '["tsu","shi","su","n"]', 'tsu', 'つ là một nét cong duy nhất, đọc là tsu.', 6),
+    ('そ', '["ro","so","ko","to"]',  'so',  'そ có nét zig-zag ở trên rồi cong xuống.', 7),
+    ('お', '["a","o","mu","su"]',    'o',   'お có chấm nhỏ ở góc trên bên phải; あ thì không.', 8),
+    ('こ', '["ni","ko","i","ta"]',   'ko',  'こ là hai nét ngang; に (ni) có thêm nét dọc bên trái.', 9)
+) AS q(prompt, options, answer, explanation, pos);
+
+-- ---------------------------------------------------------------------
+-- Quiz 2 — Katakana: đọc âm (các cặp シ/ツ, ソ/ン kinh điển)
+-- ---------------------------------------------------------------------
+WITH quiz AS (
+    INSERT INTO quizzes (title, description, quiz_type, jlpt_level, time_limit_sec, is_published)
+    VALUES ('Katakana cơ bản: đọc âm', 'Phân biệt các cặp katakana khó như シ/ツ, ソ/ン, ヌ/メ.',
+            'KANA_READING', NULL, 180, true)
+    RETURNING id
+)
+INSERT INTO questions (quiz_id, prompt, question_type, options, correct_answer, explanation_vi, position)
+SELECT quiz.id, q.prompt, 'MULTIPLE_CHOICE', q.options::jsonb, q.answer, q.explanation, q.pos
+FROM quiz, (VALUES
+    ('ア', '["a","ma","ku","o"]',    'a',   'ア giống マ (ma) nhưng nét dọc thứ hai kéo dài xuống dưới.', 0),
+    ('シ', '["tsu","shi","so","n"]', 'shi', 'シ: hai chấm xếp dọc bên trái, nét cuối vẩy từ dưới lên.', 1),
+    ('ツ', '["shi","tsu","n","so"]', 'tsu', 'ツ: hai chấm xếp ngang phía trên, nét cuối kéo từ trên xuống.', 2),
+    ('ソ', '["n","so","ri","tsu"]',  'so',  'ソ: chấm nằm phía trên, nét dài kéo từ trên xuống.', 3),
+    ('ン', '["so","n","shi","ri"]',  'n',   'ン: chấm nằm bên trái, nét dài vẩy từ dưới lên.', 4),
+    ('ク', '["ta","ke","ku","wa"]',  'ku',  'ク giống タ (ta) nhưng không có nét chấm ở giữa.', 5),
+    ('ヌ', '["su","nu","fu","me"]',  'nu',  'ヌ giống ス (su) nhưng có thêm nét chéo cắt qua.', 6),
+    ('メ', '["nu","me","na","ne"]',  'me',  'メ chỉ có hai nét chéo cắt nhau.', 7),
+    ('ホ', '["ho","ha","ki","mo"]',  'ho',  'ホ có chữ thập ở giữa và hai chấm hai bên.', 8),
+    ('ヨ', '["e","yo","ko","ro"]',   'yo',  'ヨ có ba nét ngang và mở về bên trái.', 9)
+) AS q(prompt, options, answer, explanation, pos);
+
+-- ---------------------------------------------------------------------
+-- Quiz 3 — Từ vựng N5: nghĩa của từ
+-- ---------------------------------------------------------------------
+WITH quiz AS (
+    INSERT INTO quizzes (title, description, quiz_type, jlpt_level, time_limit_sec, is_published)
+    VALUES ('Từ vựng N5: chọn nghĩa đúng', 'Chọn nghĩa tiếng Việt cho từ tiếng Nhật thường gặp ở trình độ N5.',
+            'VOCAB_MEANING', 5, 240, true)
+    RETURNING id
+)
+INSERT INTO questions (quiz_id, prompt, question_type, options, correct_answer, explanation_vi, position)
+SELECT quiz.id, q.prompt, 'MULTIPLE_CHOICE', q.options::jsonb, q.answer, q.explanation, q.pos
+FROM quiz, (VALUES
+    ('食べる', '["ăn","uống","ngủ","đọc"]',                              'ăn',          '食べる (taberu) — ăn. Uống là 飲む (nomu).', 0),
+    ('学校',   '["công ty","nhà ga","trường học","bệnh viện"]',           'trường học',  '学校 (gakkou) — trường học. Công ty là 会社 (kaisha).', 1),
+    ('高い',   '["rẻ","cao; đắt","nhỏ","mới"]',                           'cao; đắt',    '高い (takai) vừa là "cao" vừa là "đắt". Rẻ là 安い (yasui).', 2),
+    ('猫',     '["con chó","con cá","con mèo","con chim"]',               'con mèo',     '猫 (neko) — con mèo. Con chó là 犬 (inu).', 3),
+    ('明日',   '["hôm qua","hôm nay","ngày mai","buổi sáng"]',            'ngày mai',    '明日 (ashita) — ngày mai. Hôm qua là 昨日 (kinou).', 4),
+    ('書く',   '["viết","nghe","nói","mua"]',                             'viết',        '書く (kaku) — viết. Đọc là 読む (yomu).', 5),
+    ('静か',   '["ồn ào","yên tĩnh","nổi tiếng","khỏe mạnh"]',            'yên tĩnh',    '静か (shizuka) — tính từ đuôi な: 静かな公園 (công viên yên tĩnh).', 6),
+    ('天気',   '["thời gian","thời tiết","mưa","núi"]',                   'thời tiết',   '天気 (tenki) — thời tiết. Thời gian là 時間 (jikan).', 7),
+    ('待つ',   '["chờ đợi","đi","đến","thức dậy"]',                       'chờ đợi',     '待つ (matsu) — chờ đợi: 友達を待ちます (đợi bạn).', 8),
+    ('友達',   '["gia đình","giáo viên","bạn bè","trẻ con"]',             'bạn bè',      '友達 (tomodachi) — bạn bè. Gia đình là 家族 (kazoku).', 9)
+) AS q(prompt, options, answer, explanation, pos);
+
+-- ---------------------------------------------------------------------
+-- Quiz 4 — Gõ romaji (tự luận)
+-- ---------------------------------------------------------------------
+WITH quiz AS (
+    INSERT INTO quizzes (title, description, quiz_type, jlpt_level, time_limit_sec, is_published)
+    VALUES ('Gõ romaji cho từ hiragana', 'Tự gõ cách đọc theo Hepburn. Không cần phân biệt hoa thường.',
+            'ROMAJI_INPUT', 5, 300, true)
+    RETURNING id
+)
+INSERT INTO questions (quiz_id, prompt, question_type, options, correct_answer, explanation_vi, position)
+SELECT quiz.id, q.prompt, 'TEXT_INPUT', '[]'::jsonb, q.answer, q.explanation, q.pos
+FROM quiz, (VALUES
+    ('さかな',   'sakana',     'さ-か-な: cá (魚).', 0),
+    ('ねこ',     'neko',       'ね-こ: con mèo (猫).', 1),
+    ('やま',     'yama',       'や-ま: núi (山).', 2),
+    ('はな',     'hana',       'は-な: hoa (花).', 3),
+    ('すし',     'sushi',      'し đọc là shi theo Hepburn, không phải si.', 4),
+    ('つくえ',   'tsukue',     'つ đọc là tsu: つくえ là cái bàn (机).', 5),
+    ('ちかてつ', 'chikatetsu', 'ち là chi, つ là tsu: tàu điện ngầm (地下鉄).', 6),
+    ('きっぷ',   'kippu',      'っ nhỏ nhân đôi phụ âm đứng sau: きっぷ → kippu (vé).', 7)
+) AS q(prompt, answer, explanation, pos);

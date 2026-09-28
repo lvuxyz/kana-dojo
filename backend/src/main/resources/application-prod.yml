@@ -6,7 +6,7 @@ spring:
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     hikari:
-      maximum-pool-size: 20
+      maximum-pool-size: ${DB_POOL_SIZE:20}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -31,8 +31,8 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     issuer: kana-dojo
-    access-token-ttl: 15m
-    refresh-token-ttl: 30d
+    access-token-ttl: ${JWT_ACCESS_TTL:15m}
+    refresh-token-ttl: ${JWT_REFRESH_TTL:30d}
   cors:
     allowed-origins: ${CORS_ORIGINS}
   google:

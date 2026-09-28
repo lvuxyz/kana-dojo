@@ -7,8 +7,25 @@ import { StrokeStage, type AttemptResult } from "@/components/kana/StrokeStage";
 import { Button, Card, Empty, Progress, Spinner } from "@/components/ui";
 import { get, post } from "@/lib/api";
 import { KANA } from "@/lib/kana";
-import { gradeFromScore } from "@/lib/stroke-match";
-import type { GradeResultDto, ReviewCardDto, WritingResultDto } from "@/lib/types";
+import type { GradeResultDto, ItemType, ReviewQueueDto, ReviewQueueItemDto, WritingResultDto } from "@/lib/types";
+
+/** Thẻ đã quy về dạng hỏi–đáp để hiển thị, bất kể là thẻ kana hay từ vựng. */
+interface ReviewCard {
+  cardId: number; itemType: ItemType; itemId: number;
+  prompt: string; answer: string; hint: string | null;
+}
+
+function toCard(item: ReviewQueueItemDto): ReviewCard {
+  const base = { cardId: item.cardId, itemType: item.itemType, itemId: item.itemId };
+  switch (item.itemType) {
+    case "VOCAB_MEANING":
+      return { ...base, prompt: item.word ?? "", answer: item.meaningVi ?? "", hint: item.reading };
+    case "VOCAB_READING":
+      return { ...base, prompt: item.word ?? "", answer: item.reading ?? "", hint: item.meaningVi };
+    default:
+      return { ...base, prompt: item.character ?? "", answer: item.romaji ?? "", hint: item.readingVi };
+  }
+}
 
 const GRADE_LABEL: Record<1 | 2 | 3 | 4, { text: string; hint: string; tone: string }> = {
   1: { text: "Quên rồi", hint: "gặp lại sau ~1 phút", tone: "border-shu/50 text-shu hover:bg-shu-tint" },
@@ -25,11 +42,11 @@ export default function ReviewPage() {
 
   const queue = useQuery({
     queryKey: ["reviews", "queue"],
-    queryFn: () => get<ReviewCardDto[]>("/reviews/queue?limit=30"),
+    queryFn: () => get<ReviewQueueDto>("/reviews/queue?limit=30"),
     staleTime: 0,
   });
 
-  const cards = queue.data ?? [];
+  const cards = useMemo(() => (queue.data?.content ?? []).map(toCard), [queue.data]);
   const card = cards[i];
 
   const advance = () => {

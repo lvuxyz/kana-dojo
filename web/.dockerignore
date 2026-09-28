@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+# Không để .env của máy dev lọt vào image hay đè lên build-arg.
+.env
+.env.*
+!.env.example
+Dockerfile
+.dockerignore

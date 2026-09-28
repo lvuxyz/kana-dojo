@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
+import { useQuery } from "@tanstack/react-query";
 import { StrokeStage, type AttemptResult, type StrokeFeedback, type StrokeStageHandle } from "./StrokeStage";
 import { Button, Seg } from "@/components/ui";
 import type { KanaChar } from "@/lib/kana";
-import type { PracticeMode, WritingResultDto } from "@/lib/types";
+import { get } from "@/lib/api";
+import type { BadgeDto, PracticeMode, WritingResultDto } from "@/lib/types";
 
 interface Props {
   char: KanaChar;
@@ -28,6 +30,13 @@ export function PracticePanel({
   const [tone, setTone] = useState<"" | "good" | "bad">("");
   const [score, setScore] = useState<number | null>(null);
   const [result, setResult] = useState<WritingResultDto | null>(null);
+  // Backend chỉ trả mã huy hiệu; tên hiển thị lấy từ danh mục (dùng chung cache với dashboard).
+  const badgeCatalog = useQuery({
+    queryKey: ["badges"],
+    queryFn: () => get<BadgeDto[]>("/badges"),
+    enabled: (result?.newBadges.length ?? 0) > 0,
+  });
+  const badgeName = (code: string) => badgeCatalog.data?.find((b) => b.code === code)?.nameVi ?? code;
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -218,7 +227,7 @@ export function PracticePanel({
                 </div>
                 {result.newBadges.length > 0 && (
                   <div className="text-xs font-bold text-gold">
-                    🎖 Đạt huy hiệu: {result.newBadges.map((b) => b.nameVi).join(", ")}
+                    🎖 Đạt huy hiệu: {result.newBadges.map(badgeName).join(", ")}
                   </div>
                 )}
                 <Button variant="solid" onClick={onNext} className="mt-1 w-full font-semibold">

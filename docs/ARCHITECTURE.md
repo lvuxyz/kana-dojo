@@ -25,7 +25,7 @@ Kana Dōjō là ứng dụng monorepo full-stack gồm ba lớp độc lập:
 └────────────────────────┬────────────────────────────────────┘
                          │ JDBC / HikariCP
                 ┌────────▼────────┐
-                │  PostgreSQL 16  │  28 bảng, Flyway migration
+                │  PostgreSQL 16  │  22 bảng, Flyway migration
                 └─────────────────┘
 ```
 
@@ -34,6 +34,7 @@ Kana Dōjō là ứng dụng monorepo full-stack gồm ba lớp độc lập:
 ## Mô hình BFF (Backend for Frontend)
 
 Next.js đóng vai trò BFF — một lớp proxy mỏng giữa trình duyệt và Spring Boot, với mục đích duy nhất là bảo vệ refresh token.
+Mọi lời gọi `/api/v1/*` khác đi qua **rewrite** trong `next.config.mjs` tới `BACKEND_URL`, nên trình duyệt chỉ nói chuyện với một origin.
 
 ```
 Trình duyệt              Next.js BFF              Spring Boot
@@ -49,16 +50,19 @@ Trình duyệt              Next.js BFF              Spring Boot
      │◄───────────────────────┤   → httpOnly cookie,   │
      │                        │   chỉ trả accessToken) │
      │                        │                        │
-     │  GET /api/v1/users/me  │                        │
-     │  Authorization: Bearer │  (Next.js KHÔNG tham   │
-     ├───────────────────────────────────────────────►│
-     │                        │   gia — gọi thẳng BE)  │
+     │  GET /api/v1/auth/me   │  rewrite (proxy thuần, │
+     │  Authorization: Bearer │  không đọc/sửa body)   │
+     ├───────────────────────►├───────────────────────►│
 ```
 
 **Tại sao BFF?**
 - `refreshToken` không bao giờ chạm vào JavaScript → không bị đánh cắp qua XSS
 - `accessToken` tồn tại trong RAM (biến React state / closure) — mất khi tắt tab
-- Cookie `HttpOnly; Secure; SameSite=Strict` → không thể đọc từ JS, không gửi cross-site
+- Cookie `kd_rt` với `HttpOnly; SameSite=Lax; Path=/` (thêm `Secure` khi `NODE_ENV=production`) → JS không đọc được, không đi kèm request POST cross-site
+
+> **Lưu ý CORS:** rewrite chuyển tiếp nguyên header `Origin` của trình duyệt. Với request POST/PATCH, trình duyệt luôn gửi `Origin`,
+> nên Spring vẫn kiểm tra CORS dù request đi qua proxy. `CORS_ORIGINS` **phải** chứa đúng origin mà người dùng mở trang
+> (dev: `http://localhost:3001`), nếu không mọi thao tác ghi sẽ nhận **403**.
 
 **Luồng refresh tự động (`web/src/lib/api.ts`):**
 1. Gọi API → nhận HTTP 401
@@ -85,7 +89,7 @@ Client                    Next.js BFF               Spring Boot
   │                             │    refreshToken,       │
   │                             │    user }              │
   │                             │◄───────────────────────┤
-  │  Set-Cookie: kd_refresh=…   │                        │
+  │  Set-Cookie: kd_rt=…        │                        │
   │  { accessToken, user }      │                        │
   │◄────────────────────────────┤                        │
 ```
@@ -169,11 +173,14 @@ Client                    Next.js BFF               Spring Boot        Google
           │   + reason: REVERSED |          │
           │     TOO_SHORT | TOO_LONG |      │
           │     OFF_PATH                    │
+          │   (backend còn nhận WRONG_ORDER,│
+          │    frontend hiện chưa phát ra)  │
           └────────────────┬────────────────┘
                            │
                            ▼
               POST /api/v1/writing/attempts
-              { kanaId, strokes: [{score, reason}] }
+              { kanaCharacterId, mode, strokeScores[],
+                strokeErrors[{index, reason}], avgScore, durationMs }
 ```
 
 ### Chuyển điểm → grade FSRS
@@ -193,29 +200,27 @@ Ngưỡng pass: TRACE mode = 58 · TEST mode = 48
 
 `FsrsEngine.java` là lớp thuần hàm (không phụ thuộc Spring), toàn bộ logic là các phương thức `static`. Đặc điểm:
 
-- **21 tham số** mặc định (W0–W20) — có thể override qua cấu hình
+- **21 tham số** mặc định (W0–W20) — hằng số trong code, chưa override được qua cấu hình
 - **Stability (S):** thời gian (ngày) để độ nhớ rơi xuống 90%
 - **Difficulty (D):** mức độ khó của thẻ, 1–10
-- **Retention mục tiêu:** 90% (cấu hình được)
+- **Retention mục tiêu:** 90% (`app.srs.desired-retention`)
 - **Vòng lặp học:**
 
 ```
-NEW
+NEW / LEARNING — đi qua các mốc [1, 10] phút
  │
- ├─ grade ≥ 3 ─► REVIEW (due sau ~1 ngày)
- │
- └─ grade < 3 ─► LEARNING (due sau 1 phút → 10 phút → …)
-                       │
-                       ├─ grade ≥ 3 ─► REVIEW
-                       └─ grade < 3 ─► lặp lại LEARNING
+ ├─ grade 4 (Easy) ─────────────► REVIEW ngay (bắt đầu tính FSRS)
+ ├─ grade 3 (Good) ─► sang mốc kế; qua mốc cuối ─► REVIEW
+ ├─ grade 2 (Hard) ─► ở lại mốc hiện tại
+ └─ grade 1 (Again) ─► về mốc 0 (1 phút)
 
 REVIEW
  │
- ├─ grade ≥ 2 ─► REVIEW (due sau S × retention_factor ngày)
+ ├─ grade ≥ 2 ─► REVIEW (khoảng cách tính từ S và retention mục tiêu)
  │
- └─ grade 1 ─► RELEARNING (due sau 10 phút)
+ └─ grade 1 ─► RELEARNING (mốc [10] phút, stability giảm)
                       │
-                      └─ grade ≥ 2 ─► REVIEW (stability giảm)
+                      └─ qua mốc ─► REVIEW
 ```
 
 **Điểm khác biệt quan trọng:** `grade` được đo tự động từ độ chính xác nét vẽ, không phải người dùng tự chấm — loại bỏ sai lệch chủ quan khi ôn tập.
@@ -226,11 +231,11 @@ REVIEW
 
 `POST /writing/attempts` thực hiện 5 việc trong **một transaction duy nhất** để tránh trạng thái không nhất quán:
 
-1. Ghi `writing_attempts` (kanaId, userId, strokes, score, grade)
+1. Ghi `writing_attempts` (user, ký tự, điểm từng nét, lỗi từng nét, điểm trung bình, passed)
 2. Tính grade từ điểm
-3. Cập nhật thẻ SRS (`srs_cards`: stability, difficulty, due_date, state)
-4. Ghi `review_log`
-5. Cộng XP → cập nhật streak → kiểm tra huy hiệu
+3. Cập nhật thẻ SRS (`review_cards`: stability, difficulty, due_at, state)
+4. Ghi `review_logs`
+5. Cộng XP → cập nhật streak/`daily_activity` → kiểm tra huy hiệu
 
 Nếu bất kỳ bước nào thất bại → rollback toàn bộ — không có trạng thái nửa chừng.
 
@@ -248,9 +253,9 @@ Dữ liệu 208 ký tự (57 KB, ~20 KB gzip) được bundle thẳng vào JS bu
 
 ## Rate limiting
 
-Bucket4j giới hạn `10 request / phút / IP` trên các endpoint xác thực (`/api/v1/auth/**`). Chạy in-memory (không cần Redis), phù hợp cho triển khai single-instance.
+Bucket4j giới hạn `10 request / phút / IP` trên `/api/v1/auth/login` và `/api/v1/auth/register`. Chạy in-memory (không cần Redis), phù hợp cho triển khai single-instance.
 
-Khi vượt giới hạn → HTTP 429, header `X-RateLimit-Retry-After`.
+Khi vượt giới hạn → HTTP 429, header `Retry-After: 60`.
 
 ---
 
@@ -282,14 +287,14 @@ Quota được lưu trong bảng `plan_features`, tra cứu tại request time:
 
 | plan | feature_key | limit_value |
 |---|---|---|
-| FREE | daily_reviews | 60 |
-| FREE | daily_writing_attempts | 100 |
-| FREE | max_jlpt_level | 5 (chỉ N5) |
-| FREE | history_days | 30 |
-| PRO | daily_reviews | NULL (không giới hạn) |
-| PRO | daily_writing_attempts | NULL |
-| PRO | max_jlpt_level | 1 (N1–N5) |
-| PRO | history_days | NULL |
+| FREE | srs.daily_reviews | 60 |
+| FREE | writing.daily_attempts | 100 |
+| FREE | content.jlpt_levels | 5 (chỉ N5) |
+| FREE | stats.history_days | 30 |
+| PRO | srs.daily_reviews | NULL (không giới hạn) |
+| PRO | writing.daily_attempts | NULL |
+| PRO | content.jlpt_levels | 1 (N1–N5) |
+| PRO | stats.history_days | NULL |
 
 Vượt quota → HTTP 429 với RFC 7807 Problem Details (không phải lỗi rate-limit mạng, là lỗi nghiệp vụ).
 
@@ -315,4 +320,4 @@ Lấy `min()` sẽ chấp nhận nét vẽ ngược chiều — điều này sai
 
 ### `FsrsEngine` là lớp thuần hàm
 
-Không có `@Component`, không inject, không side effect → có thể unit test hoàn toàn mà không cần Spring context hay DB. Test file `FsrsEngineTest.java` chạy hàng nghìn assertion cho các công thức FSRS-6 chỉ với JUnit 5 và H2.
+Không có `@Component`, không inject, không side effect → có thể unit test hoàn toàn mà không cần Spring context hay DB. `FsrsEngineTest.java` (11 test) chạy chỉ với JUnit 5, không khởi động Spring và không cần CSDL.

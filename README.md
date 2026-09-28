@@ -10,8 +10,11 @@ kana-dojo/
 │   ├── DEVELOPMENT.md     Hướng dẫn thiết lập môi trường phát triển
 │   ├── DEPLOYMENT.md      Hướng dẫn triển khai production
 │   └── kana-data.json     208 ký tự · 148 glyph, trích từ KanjiVG (CC BY-SA 3.0)
-├── backend/               Spring Boot 3.2.5 · Java 17 · PostgreSQL 16
-├── web/                   Next.js 15 App Router · TypeScript · Tailwind CSS v4
+├── backend/               Spring Boot 3.2.5 · Java 17 · PostgreSQL 16 (+ Dockerfile)
+├── web/                   Next.js 15 App Router · TypeScript · Tailwind CSS v4 (+ Dockerfile)
+├── docker-compose.yml     PostgreSQL + backend + web, chỉ mở cổng web
+├── .github/workflows/     CI: test backend, lint/test/build web, smoke test qua Docker
+├── scripts/smoke-test.sh  Kiểm tra nhanh một bản triển khai đang chạy
 └── archive/legacy-v1/     Bản offline HTML/CSS/JS thuần — không server, không tài khoản
 ```
 
@@ -27,13 +30,23 @@ kana-dojo/
 | **Bảng xếp hạng** | Bảng tuần, snapshot mỗi thứ Hai 00:05 giờ Việt Nam |
 | **Xác thực đầy đủ** | Email/mật khẩu + Google OAuth, JWT 15 phút, refresh token httpOnly |
 | **Phân quyền gói** | FREE (60 lượt ôn/ngày, N5) và PRO (không giới hạn, N1–N5) |
-| **Quiz** | Nhiều loại câu hỏi, ghi nhận kết quả đầy đủ |
-| **Từ vựng JLPT** | N1–N5, nghĩa tiếng Việt, câu ví dụ |
+| **Quiz** | 4 bài mẫu (trắc nghiệm + gõ romaji), đếm giờ, chấm và giải thích từng câu |
+| **Từ vựng JLPT** | 70 từ N5 + 10 từ N4 seed sẵn, nghĩa tiếng Việt, câu ví dụ; lược đồ hỗ trợ N1–N5 |
 | **Swagger UI** | `http://localhost:8080/swagger-ui.html` |
 
 ---
 
 ## Khởi động nhanh (5 phút)
+
+**Chỉ muốn chạy thử?** Có Docker là đủ:
+
+```bash
+cp .env.example .env     # điền DB_PASSWORD, JWT_SECRET, GOOGLE_CLIENT_ID (xem chú thích trong file)
+docker compose up -d --build --wait
+```
+
+Mở <http://localhost:3000>. Chi tiết: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#chạy-bằng-docker-compose).
+Các bước dưới đây dành cho **phát triển** (hot reload, chạy từng phần riêng).
 
 ### Yêu cầu hệ thống
 
@@ -52,39 +65,18 @@ docker run -d --name kanadojo-db -p 5432:5432 \
   postgres:16
 ```
 
-Flyway tự tạo toàn bộ lược đồ (28 bảng) và `KanaSeeder` tự nạp 208 ký tự khi backend khởi động lần đầu — không cần chạy script SQL thủ công.
+Flyway tự tạo toàn bộ lược đồ (22 bảng) kèm dữ liệu khởi đầu (gói cước, huy hiệu, từ vựng, quiz mẫu), và `KanaSeeder` tự nạp 208 ký tự khi backend khởi động lần đầu — không cần chạy script SQL thủ công.
 
 ### Bước 2 — Backend
 
+Ở môi trường dev mọi biến đều có mặc định khớp với container ở bước 1, nên chỉ cần:
+
 ```bash
 cd backend
-
-# Windows
-set DB_URL=jdbc:postgresql://localhost:5432/kanadojo
-set DB_USER=postgres
-set DB_PASSWORD=postgres
-set JWT_SECRET=<chuỗi base64, ít nhất 256 bit — xem bên dưới>
-set CORS_ORIGINS=http://localhost:3000
-
 mvn spring-boot:run
 ```
 
-```bash
-# macOS / Linux
-export DB_URL=jdbc:postgresql://localhost:5432/kanadojo
-export DB_USER=postgres
-export DB_PASSWORD=postgres
-export JWT_SECRET=<chuỗi base64>
-export CORS_ORIGINS=http://localhost:3000
-
-mvn spring-boot:run
-```
-
-Sinh `JWT_SECRET`:
-```bash
-openssl rand -base64 48
-```
-
+Muốn ghi đè (DB khác, khoá JWT riêng…) xem bảng [Biến môi trường](#biến-môi-trường) và [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 Backend sẵn sàng khi thấy log `Started KanaDojoApplication`.
 
 ### Bước 3 — Frontend
@@ -98,31 +90,37 @@ npm install
 npm run dev
 ```
 
-Mở <http://localhost:3000>.
+Mở <http://localhost:3001> (script `dev` chạy ở cổng 3001).
+
+> **Windows:** `start-services.bat` bật cả PostgreSQL portable, backend (JAR đã build) và frontend — điều kiện xem
+> [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#cách-nhanh-trên-windows-start-servicesbat).
 
 ---
 
 ## Biến môi trường
 
-### Backend (bắt buộc)
+### Backend — kết nối & bảo mật
 
-| Biến | Ví dụ | Mô tả |
+Ở dev đều có mặc định; ở profile `prod` thì `DB_*`, `JWT_SECRET`, `CORS_ORIGINS`, `GOOGLE_CLIENT_ID` **bắt buộc**
+(thiếu → `ProdSecretsValidator` dừng ứng dụng ngay khi khởi động).
+
+| Biến | Mặc định dev | Mô tả |
 |---|---|---|
 | `DB_URL` | `jdbc:postgresql://localhost:5432/kanadojo` | JDBC URL PostgreSQL |
 | `DB_USER` | `postgres` | Tên người dùng DB |
 | `DB_PASSWORD` | `postgres` | Mật khẩu DB |
-| `JWT_SECRET` | *(base64, ≥256 bit)* | Khóa ký JWT — **bắt buộc trên production** |
-| `CORS_ORIGINS` | `http://localhost:3000` | Origin được phép, cách nhau bằng dấu phẩy |
-| `GOOGLE_CLIENT_ID` | `xxx.apps.googleusercontent.com` | Chỉ bắt buộc nếu dùng đăng nhập Google |
+| `JWT_SECRET` | khoá dev dùng chung | Khóa ký JWT, base64 ≥ 256 bit (`openssl rand -base64 48`) |
+| `CORS_ORIGINS` | `localhost:3000`, `localhost:3001` (+ `127.0.0.1`) | Origin được phép, cách nhau bằng dấu phẩy. Phải chứa origin người dùng mở trang — kể cả khi gọi qua rewrite của Next |
+| `GOOGLE_CLIENT_ID` | *(trống — tắt đăng nhập Google)* | OAuth client ID |
 
-### Backend (tùy chọn, có giá trị mặc định)
+### Backend — tinh chỉnh
 
 | Biến | Mặc định | Mô tả |
 |---|---|---|
 | `SERVER_PORT` | `8080` | Cổng HTTP |
-| `DB_POOL_SIZE` | `10` | Kích thước pool Hikari |
-| `JWT_ACCESS_TTL` | `900` | Thời gian sống access token (giây) |
-| `JWT_REFRESH_TTL` | `2592000` | Thời gian sống refresh token (giây) |
+| `DB_POOL_SIZE` | `10` (dev) / `20` (prod) | Kích thước pool Hikari |
+| `JWT_ACCESS_TTL` | `15m` | Thời gian sống access token — kiểu Duration (`15m`, `900s`); số trần bị hiểu là mili giây |
+| `JWT_REFRESH_TTL` | `30d` | Thời gian sống refresh token (Duration) |
 | `SRS_NEW_CARDS_PER_DAY` | `10` | Số thẻ mới tối đa mỗi ngày |
 
 ### Frontend (`.env.local`)
@@ -130,7 +128,7 @@ Mở <http://localhost:3000>.
 | Biến | Mặc định | Mô tả |
 |---|---|---|
 | `BACKEND_URL` | `http://localhost:8080` | URL backend (server-side only) |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | URL công khai của site |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3001` | URL công khai của site |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | *(trống)* | Client ID Google OAuth |
 
 ---
@@ -144,18 +142,18 @@ backend/src/main/java/com/japanese/learning/
 ├── config/             AppProperties, SecurityConfig, WebConfig, OpenApiConfig
 │                       SchedulingConfig, ProdSecretsValidator
 ├── domain/
-│   ├── entity/         28 JPA entity (users, kana_chars, srs_cards, …)
+│   ├── entity/         22 JPA entity (users, kana_characters, review_cards, …)
 │   ├── enums/          CardState, ItemType, KanaGroup, Script, BadgeTier, …
 │   └── StrokeError.java
 ├── repository/         Spring Data JPA repositories
-├── security/           JwtService, JwtAuthFilter, GoogleTokenVerifier
-│                       RefreshTokenService
+├── security/           JwtService, JwtAuthenticationFilter, GoogleTokenVerifier
+│                       RefreshTokenService, AuthRateLimitFilter
 ├── seed/               KanaSeeder — ApplicationRunner, idempotent
 ├── service/            AuthService, ReviewService, WritingService
 │                       BadgeService, GamificationService, …
 ├── srs/                FsrsEngine.java — thuần hàm, không Spring, unit test được
 └── web/
-    ├── controller/     14 REST controller
+    ├── controller/     12 REST controller
     └── dto/            AuthDtos, ContentDtos, LearningDtos, GamificationDtos, …
 
 web/src/
@@ -166,7 +164,7 @@ web/src/
 │   │   ├── on-tap/             Ôn tập SRS
 │   │   ├── bang-xep-hang/      Bảng xếp hạng
 │   │   ├── ho-so/              Hồ sơ cá nhân
-│   │   ├── quiz/               Quiz
+│   │   ├── quiz/               Danh sách quiz + màn làm bài quiz/[id]
 │   │   └── tu-vung/            Từ vựng
 │   ├── (auth)/         Route group xác thực (dang-nhap, dang-ky)
 │   ├── bang-chu-cai/[script]/  Bảng chữ cái công khai
@@ -180,8 +178,10 @@ web/src/
     ├── api.ts           Fetch wrapper: auto-refresh token, coalesce 401
     ├── auth-context.tsx React context xác thực
     ├── auth-proxy.ts    Tách refresh token → httpOnly cookie
+    ├── kana.ts          Truy cập dữ liệu nét đã bundle
+    ├── providers.tsx    QueryClientProvider + AuthProvider
     ├── stroke-match.ts  Bộ chấm điểm nét — arc-length resampling, thuần hàm
-    └── types.ts         TypeScript types khớp với SPEC.md
+    └── types.ts         TypeScript types khớp với DTO backend / SPEC.md
 ```
 
 ---
@@ -189,25 +189,32 @@ web/src/
 ## Kiểm thử
 
 ```bash
-# Backend — 11 test, bao gồm hàng nghìn assertion cho FsrsEngine
+# Backend — 11 unit test + 24 integration test (PostgreSQL thật qua Testcontainers, cần Docker)
 cd backend
 mvn test
 
-# Frontend — kiểm tra kiểu
+# Frontend — unit test (Vitest), lint, kiểm tra kiểu, build
 cd web
+npm test
+npm run lint
 npm run typecheck
-
-# Frontend — build production
-cd web
 npm run build
 ```
+
+Không có Docker thì integration test tự bỏ qua. Chi tiết từng bộ test: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#chạy-kiểm-thử).
+CI (GitHub Actions) chạy tất cả những lệnh trên cho mỗi pull request, rồi dựng cả stack bằng `docker compose` và chạy
+`scripts/smoke-test.sh` — xem [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#ci-github-actions).
 
 ---
 
 ## Trạng thái build đã kiểm chứng
 
-- **Backend:** `mvn compile` · `mvn test` (11 test) · `mvn package` — BUILD SUCCESS
-- **Frontend:** `tsc --noEmit` · `next build` — thành công, 23 route
+Kiểm chứng ngày 2026-09-28:
+
+- **Backend:** `mvn test` — 35/35 test qua (11 unit + 24 integration trên PostgreSQL 16 qua Testcontainers)
+- **Frontend:** `npm test` 22/22 · `npm run lint` sạch · `tsc --noEmit` · `next build` — thành công, 23 route
+- **End-to-end:** đăng ký → danh sách từ vựng → làm quiz và nộp bài → hàng đợi ôn tập, chạy qua rewrite của Next
+- **Docker:** `docker compose up --build --wait` — ba dịch vụ healthy; `scripts/smoke-test.sh` qua 7/7 bước
 
 Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#sự-cố-đã-gặp-và-cách-xử-lý).
 
@@ -217,8 +224,10 @@ Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPM
 
 | Tính năng | Trạng thái |
 |---|---|
-| Màn hình làm bài quiz | API backend xong, UI chưa làm |
 | Cổng thanh toán | Lược đồ DB (`subscriptions`, `plan_features`) sẵn sàng, tích hợp chưa làm |
+| Quản trị nội dung | Chưa có trang admin — thêm từ vựng/quiz bằng migration Flyway mới |
+| Thẻ từ vựng trong hàng đợi ôn | Hạn mức thẻ mới/ngày dùng chung và thẻ `KANA_*` được cấp trước, nên thẻ `VOCAB_*` chỉ xuất hiện sau khi đã mở hết 416 thẻ kana (trừ khi client gọi `/reviews/queue?types=VOCAB_MEANING`) |
+| IP người dùng qua BFF | Route `/api/auth/*` gọi backend từ server Next mà không chuyển tiếp IP gốc, nên backend thấy IP của container web: rate limit đăng nhập/đăng ký (10/phút/IP) đang áp **chung cho cả site** và `refresh_tokens.ip` ghi sai. Cần sửa cùng lúc với việc chỉ tin `X-Forwarded-For` từ proxy tin cậy |
 
 ---
 

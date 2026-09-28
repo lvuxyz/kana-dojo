@@ -1,0 +1,59 @@
+# Kana Dōjō — chạy trọn bộ PostgreSQL + Spring Boot + Next.js.
+#   cp .env.example .env    # rồi điền giá trị
+#   docker compose up -d --build --wait
+# Chỉ web được mở cổng ra máy chủ; backend và CSDL nằm trong mạng nội bộ của compose.
+# Đặt Nginx (TLS) phía trước cổng web khi chạy thật — xem docs/DEPLOYMENT.md.
+
+name: kana-dojo
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kanadojo
+      POSTGRES_USER: ${DB_USER:-kanadojo}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Đặt DB_PASSWORD trong .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d kanadojo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/kanadojo
+      DB_USER: ${DB_USER:-kanadojo}
+      DB_PASSWORD: ${DB_PASSWORD:?Đặt DB_PASSWORD trong .env}
+      JWT_SECRET: ${JWT_SECRET:?Đặt JWT_SECRET trong .env (openssl rand -base64 48)}
+      # Rewrite của Next chuyển tiếp header Origin, nên phải cho phép chính URL công khai của web.
+      CORS_ORIGINS: ${SITE_URL:?Đặt SITE_URL trong .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Đặt GOOGLE_CLIENT_ID trong .env}
+      SRS_NEW_CARDS_PER_DAY: ${SRS_NEW_CARDS_PER_DAY:-10}
+
+  web:
+    build:
+      context: ./web
+      args:
+        BACKEND_URL: http://backend:8080
+        NEXT_PUBLIC_SITE_URL: ${SITE_URL:?Đặt SITE_URL trong .env}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+volumes:
+  pgdata:
