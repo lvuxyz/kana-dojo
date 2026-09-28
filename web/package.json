@@ -6,8 +6,10 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tanstack/react-query": "5.64.2",
@@ -18,12 +20,17 @@
     "zod": "3.24.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "4.3.3",
-    "@types/node": "22.10.7",
+    "@types/node": "^22.20.4",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.25",
     "postcss": "8.5.1",
     "tailwindcss": "4.3.3",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.11"
   }
 }

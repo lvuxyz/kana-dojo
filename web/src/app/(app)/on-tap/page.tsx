@@ -7,7 +7,6 @@ import { StrokeStage, type AttemptResult } from "@/components/kana/StrokeStage";
 import { Button, Card, Empty, Progress, Spinner } from "@/components/ui";
 import { get, post } from "@/lib/api";
 import { KANA } from "@/lib/kana";
-import { gradeFromScore } from "@/lib/stroke-match";
 import type { GradeResultDto, ItemType, ReviewQueueDto, ReviewQueueItemDto, WritingResultDto } from "@/lib/types";
 
 /** Thẻ đã quy về dạng hỏi–đáp để hiển thị, bất kể là thẻ kana hay từ vựng. */

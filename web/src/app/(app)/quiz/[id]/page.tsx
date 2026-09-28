@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -57,7 +57,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ id: strin
     },
   });
 
-  const questions = quiz.data?.questions ?? [];
+  const questions = useMemo(() => quiz.data?.questions ?? [], [quiz.data]);
   const current = questions[index];
 
   const doSubmit = useCallback(() => {
