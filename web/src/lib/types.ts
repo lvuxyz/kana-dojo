@@ -35,7 +35,8 @@ export interface BadgeDto {
 
 export interface WritingResultDto {
   passed: boolean; avgScore: number; grade: 1 | 2 | 3 | 4;
-  xpEarned: number; card: GradeResultDto | null; newBadges: BadgeDto[];
+  /** Mã huy hiệu vừa đạt (BadgeDto.code) — tra tên qua GET /badges. */
+  xpEarned: number; card: GradeResultDto | null; newBadges: string[];
 }
 
 export interface KanaProgressDto {
@@ -48,10 +49,16 @@ export interface ProgressSummaryDto {
   dueToday: number; newAvailable: number;
 }
 
-export interface ReviewCardDto {
+/** Một thẻ trong hàng đợi. Thẻ KANA_* có character/romaji/readingVi, thẻ VOCAB_* có word/reading/meaningVi. */
+export interface ReviewQueueItemDto {
   cardId: number; itemType: ItemType; itemId: number;
-  state: CardState; dueAt: string;
-  prompt: string; answer: string; hint: string | null;
+  state: CardState; dueAt: string; reps: number; lapses: number;
+  character: string | null; romaji: string | null; readingVi: string | null;
+  word: string | null; reading: string | null; meaningVi: string | null;
+}
+
+export interface ReviewQueueDto {
+  content: ReviewQueueItemDto[]; dueCount: number; newCount: number;
 }
 
 export interface LeaderboardDto {
@@ -61,8 +68,8 @@ export interface LeaderboardDto {
 
 export interface VocabularyDto {
   id: number; word: string; reading: string; romaji: string;
-  meaningVi: string; jlptLevel: number | null; partOfSpeech: string | null;
-  exampleJa: string | null; exampleVi: string | null;
+  meaningVi: string; meaningEn: string | null; jlptLevel: number | null; partOfSpeech: string | null;
+  exampleJa: string | null; exampleVi: string | null; audioUrl: string | null;
 }
 
 export interface Page<T> {
@@ -77,6 +84,34 @@ export interface ProblemDetail {
 
 export interface KanaCharacterDto {
   id: number; character: string; romaji: string;
-  script: "HIRAGANA" | "KATAKANA"; kanaGroup: "BASIC" | "DAKUTEN" | "YOON";
-  rowKey: string; colIndex: number; strokeCount: number; readingVi: string | null;
+  script: "HIRAGANA" | "KATAKANA"; group: "BASIC" | "DAKUTEN" | "YOON";
+  rowKey: string; colIndex: number; strokeCount: number; readingVi: string | null; displayOrder: number;
+}
+
+export type QuestionType = "MULTIPLE_CHOICE" | "TEXT_INPUT";
+
+export interface QuizDto {
+  id: number; title: string; description: string | null;
+  quizType: string; jlptLevel: number | null; timeLimitSec: number | null; questionCount: number;
+}
+
+/** Đề bài — không bao giờ kèm đáp án đúng. */
+export interface QuestionDto {
+  id: number; prompt: string; questionType: QuestionType; options: string[]; position: number;
+}
+
+export interface QuizDetailDto extends Omit<QuizDto, "questionCount"> {
+  questions: QuestionDto[];
+}
+
+export interface QuizAttemptDto { attemptId: number; quizId: number; startedAt: string; totalCount: number }
+
+export interface AnswerResultDto {
+  questionId: number; givenAnswer: string | null; correct: boolean;
+  correctAnswer: string; explanationVi: string | null;
+}
+
+export interface QuizResultDto {
+  attemptId: number; quizId: number; score: number; correctCount: number;
+  totalCount: number; xpEarned: number; answers: AnswerResultDto[];
 }
