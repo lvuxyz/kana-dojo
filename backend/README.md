@@ -97,6 +97,9 @@ lược đồ **phải** đi qua một file migration mới.
 
 Ở profile `prod`, Swagger bị tắt.
 
+`GET /actuator/health` công khai, trả `{"status":"UP"}` không kèm chi tiết — dùng cho healthcheck của Docker.
+Các endpoint actuator khác không được mở.
+
 Nhấn **Authorize** rồi dán access token lấy từ `POST /api/v1/auth/login`.
 
 ```bash
@@ -108,7 +111,7 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 ## 6. Kiểm thử
 
 ```bash
-mvn test                                    # toàn bộ (33 test)
+mvn test                                    # toàn bộ (35 test)
 mvn test -Dtest=FsrsEngineTest              # riêng bộ lập lịch FSRS
 mvn test -Dtest='com.japanese.learning.it.*' # riêng integration test
 ```

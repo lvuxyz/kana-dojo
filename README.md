@@ -10,8 +10,11 @@ kana-dojo/
 │   ├── DEVELOPMENT.md     Hướng dẫn thiết lập môi trường phát triển
 │   ├── DEPLOYMENT.md      Hướng dẫn triển khai production
 │   └── kana-data.json     208 ký tự · 148 glyph, trích từ KanjiVG (CC BY-SA 3.0)
-├── backend/               Spring Boot 3.2.5 · Java 17 · PostgreSQL 16
-├── web/                   Next.js 15 App Router · TypeScript · Tailwind CSS v4
+├── backend/               Spring Boot 3.2.5 · Java 17 · PostgreSQL 16 (+ Dockerfile)
+├── web/                   Next.js 15 App Router · TypeScript · Tailwind CSS v4 (+ Dockerfile)
+├── docker-compose.yml     PostgreSQL + backend + web, chỉ mở cổng web
+├── .github/workflows/     CI: test backend, lint/test/build web, smoke test qua Docker
+├── scripts/smoke-test.sh  Kiểm tra nhanh một bản triển khai đang chạy
 └── archive/legacy-v1/     Bản offline HTML/CSS/JS thuần — không server, không tài khoản
 ```
 
@@ -34,6 +37,16 @@ kana-dojo/
 ---
 
 ## Khởi động nhanh (5 phút)
+
+**Chỉ muốn chạy thử?** Có Docker là đủ:
+
+```bash
+cp .env.example .env     # điền DB_PASSWORD, JWT_SECRET, GOOGLE_CLIENT_ID (xem chú thích trong file)
+docker compose up -d --build --wait
+```
+
+Mở <http://localhost:3000>. Chi tiết: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#chạy-bằng-docker-compose).
+Các bước dưới đây dành cho **phát triển** (hot reload, chạy từng phần riêng).
 
 ### Yêu cầu hệ thống
 
@@ -176,7 +189,7 @@ web/src/
 ## Kiểm thử
 
 ```bash
-# Backend — 11 unit test + 22 integration test (PostgreSQL thật qua Testcontainers, cần Docker)
+# Backend — 11 unit test + 24 integration test (PostgreSQL thật qua Testcontainers, cần Docker)
 cd backend
 mvn test
 
@@ -189,6 +202,8 @@ npm run build
 ```
 
 Không có Docker thì integration test tự bỏ qua. Chi tiết từng bộ test: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#chạy-kiểm-thử).
+CI (GitHub Actions) chạy tất cả những lệnh trên cho mỗi pull request, rồi dựng cả stack bằng `docker compose` và chạy
+`scripts/smoke-test.sh` — xem [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#ci-github-actions).
 
 ---
 
@@ -196,9 +211,10 @@ Không có Docker thì integration test tự bỏ qua. Chi tiết từng bộ te
 
 Kiểm chứng ngày 2026-09-28:
 
-- **Backend:** `mvn test` — 33/33 test qua (11 unit + 22 integration trên PostgreSQL 16 qua Testcontainers)
+- **Backend:** `mvn test` — 35/35 test qua (11 unit + 24 integration trên PostgreSQL 16 qua Testcontainers)
 - **Frontend:** `npm test` 22/22 · `npm run lint` sạch · `tsc --noEmit` · `next build` — thành công, 23 route
 - **End-to-end:** đăng ký → danh sách từ vựng → làm quiz và nộp bài → hàng đợi ôn tập, chạy qua rewrite của Next
+- **Docker:** `docker compose up --build --wait` — ba dịch vụ healthy; `scripts/smoke-test.sh` qua 7/7 bước
 
 Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#sự-cố-đã-gặp-và-cách-xử-lý).
 
@@ -211,7 +227,7 @@ Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPM
 | Cổng thanh toán | Lược đồ DB (`subscriptions`, `plan_features`) sẵn sàng, tích hợp chưa làm |
 | Quản trị nội dung | Chưa có trang admin — thêm từ vựng/quiz bằng migration Flyway mới |
 | Thẻ từ vựng trong hàng đợi ôn | Hạn mức thẻ mới/ngày dùng chung và thẻ `KANA_*` được cấp trước, nên thẻ `VOCAB_*` chỉ xuất hiện sau khi đã mở hết 416 thẻ kana (trừ khi client gọi `/reviews/queue?types=VOCAB_MEANING`) |
-| Dockerfile / docker-compose | Mới có mẫu trong [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), chưa có file trong repo |
+| IP người dùng qua BFF | Route `/api/auth/*` gọi backend từ server Next mà không chuyển tiếp IP gốc, nên backend thấy IP của container web: rate limit đăng nhập/đăng ký (10/phút/IP) đang áp **chung cho cả site** và `refresh_tokens.ip` ghi sai. Cần sửa cùng lúc với việc chỉ tin `X-Forwarded-For` từ proxy tin cậy |
 
 ---
 

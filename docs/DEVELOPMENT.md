@@ -89,7 +89,8 @@ Started KanaDojoApplication in X.XXX seconds
 
 **Kiểm tra:**
 ```bash
-curl http://localhost:8080/api/v1/content/kana/hiragana
+curl "http://localhost:8080/api/v1/kana?script=HIRAGANA"
+curl http://localhost:8080/actuator/health        # {"status":"UP"}
 ```
 
 ### 4. Cấu hình và chạy frontend
@@ -157,7 +158,7 @@ mvn test -Dtest='com.japanese.learning.it.*'
 mvn package
 ```
 
-**33 test**, chia hai loại:
+**35 test**, chia hai loại:
 
 | Loại | Lớp | Cần gì |
 |---|---|---|
@@ -167,6 +168,7 @@ mvn package
 | | `it/WritingAttemptAtomicityTest` (1) — lỗi ở bước cuối rollback cả 4 bước trước | Docker |
 | | `it/QuizFlowTest` (5) — quiz seed V3, đề không lộ đáp án, chấm điểm, nộp một lần | Docker |
 | | `it/ReviewQueueFlowTest` (5) — hình dạng JSON hàng đợi, thẻ từ vựng, hạn mức thẻ mới, chấm thẻ | Docker |
+| | `it/HealthEndpointTest` (2) — `/actuator/health` công khai, không lộ chi tiết; actuator khác bị đóng | Docker |
 
 Integration test chạy **cả ứng dụng** trên PostgreSQL 16 thật do Testcontainers dựng (`postgres:16-alpine`, Flyway áp V1–V3,
 `KanaSeeder` nạp kana), gọi API qua MockMvc. Lớp nền `it/IntegrationTest` giữ một container và một Spring context cho cả lượt chạy;
@@ -175,6 +177,7 @@ mỗi test tự đăng ký người dùng riêng nên không cần dọn dữ li
 - **Không có Docker** (hoặc Docker Desktop chưa bật): các lớp `it/*` bị bỏ qua (Maven báo 0 test cho chúng), `mvn test` vẫn xanh với 11 unit test.
 - Lần chạy đầu tải image `postgres:16-alpine` (~100 MB); các lần sau khởi động container trong vài giây.
 - Testcontainers được ghim 1.21.x trong `pom.xml` vì bản 1.19 đi kèm Spring Boot 3.2 dùng Docker API quá cũ cho Docker Engine 29+.
+- CI chạy `mvn -B verify` trên runner có Docker, nên ở pull request các integration test **luôn** chạy.
 
 ### Frontend
 
