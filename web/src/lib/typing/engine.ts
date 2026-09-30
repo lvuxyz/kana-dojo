@@ -88,6 +88,12 @@ export class TypingRun {
     return this.rest()[0];
   }
 
+  /** Cách gõ trọn cụm đang dở, bám theo phần đã gõ ("t" rồi thì ち là "ti") — chỉ để gợi ý khi
+   *  người học bị kẹt, màn gõ không hiện nó thường trực. */
+  currentKeys(): string {
+    return this.match()?.keys ?? "";
+  }
+
   /** Khoảng kana [start, end) của cụm đang gõ — để tô sáng chữ đang gõ trên câu mẫu. */
   current(): { start: number; end: number } {
     const m = this.match();

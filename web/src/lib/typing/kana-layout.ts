@@ -63,6 +63,31 @@ export function kanaFromKey(code: string, shift: boolean): string | undefined {
   return shift ? (k.shiftKana ?? k.kana) : k.kana;
 }
 
+/** Nhãn in trên bàn phím US cho các phím dấu — bàn phím JIS in khác ở vài phím. */
+const US_LABEL: Record<string, string> = {
+  Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Backslash: "\\",
+  Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/", Backquote: "`",
+};
+
+/**
+ * Phím cần bấm cho một token kana, dạng "T" hoặc "Shift + 3" — chỉ dùng cho gợi ý khi bị kẹt.
+ * ー và ろ nằm ở hai phím ¥, \ mà bàn phím US không có, nên chỉ sang phím ` thay thế.
+ */
+export function kanaKeyLabel(token: string): string | undefined {
+  for (const k of JIS_KANA_ROWS.flat()) {
+    if (k.kana !== token && k.shiftKana !== token) continue;
+    let code = k.code;
+    let shift = k.kana !== token;
+    if (code === "IntlYen" || code === "IntlRo") {
+      code = ANSI_FALLBACK.code;
+      shift = token === ANSI_FALLBACK.shiftKana;
+    }
+    const label = code.startsWith("Key") ? code.slice(3) : code.startsWith("Digit") ? code.slice(5) : (US_LABEL[code] ?? k.latin);
+    return shift ? `Shift + ${label}` : label;
+  }
+  return undefined;
+}
+
 const VOICED: Record<string, string> = {
   が: "か", ぎ: "き", ぐ: "く", げ: "け", ご: "こ",
   ざ: "さ", じ: "し", ず: "す", ぜ: "せ", ぞ: "そ",

@@ -4,9 +4,10 @@ import { useSyncExternalStore } from "react";
 import clsx from "clsx";
 import { Button, Card, Chip, Seg } from "@/components/ui";
 import type { InputMethod } from "@/lib/typing/engine";
-import { CONTENT_INFO, type ContentType } from "@/lib/typing/phrases";
+import { CONTENT_INFO, DRILL_GROUPS, type ContentType } from "@/lib/typing/phrases";
 import { BELTS, beltFor, formatDuration, type TypingMode } from "@/lib/typing/score";
-import { findBest, type TypingHistory } from "@/lib/typing/history";
+import { STUCK_AFTER } from "./useTypingGame";
+import { findBest, weakList, type TypingHistory } from "@/lib/typing/history";
 import type { GameConfig } from "./useTypingGame";
 
 export const METHOD_INFO: Record<InputMethod, { ja: string; label: string; hint: string }> = {
@@ -33,7 +34,7 @@ export const MODE_INFO: Record<TypingMode, { ja: string; label: string; hint: st
   SUDDEN_DEATH: { ja: "一発勝負", label: "Sinh tử", hint: "Sai một phím là dừng — luyện độ chính xác tuyệt đối." },
 };
 
-const CONTENTS: ContentType[] = ["HIRAGANA", "KATAKANA", "MIXED", "KANJI", "KANA_DRILL"];
+const CONTENTS: ContentType[] = ["HIRAGANA", "KATAKANA", "MIXED", "KANJI", "KANA_DRILL", "WEAK"];
 const METHODS: InputMethod[] = ["ROMAJI", "KANA", "IME"];
 const MODES: TypingMode[] = ["PASSAGE", "TIME_ATTACK", "SUDDEN_DEATH"];
 
@@ -54,16 +55,27 @@ export function TypingSetup({
   config,
   onChange,
   onStart,
+  onPracticeWeak,
   history,
 }: {
   config: GameConfig;
   onChange: (c: GameConfig) => void;
   onStart: () => void;
+  /** Chọn nội dung "Chữ hay sai" và bắt đầu ngay */
+  onPracticeWeak: () => void;
   history: TypingHistory;
 }) {
   const set = <K extends keyof GameConfig>(key: K, value: GameConfig[K]) => onChange({ ...config, [key]: value });
   const touch = useCoarsePointer();
   const best = findBest(history, config);
+  const weak = weakList(history);
+  const contentHint = (c: ContentType) =>
+    c !== "WEAK"
+      ? CONTENT_INFO[c].hint
+      : weak.length > 0
+        ? `Đang theo dõi ${weak.length} chữ bạn hay gõ sai`
+        : "Chưa có dữ liệu — tạm dùng kana ngẫu nhiên cho tới khi bạn gõ sai vài chữ";
+  const drillOptions = config.content === "KANA_DRILL" || (config.content === "WEAK" && weak.length === 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -79,19 +91,32 @@ export function TypingSetup({
           <Section step="1" title="Nội dung">
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {CONTENTS.map((c) => (
-                <Tile key={c} active={config.content === c} onClick={() => set("content", c)} {...CONTENT_INFO[c]} />
+                <Tile
+                  key={c}
+                  active={config.content === c}
+                  onClick={() => set("content", c)}
+                  {...CONTENT_INFO[c]}
+                  hint={contentHint(c)}
+                />
               ))}
             </div>
-            {config.content === "KANA_DRILL" && (
-              <Seg
-                className="mt-3 w-fit"
-                value={config.drillScript}
-                onChange={(v) => set("drillScript", v)}
-                options={[
-                  { value: "h", label: <span className="font-japanese text-sm">ひらがな</span> },
-                  { value: "k", label: <span className="font-japanese text-sm">カタカナ</span> },
-                ]}
-              />
+            {drillOptions && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Seg
+                  className="w-fit"
+                  value={config.drillScript}
+                  onChange={(v) => set("drillScript", v)}
+                  options={[
+                    { value: "h", label: <span className="font-japanese text-sm">ひらがな</span> },
+                    { value: "k", label: <span className="font-japanese text-sm">カタカナ</span> },
+                  ]}
+                />
+                {DRILL_GROUPS.map((g) => (
+                  <Chip key={g.value} active={config.drillGroup === g.value} onClick={() => set("drillGroup", g.value)}>
+                    {g.label}
+                  </Chip>
+                ))}
+              </div>
             )}
           </Section>
 
@@ -145,6 +170,19 @@ export function TypingSetup({
           <Section step="4" title="Tuỳ chọn">
             <div className="flex flex-col gap-2.5">
               <Toggle
+                checked={config.hideFurigana}
+                onChange={(v) => set("hideFurigana", v)}
+                label="Ẩn furigana (ふりがな)"
+                hint="Chỉ với bài Kanji: tự nhớ cách đọc, furigana hiện ra sau khi gõ đúng cụm đó."
+                disabled={config.content !== "KANJI"}
+              />
+              <Toggle
+                checked={config.stuckHint}
+                onChange={(v) => set("stuckHint", v)}
+                label="Gợi ý khi bị kẹt"
+                hint={`Sai ${STUCK_AFTER} lần liên tiếp ở cùng một chữ mới hiện gợi ý cho riêng chữ đó; bình thường màn gõ chỉ có tiếng Nhật.`}
+              />
+              <Toggle
                 checked={config.dictation}
                 onChange={(v) => set("dictation", v)}
                 label="Nghe chép (聞き取り)"
@@ -195,6 +233,22 @@ export function TypingSetup({
               </div>
             )}
           </Card>
+
+          {weak.length > 0 && (
+            <Card className="flex flex-col gap-3 px-5 py-4">
+              <span className="label-xs">Chữ bạn hay gõ sai</span>
+              <div className="flex flex-wrap gap-1.5" lang="ja">
+                {weak.slice(0, 12).map(([kana]) => (
+                  <span key={kana} className="rounded-lg border border-rule/80 bg-paper-sunk px-2 py-0.5 font-japanese text-base text-sumi">
+                    {kana}
+                  </span>
+                ))}
+              </div>
+              <Button size="sm" variant="outline" onClick={onPracticeWeak} className="self-start">
+                Luyện các chữ này
+              </Button>
+            </Card>
+          )}
 
           <Card className="flex flex-col gap-2 px-5 py-4">
             <span className="label-xs">Mẹo gõ romaji như IME</span>

@@ -3,11 +3,18 @@
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Badge, Button, Card } from "@/components/ui";
+import type { Phrase } from "@/lib/typing/phrases";
 import { beltFor, formatDuration, kpm, nextBelt } from "@/lib/typing/score";
 import type { GameResult, PhraseRecord } from "./useTypingGame";
 
-/** Kỷ lục của tổ hợp vừa chơi sau khi ghi lượt này; null nếu chưa gõ đúng phím nào (không ghi). */
-export type RecordOutcome = { personalBest: number; newBest: boolean } | null;
+/**
+ * Kết quả ghi lượt: kỷ lục của tổ hợp vừa chơi; "practice" nếu là lượt luyện lại câu có lỗi (không tính
+ * kỷ lục); null nếu chưa gõ đúng phím nào.
+ */
+export type RecordOutcome =
+  | { kind: "record"; personalBest: number; newBest: boolean }
+  | { kind: "practice" }
+  | null;
 
 const ENDED: Record<GameResult["endedBy"], string> = {
   complete: "Hoàn thành bài",
@@ -20,11 +27,14 @@ export function TypingResult({
   result,
   outcome,
   onRetry,
+  onRetryMistakes,
   onSetup,
 }: {
   result: GameResult;
   outcome: RecordOutcome;
   onRetry: () => void;
+  /** Luyện lại đúng các câu vừa gõ sai */
+  onRetryMistakes: (phrases: Phrase[]) => void;
   onSetup: () => void;
 }) {
   useEffect(() => {
@@ -88,8 +98,10 @@ export function TypingResult({
             <p className="text-sm text-sumi-3">Không sai phím nào — 完璧！</p>
           ) : (
             <>
-              <WeakList title="Chữ hay sai" items={result.weakKana} ja />
-              {result.weakKeys.length > 0 && <WeakList title="Phím lẽ ra phải bấm" items={result.weakKeys} />}
+              <WeakList title="Chữ hay sai" items={result.weakKana.slice(0, 8)} ja />
+              {result.weakKeys.length > 0 && <WeakList title="Phím lẽ ra phải bấm" items={result.weakKeys.slice(0, 8)} />}
+              {result.hinted.length > 0 && <WeakList title="Phải nhờ gợi ý mới gõ được" items={result.hinted} ja />}
+              <p className="text-[12px] text-sumi-3">Các chữ này đã được ghi vào mục “Chữ hay sai” để luyện riêng.</p>
             </>
           )}
           <p className="text-[12.5px] leading-relaxed text-sumi-3">{advice(result)}</p>
@@ -109,6 +121,11 @@ export function TypingResult({
         <Button variant="solid" size="lg" onClick={onRetry} autoFocus>
           Gõ lại <kbd className="ml-1 rounded border border-white/40 px-1 text-[10px]">Enter</kbd>
         </Button>
+        {result.retry.length > 0 && (
+          <Button variant="gold" size="lg" onClick={() => onRetryMistakes(result.retry)}>
+            Luyện lại {result.retry.length} câu có lỗi
+          </Button>
+        )}
         <Button size="lg" onClick={onSetup}>
           Chọn bài khác <kbd className="ml-1 rounded border border-rule px-1 text-[10px]">Esc</kbd>
         </Button>
@@ -119,6 +136,9 @@ export function TypingResult({
 
 function RecordLine({ outcome }: { outcome: RecordOutcome }) {
   if (!outcome) return <p className="text-[13px] text-sumi-3">Chưa gõ đúng phím nào nên lượt này không được ghi.</p>;
+  if (outcome.kind === "practice") {
+    return <p className="text-[13px] text-sumi-3">Lượt luyện lại câu có lỗi — không tính kỷ lục.</p>;
+  }
   return (
     <div className="flex flex-wrap items-center gap-2">
       {outcome.newBest ? (
@@ -188,7 +208,7 @@ function PhraseSpeedChart({ phrases }: { phrases: PhraseRecord[] }) {
       <p className="min-h-5 text-[12.5px] text-sumi-2" aria-live="polite">
         <b className="tnum text-sumi">{Math.round(speeds[shown])} phím/phút</b>
         {" · "}
-        <span className="font-japanese">{phrases[shown].text}</span>
+        <span className="font-japanese">{phrases[shown].phrase.text}</span>
         {phrases[shown].misses > 0 && <span className="text-sumi-3"> · sai {phrases[shown].misses}</span>}
         {hover === null && <span className="text-sumi-3"> (câu nhanh nhất)</span>}
       </p>
@@ -230,8 +250,8 @@ function PhraseSpeedChart({ phrases }: { phrases: PhraseRecord[] }) {
             {phrases.map((p, i) => (
               <tr key={i} className="border-t border-rule/60">
                 <td className="py-1">{i + 1}</td>
-                <td className="py-1 font-japanese text-sumi">{p.text}</td>
-                <td className="py-1 pr-2">{p.vi || "—"}</td>
+                <td className="py-1 font-japanese text-sumi">{p.phrase.text}</td>
+                <td className="py-1 pr-2">{p.phrase.vi || "—"}</td>
                 <td className="py-1 text-right">{Math.round(speeds[i])}</td>
                 <td className="py-1 text-right">{p.misses}</td>
               </tr>

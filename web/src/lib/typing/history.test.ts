@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { RECENT_LIMIT, addSession, emptyHistory, findBest, parseHistory, type SessionRecord } from "./history";
+import {
+  RECENT_LIMIT,
+  WEAK_DECAY,
+  WEAK_LIMIT,
+  addSession,
+  addWeak,
+  emptyHistory,
+  findBest,
+  historyKey,
+  parseHistory,
+  weakList,
+  type SessionRecord,
+} from "./history";
 
 const session = (over: Partial<SessionRecord> = {}): SessionRecord => ({
   method: "ROMAJI",
@@ -67,5 +79,41 @@ describe("parseHistory", () => {
   it("đọc lại đúng thứ đã ghi", () => {
     const h = addSession(emptyHistory(), session()).history;
     expect(parseHistory(JSON.stringify(h))).toEqual(h);
+  });
+});
+
+describe("addWeak — chữ hay sai", () => {
+  it("cộng dồn lần sai, chữ cũ giảm dần theo từng lượt", () => {
+    let h = addWeak(emptyHistory(), [["ぢ", 3], ["しゃ", 1]]);
+    expect(weakList(h)).toEqual([["ぢ", 3], ["しゃ", 1]]);
+    h = addWeak(h, [["しゃ", 2]]);
+    expect(h.weakKana["ぢ"]).toBeCloseTo(3 * WEAK_DECAY);
+    expect(h.weakKana["しゃ"]).toBeCloseTo(1 * WEAK_DECAY + 2);
+  });
+
+  it("chữ không sai lại thì tự rơi khỏi danh sách", () => {
+    let h = addWeak(emptyHistory(), [["ぬ", 1]]);
+    for (let i = 0; i < 5; i++) h = addWeak(h, []);
+    expect(h.weakKana).toEqual({});
+  });
+
+  it("bỏ kanji và ký tự không gõ được, giữ tối đa WEAK_LIMIT chữ", () => {
+    expect(addWeak(emptyHistory(), [["駅", 2], ["", 1]]).weakKana).toEqual({});
+    const many = Array.from({ length: WEAK_LIMIT + 10 }, (_, i) => [String.fromCharCode(0x3042 + (i % 80)), 1 + i] as [string, number]);
+    expect(Object.keys(addWeak(emptyHistory(), many).weakKana).length).toBeLessThanOrEqual(WEAK_LIMIT);
+  });
+
+  it("ghi thêm lượt không làm mất danh sách chữ yếu; bản lưu cũ không có danh sách thì bắt đầu rỗng", () => {
+    const h = addWeak(emptyHistory(), [["ぢ", 2]]);
+    expect(addSession(h, session()).history.weakKana).toEqual({ ぢ: 2 });
+    const legacy = { totalSessions: 1, totalDurationMs: 1, bests: [], recent: [] };
+    expect(parseHistory(JSON.stringify(legacy)).weakKana).toEqual({});
+  });
+});
+
+describe("historyKey", () => {
+  it("mỗi tài khoản một khoá lưu riêng", () => {
+    expect(historyKey(1)).not.toBe(historyKey(2));
+    expect(historyKey(7)).toBe(historyKey("7"));
   });
 });

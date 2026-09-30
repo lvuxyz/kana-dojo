@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TypingRun } from "./engine";
-import { kanaFromKey } from "./kana-layout";
+import { kanaFromKey, kanaKeyLabel } from "./kana-layout";
 import { toHiragana, toRomaji } from "./romaji";
 
 /** Gõ lần lượt từng phím; trả về số phím bị từ chối và câu đã xong chưa. */
@@ -139,6 +139,15 @@ describe("gợi ý phím", () => {
     expect(run.typed).toBe("si");
   });
 
+  it("cách gõ cụm đang dở bám theo phần đã gõ (dùng cho gợi ý khi bị kẹt)", () => {
+    const run = new TypingRun("ちず", "ROMAJI");
+    expect(run.currentKeys()).toBe("chi");
+    run.press("t");
+    expect(run.currentKeys()).toBe("ti");
+    run.press("i");
+    expect(run.currentKeys()).toBe("zu");
+  });
+
   it("phím sai bị từ chối và không làm đổi trạng thái", () => {
     const run = new TypingRun("か", "ROMAJI");
     expect(run.press("x").ok).toBe(false);
@@ -177,6 +186,15 @@ describe("kana JIS", () => {
     expect(kanaFromKey("Digit7", true)).toBe("ゃ");
     expect(kanaFromKey("Digit9", true)).toBe("ょ");
     expect(kanaFromKey("Digit0", true)).toBe("を");
+  });
+
+  it("nhãn phím cho gợi ý: tầng Shift và phím thay thế trên bàn phím US", () => {
+    expect(kanaKeyLabel("か")).toBe("T");
+    expect(kanaKeyLabel("ょ")).toBe("Shift + 9");
+    expect(kanaKeyLabel("゛")).toBe("[");
+    expect(kanaKeyLabel("ー")).toBe("`");
+    expect(kanaKeyLabel("ろ")).toBe("Shift + `");
+    expect(kanaKeyLabel("x")).toBeUndefined();
   });
 
   it("bàn phím US thiếu phím ¥ và ろ thì dùng phím `", () => {

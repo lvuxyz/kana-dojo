@@ -22,6 +22,8 @@ export function PhraseView({
   pos,
   curEnd,
   hidden = false,
+  hideRuby = false,
+  revealAt,
   size = "lg",
 }: {
   phrase: Phrase;
@@ -30,6 +32,10 @@ export function PhraseView({
   curEnd: number;
   /** Nghe chép: làm mờ phần chưa gõ */
   hidden?: boolean;
+  /** Ẩn furigana của cụm kanji chưa gõ xong — người học phải tự nhớ cách đọc */
+  hideRuby?: boolean;
+  /** Gợi ý khi bị kẹt: cụm kanji chứa vị trí này hiện lại furigana dù đang ẩn */
+  revealAt?: number;
   size?: "lg" | "sm";
 }) {
   const span = (s: Segment) => {
@@ -70,15 +76,32 @@ export function PhraseView({
           );
         }
 
+        const revealed = revealAt !== undefined && start <= revealAt && revealAt < start + len;
+        // Giữ chỗ bằng `invisible` thay vì bỏ hẳn, để câu không nhảy dòng khi furigana hiện ra.
+        const rubyShown = !hideRuby || st === "done" || revealed;
+        // Furigana hiện ra nhờ gợi ý thì tô vàng để người học biết đó là gợi ý.
+        const hinted = hideRuby && revealed && st !== "done";
         return (
           <ruby key={i} className={clsx("relative transition-colors duration-100", TONE[st], veil(st))}>
             {s.text}
-            <rt className={clsx("pb-1 font-sans font-medium tracking-wider", size === "lg" ? "text-[13px] sm:text-[15px]" : "text-[9px]")}>
+            <rt
+              className={clsx(
+                "pb-1 font-sans font-medium tracking-wider",
+                size === "lg" ? "text-[13px] sm:text-[15px]" : "text-[9px]",
+                !rubyShown && "invisible",
+              )}
+            >
               {unit === "kana"
                 ? Array.from(s.reading, (ch, j) => {
                     const cst = statusOf(start + j, 1);
                     return (
-                      <span key={j} className={clsx(TONE[cst], cst === "current" && "font-bold underline decoration-2 underline-offset-2")}>
+                      <span
+                        key={j}
+                        className={clsx(
+                          hinted && cst !== "done" ? "text-gold" : TONE[cst],
+                          cst === "current" && "font-bold underline decoration-2 underline-offset-2",
+                        )}
+                      >
                         {ch}
                       </span>
                     );

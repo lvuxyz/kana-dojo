@@ -1,5 +1,6 @@
 import type { InputMethod } from "./engine";
 import type { ContentType } from "./phrases";
+import { isTypeable } from "./romaji";
 import type { TypingMode } from "./score";
 
 /* Kỷ lục và lịch sử luyện gõ — hiện chỉ lưu trên trình duyệt (localStorage), chưa đồng bộ lên
@@ -35,12 +36,43 @@ export interface TypingHistory {
   bests: BestRecord[];
   /** Các lượt gần nhất, mới nhất đứng đầu */
   recent: SessionRecord[];
+  /** Kana hay gõ sai → mức "yếu" (số lần sai, giảm dần theo từng lượt luyện) */
+  weakKana: Record<string, number>;
 }
 
 export const RECENT_LIMIT = 10;
+/** Mỗi lượt luyện, mức yếu cũ còn lại 85%: một lần sai tự rơi khỏi danh sách sau 5 lượt không sai lại,
+ *  năm lần sai thì sau khoảng 15 lượt. */
+export const WEAK_DECAY = 0.85;
+const WEAK_DROP_BELOW = 0.5;
+export const WEAK_LIMIT = 40;
 
 export function emptyHistory(): TypingHistory {
-  return { totalSessions: 0, totalDurationMs: 0, bests: [], recent: [] };
+  return { totalSessions: 0, totalDurationMs: 0, bests: [], recent: [], weakKana: {} };
+}
+
+/**
+ * Cộng các lần gõ sai của một lượt vào danh sách chữ yếu. Chỉ giữ cụm kana gõ được (kanji ở chế độ
+ * IME không luyện lại bằng bài kana được), giữ tối đa WEAK_LIMIT chữ yếu nhất.
+ */
+export function addWeak(h: TypingHistory, misses: [string, number][]): TypingHistory {
+  const next: Record<string, number> = {};
+  for (const [kana, w] of Object.entries(h.weakKana)) next[kana] = w * WEAK_DECAY;
+  for (const [kana, n] of misses) {
+    if (!kana || !Array.from(kana).every(isTypeable)) continue;
+    next[kana] = (next[kana] ?? 0) + n;
+  }
+  const kept = Object.entries(next)
+    .filter(([, w]) => w >= WEAK_DROP_BELOW)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, WEAK_LIMIT)
+    .map(([k, w]) => [k, Math.round(w * 100) / 100] as const);
+  return { ...h, weakKana: Object.fromEntries(kept) };
+}
+
+/** Chữ yếu, yếu nhất trước. */
+export function weakList(h: TypingHistory): [string, number][] {
+  return Object.entries(h.weakKana).sort((a, b) => b[1] - a[1]);
 }
 
 const sameCombo = (a: { method: string; content: string; mode: string }, b: typeof a) =>
@@ -79,6 +111,7 @@ export function addSession(
 
   return {
     history: {
+      ...h,
       totalSessions: h.totalSessions + 1,
       totalDurationMs: h.totalDurationMs + s.durationMs,
       bests: [best, ...h.bests.filter((b) => !sameCombo(b, s))],
@@ -100,7 +133,9 @@ export function parseHistory(raw: string | null): TypingHistory {
       Array.isArray(h.bests) &&
       Array.isArray(h.recent)
     ) {
-      return h as TypingHistory;
+      // Bản lưu cũ chưa có weakKana.
+      const weakKana = h.weakKana && typeof h.weakKana === "object" && !Array.isArray(h.weakKana) ? h.weakKana : {};
+      return { ...(h as TypingHistory), weakKana };
     }
   } catch {
     /* JSON hỏng */
@@ -108,20 +143,23 @@ export function parseHistory(raw: string | null): TypingHistory {
   return emptyHistory();
 }
 
-const STORAGE_KEY = "kd.typing.history.v1";
+/** Khoá lưu tách theo tài khoản: máy dùng chung (máy ở nhà, phòng máy) thì mỗi người một kỷ lục. */
+export function historyKey(owner: string | number): string {
+  return `kd.typing.history.v1:${owner}`;
+}
 
-export function loadHistory(): TypingHistory {
+export function loadHistory(owner: string | number): TypingHistory {
   try {
-    return parseHistory(window.localStorage.getItem(STORAGE_KEY));
+    return parseHistory(window.localStorage.getItem(historyKey(owner)));
   } catch {
     // Chế độ ẩn danh / trình duyệt chặn lưu trữ: vẫn chơi được, chỉ không nhớ kỷ lục.
     return emptyHistory();
   }
 }
 
-export function saveHistory(h: TypingHistory): void {
+export function saveHistory(owner: string | number, h: TypingHistory): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(h));
+    window.localStorage.setItem(historyKey(owner), JSON.stringify(h));
   } catch {
     /* đầy bộ nhớ hoặc bị chặn: bỏ qua */
   }

@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Button, Card, Progress } from "@/components/ui";
-import { kanaFromKey } from "@/lib/typing/kana-layout";
+import type { InputMethod } from "@/lib/typing/engine";
+import { kanaFromKey, kanaKeyLabel } from "@/lib/typing/kana-layout";
+import type { Phrase } from "@/lib/typing/phrases";
 import { PhraseView } from "./PhraseView";
 import { useSpeech } from "./useSpeech";
-import { useTypingGame, type GameConfig, type GameResult } from "./useTypingGame";
+import { STUCK_AFTER, useTypingGame, type GameConfig, type GameResult, type GameSource } from "./useTypingGame";
 
 type Warning = "ime" | "vietnamese" | null;
 
@@ -15,15 +17,18 @@ const ROMAJI_KEY = /^[a-z0-9\-',.!?[\]/~]$/;
 
 export function TypingStage({
   config,
+  source,
   onFinish,
   onExit,
 }: {
   config: GameConfig;
+  /** Câu cố định hoặc chữ hay sai; chỉ đọc lúc bắt đầu ván */
+  source?: GameSource;
   onFinish: (r: GameResult) => void;
   /** Bỏ ván, quay về màn chọn bài */
   onExit: () => void;
 }) {
-  const game = useTypingGame(config, onFinish);
+  const game = useTypingGame(config, onFinish, source);
   const { live } = game;
   const { speak, supported: canSpeak, missingVoice } = useSpeech();
   const [warning, setWarning] = useState<Warning>(null);
@@ -97,6 +102,18 @@ export function TypingStage({
 
   const run = live.run;
   const cur = run?.current();
+  const unit = method === "IME" ? "ime" : "kana";
+  const here = method === "IME" ? live.imeMatched : (cur?.start ?? 0);
+
+  // Gợi ý khi bị kẹt, theo bậc: kanji đang ẩn furigana thì bậc 1 chỉ hiện lại furigana (vẫn là
+  // tiếng Nhật), bậc 2 mới hiện cách gõ; chữ đã thấy cách đọc thì bậc 1 hiện cách gõ luôn.
+  const level = !config.stuckHint ? 0 : game.stuckMisses >= STUCK_AFTER * 2 ? 2 : game.stuckMisses >= STUCK_AFTER ? 1 : 0;
+  const rubyHidden = config.hideFurigana && !!segmentAt(live.phrase, unit, here)?.ruby;
+  const revealAt = level >= 1 && rubyHidden ? here : undefined;
+  const keyHint =
+    run && cur && (level >= 2 || (level >= 1 && !rubyHidden))
+      ? { chunk: live.phrase.kana.slice(cur.start, cur.end), keys: run.currentKeys() }
+      : null;
   const limitMs = config.timeLimitSec * 1000;
   const clock = config.mode === "TIME_ATTACK" ? Math.max(0, limitMs - game.elapsed) : game.elapsed;
   const lowTime = config.mode === "TIME_ATTACK" && clock <= 10_000 && live.phase === "playing";
@@ -145,12 +162,17 @@ export function TypingStage({
           <PhraseView
             phrase={live.phrase}
             unit={method === "IME" ? "ime" : "kana"}
-            pos={method === "IME" ? live.imeMatched : (cur?.start ?? 0)}
+            pos={here}
             curEnd={method === "IME" ? live.imeMatched + 1 : (cur?.end ?? 0)}
             hidden={config.dictation}
+            hideRuby={config.hideFurigana}
+            revealAt={revealAt}
           />
 
           {run && <PendingKeys keys={run.buf} />}
+          <div className="flex min-h-8 items-center justify-center" aria-live="polite">
+            {keyHint && method !== "IME" && <StuckHint method={method} {...keyHint} />}
+          </div>
         </div>
 
         {live.phase === "ready" && (
@@ -223,7 +245,7 @@ export function TypingStage({
       {live.upcoming && !config.dictation && (
         <div className="flex items-center justify-center gap-3 text-sumi-3">
           <span className="label-xs">Tiếp theo</span>
-          <PhraseView phrase={live.upcoming} unit="kana" pos={0} curEnd={0} size="sm" />
+          <PhraseView phrase={live.upcoming} unit="kana" pos={0} curEnd={0} size="sm" hideRuby={config.hideFurigana} />
         </div>
       )}
 
@@ -265,6 +287,36 @@ function PendingKeys({ keys }: { keys: string }) {
     <p className="flex h-7 items-center justify-center font-mono text-lg text-sumi-2" aria-label="Phím đang gõ dở">
       <span className="border-b-2 border-dashed border-sumi-3/60 px-0.5 empty:hidden">{keys}</span>
       <span className="ml-0.5 inline-block h-5 w-0.5 animate-pulse rounded-full bg-shu" aria-hidden />
+    </p>
+  );
+}
+
+/** Cụm kana chứa vị trí `pos` (theo đơn vị kana hoặc ký tự IME). */
+function segmentAt(p: Phrase, unit: "kana" | "ime", pos: number) {
+  return p.segments.find((s) => {
+    if (!s.reading) return false;
+    const start = unit === "kana" ? s.start : s.imeStart;
+    const len = unit === "kana" ? s.reading.length : s.text.length;
+    return start <= pos && pos < start + len;
+  });
+}
+
+/** Cách gõ của riêng chữ đang bị kẹt — chỉ hiện sau nhiều lần sai liên tiếp, biến mất khi gõ qua. */
+function StuckHint({ method, chunk, keys }: { method: Exclude<InputMethod, "IME">; chunk: string; keys: string }) {
+  return (
+    <p className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-gold/30 bg-gold-tint px-3 py-1.5 text-[13px] text-gold">
+      <span className="font-japanese font-semibold" lang="ja">ヒント</span>
+      <span className="font-japanese text-base text-sumi">{chunk}</span>
+      <span aria-hidden>→</span>
+      {method === "ROMAJI" ? (
+        <kbd className="rounded-md border border-gold/40 bg-surface px-1.5 font-mono text-sm text-sumi">{keys}</kbd>
+      ) : (
+        Array.from(keys, (token, i) => (
+          <kbd key={i} className="rounded-md border border-gold/40 bg-surface px-1.5 font-mono text-sm text-sumi">
+            <span className="font-japanese">{token}</span> · {kanaKeyLabel(token) ?? "?"}
+          </kbd>
+        ))
+      )}
     </p>
   );
 }
