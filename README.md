@@ -7,6 +7,7 @@ kana-dojo/
 ├── docs/
 │   ├── SPEC.md            Đặc tả kỹ thuật — nguồn sự thật cho cả BE và FE
 │   ├── ARCHITECTURE.md    Kiến trúc hệ thống, luồng dữ liệu, quyết định thiết kế
+│   ├── TYPING.md          Nghiên cứu & thiết kế phòng luyện gõ tiếng Nhật
 │   ├── DEVELOPMENT.md     Hướng dẫn thiết lập môi trường phát triển
 │   ├── DEPLOYMENT.md      Hướng dẫn triển khai production
 │   └── kana-data.json     208 ký tự · 148 glyph, trích từ KanjiVG (CC BY-SA 3.0)
@@ -31,6 +32,7 @@ kana-dojo/
 | **Xác thực đầy đủ** | Email/mật khẩu + Google OAuth, JWT 15 phút, refresh token httpOnly |
 | **Phân quyền gói** | FREE (60 lượt ôn/ngày, N5) và PRO (không giới hạn, N1–N5) |
 | **Quiz** | 4 bài mẫu (trắc nghiệm + gõ romaji), đếm giờ, chấm và giải thích từng câu |
+| **Luyện gõ tiếng Nhật** | Gõ theo câu mẫu: 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 5 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên) × 3 chế độ (bài mẫu, đua giờ, sinh tử), thêm nghe chép; bấm giờ, chấm điểm KPM × chính xác³, xếp đai. Chạy hoàn toàn trên trình duyệt, kỷ lục lưu trên máy — xem [docs/TYPING.md](docs/TYPING.md) |
 | **Từ vựng JLPT** | 70 từ N5 + 10 từ N4 seed sẵn, nghĩa tiếng Việt, câu ví dụ; lược đồ hỗ trợ N1–N5 |
 | **Swagger UI** | `http://localhost:8080/swagger-ui.html` |
 
@@ -161,6 +163,7 @@ web/src/
 │   ├── (app)/          Route group yêu cầu đăng nhập (layout.tsx có shell)
 │   │   ├── bang-dieu-khien/    Dashboard
 │   │   ├── luyen-viet/         Tập viết
+│   │   ├── luyen-go/           Luyện gõ tiếng Nhật (chọn bài → gõ → kết quả)
 │   │   ├── on-tap/             Ôn tập SRS
 │   │   ├── bang-xep-hang/      Bảng xếp hạng
 │   │   ├── ho-so/              Hồ sơ cá nhân
@@ -172,8 +175,10 @@ web/src/
 ├── components/
 │   ├── app/            Brand, Nav, ThemeToggle, GoogleButton
 │   ├── kana/           StrokeStage, KanaGrid, PracticePanel, HeroDemo
+│   ├── typing/         TypingSetup, TypingStage, TypingResult, PhraseView, VirtualKeyboard, useTypingGame
 │   └── ui/index.tsx    Design system: Button, Card, Field, Chip, Progress, Stat, …
 ├── data/kana-data.json  Dữ liệu nét bundle sẵn vào JS (57 KB, ~20 KB gzip)
+├── data/typing-texts.ts Kho câu mẫu luyện gõ, kanji viết {chữ|cách đọc}
 └── lib/
     ├── api.ts           Fetch wrapper: auto-refresh token, coalesce 401
     ├── auth-context.tsx React context xác thực
@@ -181,6 +186,7 @@ web/src/
     ├── kana.ts          Truy cập dữ liệu nét đã bundle
     ├── providers.tsx    QueryClientProvider + AuthProvider
     ├── stroke-match.ts  Bộ chấm điểm nét — arc-length resampling, thuần hàm
+    ├── typing/          Bộ máy luyện gõ: romaji.ts (bảng IME), kana-layout.ts (JIS), engine.ts, ime.ts, history.ts, score.ts
     └── types.ts         TypeScript types khớp với DTO backend / SPEC.md
 ```
 
@@ -208,6 +214,11 @@ CI (GitHub Actions) chạy tất cả những lệnh trên cho mỗi pull reques
 ---
 
 ## Trạng thái build đã kiểm chứng
+
+Kiểm chứng ngày 2026-09-30 (thêm phòng luyện gõ, chỉ đổi frontend):
+
+- **Frontend:** `npm test` 218/218 · `npm run lint` sạch · `tsc --noEmit` · `next build` — thành công, 24 route
+- **End-to-end:** `/luyen-go` với romaji (bài mẫu), kana JIS (đua giờ), IME + kanji, sinh tử + nghe chép; kỷ lục lưu và đọc lại từ localStorage
 
 Kiểm chứng ngày 2026-09-28:
 
