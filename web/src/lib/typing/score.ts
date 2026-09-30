@@ -1,4 +1,5 @@
-/* Chấm điểm luyện gõ — hàm thuần, chạy hoàn toàn trên trình duyệt. */
+/* Chấm điểm luyện gõ — hàm thuần, chạy hoàn toàn trên trình duyệt. Công thức giữ khớp từng bit với
+ * TypingScoring.java (mã đồng bộ máy chủ, đang tắt) để khi bật lại, điểm client và server không lệch. */
 
 /** Bài mẫu (bấm giờ đến khi xong), đua giờ (đếm ngược), sinh tử (sai một phím là dừng). */
 export type TypingMode = "PASSAGE" | "TIME_ATTACK" | "SUDDEN_DEATH";
@@ -20,7 +21,9 @@ export function accuracy(correctKeys: number, missKeys: number): number {
  */
 export function typingScore(mode: TypingMode, correctKeys: number, missKeys: number, durationMs: number): number {
   if (mode === "SUDDEN_DEATH") return correctKeys;
-  return Math.round(kpm(correctKeys, durationMs) * accuracy(correctKeys, missKeys) ** 3);
+  const acc = accuracy(correctKeys, missKeys);
+  // Nhân tay thay vì ** 3 để làm tròn giống hệt Java.
+  return Math.round(kpm(correctKeys, durationMs) * acc * acc * acc);
 }
 
 export interface Belt {

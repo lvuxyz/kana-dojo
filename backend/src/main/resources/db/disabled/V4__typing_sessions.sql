@@ -1,0 +1,38 @@
+-- ĐANG TẮT — bảng cho đồng bộ luyện gõ lên máy chủ (xem docs/TYPING.md, mục "Mã đồng bộ máy chủ (đang tắt)").
+-- File nằm NGOÀI db/migration nên Flyway không chạy. Khi bật: bỏ comment, chuyển vào db/migration và đổi số
+-- phiên bản thành số kế tiếp còn trống (V4 có thể đã bị migration khác dùng).
+--
+-- -- =====================================================================
+-- -- Luyện gõ tiếng Nhật: mỗi dòng là một lượt gõ đã chấm (docs/TYPING.md).
+-- -- Chỉ lưu số đo thô + điểm do server tính lại; không lưu nội dung câu vì câu mẫu
+-- -- nằm ở frontend và có thể đổi mà không cần migration.
+-- -- =====================================================================
+--
+-- CREATE TABLE typing_sessions (
+--     id                BIGSERIAL PRIMARY KEY,
+--     user_id           bigint           NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+--     input_method      varchar(8)       NOT NULL,
+--     content_type      varchar(12)      NOT NULL,
+--     mode              varchar(16)      NOT NULL,
+--     duration_ms       int              NOT NULL,
+--     correct_keys      int              NOT NULL,
+--     miss_keys         int              NOT NULL,
+--     chars_typed       int              NOT NULL,
+--     phrases_completed int              NOT NULL,
+--     kpm               double precision NOT NULL,
+--     accuracy          double precision NOT NULL,
+--     score             int              NOT NULL,
+--     xp_earned         int              NOT NULL DEFAULT 0,
+--     created_at        timestamptz      NOT NULL DEFAULT now(),
+--     updated_at        timestamptz,
+--     CONSTRAINT ck_typing_method   CHECK (input_method IN ('ROMAJI', 'KANA', 'IME')),
+--     CONSTRAINT ck_typing_content  CHECK (content_type IN ('HIRAGANA', 'KATAKANA', 'MIXED', 'KANJI', 'KANA_DRILL', 'WEAK')),
+--     CONSTRAINT ck_typing_mode     CHECK (mode IN ('PASSAGE', 'TIME_ATTACK', 'SUDDEN_DEATH')),
+--     CONSTRAINT ck_typing_counts   CHECK (duration_ms > 0 AND correct_keys >= 0 AND miss_keys >= 0
+--                                          AND chars_typed >= 0 AND phrases_completed >= 0),
+--     CONSTRAINT ck_typing_accuracy CHECK (accuracy BETWEEN 0 AND 1)
+-- );
+--
+-- -- Lịch sử gần đây và kỷ lục theo từng tổ hợp (cách nhập × nội dung × chế độ).
+-- CREATE INDEX ix_typing_sessions_recent ON typing_sessions (user_id, created_at DESC);
+-- CREATE INDEX ix_typing_sessions_best ON typing_sessions (user_id, input_method, content_type, mode, score DESC);

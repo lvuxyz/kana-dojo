@@ -16,6 +16,7 @@ import {
 } from "@/lib/typing/history";
 import { useAuth } from "@/lib/auth-context";
 import type { Phrase } from "@/lib/typing/phrases";
+// [đồng bộ máy chủ — đang tắt] import { shouldUpload, uploadSession } from "@/lib/typing/server-sync";
 
 const DEFAULT_CONFIG: GameConfig = {
   content: "HIRAGANA",
@@ -150,6 +151,9 @@ export default function TypingPage() {
       saveHistory(owner, next);
       setHistory(next);
       setOutcome(recorded);
+      // [đồng bộ máy chủ — đang tắt] Web chạy với dữ liệu trên máy người dùng; khi bật backend luyện gõ,
+      // bỏ comment dòng dưới và dòng import ở đầu file (xem lib/typing/server-sync.ts).
+      // if (shouldUpload(r, !!session?.practice)) void uploadSession(r).catch(() => {});
     },
     [go, session, owner],
   );

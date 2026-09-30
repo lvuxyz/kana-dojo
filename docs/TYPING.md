@@ -4,8 +4,9 @@ Trang `/luyen-go`: người học gõ tiếng Nhật theo câu mẫu, được b
 (e-typing, 寿司打). Tài liệu này ghi lại phần nghiên cứu (người Nhật gõ chữ thế nào, các kiểu bài luyện phổ biến),
 các quyết định thiết kế và lý do.
 
-> **Phạm vi hiện tại:** tính năng chạy **hoàn toàn trên trình duyệt** — chấm điểm tại chỗ, kỷ lục và lịch sử lưu ở
-> `localStorage` của máy đang dùng. Chưa có bảng CSDL hay API nào, chưa cộng XP/streak. Xem §4 về hướng đồng bộ lên tài khoản.
+> **Phạm vi hiện tại:** web hướng tới người dùng cá nhân với dữ liệu trên máy — phòng luyện gõ chạy **hoàn toàn trên
+> trình duyệt**: chấm điểm tại chỗ, kỷ lục, lịch sử và chữ hay sai lưu ở `localStorage`, không cộng XP/streak. Mã đồng bộ lên
+> máy chủ đã viết sẵn và được giữ lại dưới dạng comment — xem §3.4.
 
 ---
 
@@ -172,7 +173,45 @@ Câu mẫu đóng gói sẵn ở frontend: nội dung cố định, không cần
 Thêm câu mới chỉ cần sửa file này — test `phrases.test.ts` tự kiểm tra mọi câu **gõ trọn được bằng cả romaji lẫn kana JIS**
 và đúng loại chữ của nhóm.
 
-### 3.4 Kiểm thử
+### 3.4 Mã đồng bộ máy chủ (đang tắt)
+
+Hướng sản phẩm hiện tại là **web cho người dùng cá nhân, dữ liệu nằm trên máy người dùng**, nên phòng luyện gõ không gọi
+máy chủ. Phần đồng bộ lên tài khoản đã được viết, kiểm thử (5 + 7 test backend, chạy cả luồng thật từ trình duyệt tới
+PostgreSQL) rồi **giữ lại dưới dạng comment** — không biên dịch, không đăng ký endpoint, Flyway không tạo bảng.
+
+| Phần | File | Vai trò |
+|---|---|---|
+| Bảng | `backend/src/main/resources/db/disabled/V4__typing_sessions.sql` | `typing_sessions` — nằm **ngoài** `db/migration` nên Flyway không chạy |
+| Domain | `backend/…/domain/entity/TypingSession.java`, `domain/enums/Typing{InputMethod,ContentType,Mode}.java` | Entity và enum (có cả `WEAK` — bài chữ hay sai) |
+| Truy vấn | `backend/…/repository/TypingSessionRepository.java` | Kỷ lục theo tổ hợp, 10 lượt gần nhất, tổng thời gian |
+| Chấm điểm | `backend/…/typing/TypingScoring.java` | KPM, chính xác, điểm (khớp từng bit với `score.ts`), XP `min(50, 5 + phím đúng / 10)` |
+| Nghiệp vụ | `backend/…/service/TypingService.java` | Một giao dịch: tính lại điểm → so kỷ lục → cộng XP/streak vào `daily_activity` → lưu |
+| API | `backend/…/web/controller/TypingController.java`, `web/dto/TypingDtos.java` | `POST /api/v1/typing/sessions`, `GET /api/v1/typing/stats` |
+| Test | `backend/src/test/…/typing/TypingScoringTest.java`, `it/TypingFlowTest.java` | Công thức; luồng thật: server tự chấm, XP, kỷ lục, mọi loại nội dung, từ chối tốc độ > 1 500 phím/phút |
+| Client | `web/src/lib/typing/server-sync.ts` + 2 dòng đánh dấu `[đồng bộ máy chủ — đang tắt]` trong `web/src/app/(app)/luyen-go/page.tsx` | Gửi số đo thô sau mỗi lượt (không gửi lượt luyện lại câu có lỗi) |
+
+Mỗi file Java/SQL mở đầu bằng 4 dòng ghi chú, phần còn lại là mã gốc có tiền tố `// ` (SQL: `-- `). Bật lại:
+
+```bash
+# 1. Backend: bỏ 4 dòng ghi chú đầu và tiền tố comment
+cd backend
+for f in $(grep -rl "^// ĐANG TẮT — đồng bộ luyện gõ" src); do sed -i '1,4d; s#^// \{0,1\}##' "$f"; done
+
+# 2. Migration: bỏ comment rồi đưa vào thư mục Flyway, đổi V4 thành số phiên bản kế tiếp còn trống
+sed -i '1,4d; s#^-- \{0,1\}##' src/main/resources/db/disabled/V4__typing_sessions.sql
+git mv src/main/resources/db/disabled/V4__typing_sessions.sql src/main/resources/db/migration/V4__typing_sessions.sql
+
+# 3. Frontend: bỏ comment client đồng bộ và hai dòng đánh dấu trong trang luyện gõ
+cd ../web
+sed -i '1,4d; /^export {};$/d; s#^// \{0,1\}##' src/lib/typing/server-sync.ts
+sed -i 's#^\( *\)// \[đồng bộ máy chủ — đang tắt\] import#\1import#; s#^\( *\)// if (shouldUpload#\1if (shouldUpload#' "src/app/(app)/luyen-go/page.tsx"
+```
+
+Sau đó chạy `mvn test` và `npm test`, rồi bổ sung bảng và API vào `docs/SPEC.md` (§2 và §5). Muốn hiện XP và kỷ lục từ
+máy chủ ở màn kết quả thì dùng `uploadSession()` (trả `TypingResultDto` gồm `xpEarned`, `personalBest`, `newBest`) và
+`fetchTypingStats()` thay cho `history.ts`.
+
+### 3.5 Kiểm thử
 
 | Tầng | Test |
 |---|---|
@@ -180,15 +219,15 @@ và đúng loại chữ của nhóm.
 | Web — `phrases.test.ts` | Phân tích furigana; **từng câu trong kho** gõ trọn bằng romaji và kana; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được; lọc đúng nhóm kana; "Chữ hay sai" chỉ rút từ danh sách yếu, đúng tỉ lệ; câu cố định gõ lần lượt |
 | Web — `ime.test.ts` | Chuẩn hoá chữ IME (NFKC, bỏ dấu câu), so khớp chữ đã chốt, quy đổi số phím; cụm kanji chỉ tính khi đổi đúng trọn cụm |
 | Web — `score.test.ts` | KPM, độ chính xác, điểm, sinh tử, thang đai |
+| Backend — `TypingScoringTest`, `it/TypingFlowTest` | Đang tắt cùng mã đồng bộ (§3.4); chạy lại được ngay sau khi bật |
 | Web — `history.test.ts` | Kỷ lục theo tổ hợp, chỉ đổi khi điểm cao hơn, giới hạn số lượt gần đây, dữ liệu hỏng thì bắt đầu lại; chữ yếu cộng dồn, giảm dần và bỏ kanji; khoá theo tài khoản |
 
 ---
 
 ## 4. Hướng phát triển
 
-- **Đồng bộ lên tài khoản**: bảng `typing_sessions` + `POST /typing/sessions`, server **tự tính lại điểm** từ số phím
-  (không tin điểm client gửi), chặn tốc độ phi thực tế (> 1 500 phím/phút), cộng XP vào `daily_activity` để tính streak,
-  mục tiêu ngày và bảng xếp hạng tuần; đồng bộ cả danh sách chữ hay sai để luyện được trên nhiều máy.
+- **Đồng bộ lên tài khoản** khi cần (mã đã có, đang tắt — §3.4): server **tự tính lại điểm** từ số phím, chặn tốc độ
+  phi thực tế, cộng XP vào `daily_activity`. Còn thiếu: đồng bộ danh sách chữ hay sai để luyện được trên nhiều máy.
 - **Nội dung từ vựng JLPT** lấy thẳng từ `/vocabulary` (đã có nghĩa tiếng Việt và câu ví dụ).
 - Huy hiệu luyện gõ (đạt 黒帯, 100 lượt…) và bảng xếp hạng riêng theo chế độ.
 - Bảng romaji tuỳ chỉnh (AZIK) — chỉ cần thêm một bảng ứng viên.

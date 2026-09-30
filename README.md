@@ -32,7 +32,7 @@ kana-dojo/
 | **Xác thực đầy đủ** | Email/mật khẩu + Google OAuth, JWT 15 phút, refresh token httpOnly |
 | **Phân quyền gói** | FREE (60 lượt ôn/ngày, N5) và PRO (không giới hạn, N1–N5) |
 | **Quiz** | 4 bài mẫu (trắc nghiệm + gõ romaji), đếm giờ, chấm và giải thích từng câu |
-| **Luyện gõ tiếng Nhật** | Gõ theo câu mẫu: 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 6 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên, chữ hay sai) × 3 chế độ (bài mẫu, đua giờ, sinh tử), thêm nghe chép; màn gõ chỉ có tiếng Nhật (không romaji gợi ý, dùng bàn phím thật) kèm gợi ý khi bị kẹt, ẩn furigana và luyện lại chữ hay sai; bấm giờ, chấm điểm KPM × chính xác³, xếp đai. Chạy hoàn toàn trên trình duyệt, kỷ lục lưu trên máy — xem [docs/TYPING.md](docs/TYPING.md) |
+| **Luyện gõ tiếng Nhật** | Gõ theo câu mẫu: 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 6 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên, chữ hay sai) × 3 chế độ (bài mẫu, đua giờ, sinh tử), thêm nghe chép; màn gõ chỉ có tiếng Nhật (không romaji gợi ý, dùng bàn phím thật) kèm gợi ý khi bị kẹt, ẩn furigana và luyện lại chữ hay sai; bấm giờ, chấm điểm KPM × chính xác³, xếp đai. Chạy hoàn toàn trên trình duyệt, kỷ lục lưu trên máy; mã đồng bộ lên máy chủ giữ sẵn dưới dạng comment — xem [docs/TYPING.md](docs/TYPING.md) |
 | **Từ vựng JLPT** | 70 từ N5 + 10 từ N4 seed sẵn, nghĩa tiếng Việt, câu ví dụ; lược đồ hỗ trợ N1–N5 |
 | **Swagger UI** | `http://localhost:8080/swagger-ui.html` |
 
