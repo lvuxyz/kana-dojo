@@ -34,18 +34,31 @@ dành cho người có bàn phím Nhật in sẵn chữ kana, không đặt làm
 | タイムアタック — gõ được càng nhiều càng tốt trong thời gian cho trước | 寿司打 (đĩa sushi trôi trên băng chuyền) | Chế độ **Đua giờ** (`TIME_ATTACK`, 30/60/120 giây) |
 | 一発勝負 — sai một phím là kết thúc | các chế độ "ミス即終了" | Chế độ **Sinh tử** (`SUDDEN_DEATH`) |
 | 漢字かな交じり文 — hiện câu có kanji kèm cách đọc, gõ theo cách đọc | 寿司打, e-typing | Nội dung **Kanji có furigana** |
-| Chuỗi kana rời để làm quen phím | các trang タイピング練習 cho người mới | Nội dung **Kana ngẫu nhiên** |
+| Chuỗi kana rời để làm quen phím | các trang タイピング練習 cho người mới | Nội dung **Kana ngẫu nhiên** (chọn nhóm: cơ bản / biến âm / âm ghép / tất cả) |
+| 苦手克服 — luyện lại đúng chữ hay sai | thống kê phím yếu của các trò luyện gõ | Nội dung **Chữ hay sai** + nút **Luyện lại các câu có lỗi** |
 | 聞き取りタイピング — nghe rồi gõ lại | bài luyện nghe ngoại ngữ | Tuỳ chọn **Nghe chép** (che chữ, đọc bằng giọng ja-JP) |
 
-Ba trục độc lập nên người học tự phối: **3 cách nhập × 5 loại nội dung × 3 chế độ**, cộng tuỳ chọn nghe chép.
+Ba trục độc lập nên người học tự phối: **3 cách nhập × 6 loại nội dung × 3 chế độ**, cộng tuỳ chọn ẩn furigana,
+gợi ý khi bị kẹt và nghe chép.
 
-### 1.3 Luật romaji của IME — chỗ người Việt hay vấp
+### 1.3 Nguyên tắc: màn gõ chỉ có tiếng Nhật
+
+Mục tiêu là **rèn trí nhớ**, không phải chép lại. Màn gõ không hiện romaji mẫu, không gợi ý phím kế tiếp, không có bàn phím
+ảo — người học dùng bàn phím thật và tự nhớ cách gõ từ chữ Nhật. Màn gõ chỉ phản chiếu các phím đã bấm của cụm chưa thành
+chữ (`sh` trước khi thành し), giống ô ghép chữ của IME. Nghĩa tiếng Việt xem ở màn kết quả; bảng luật ở mục 1.4 được tóm tắt
+ở màn chọn bài để tra **trước** khi gõ.
+
+Để "chỉ tiếng Nhật" không biến thành ngõ cụt, ba cơ chế đi kèm:
+
+| Cơ chế | Cách hoạt động |
+|---|---|
+| **Gợi ý khi bị kẹt** (bật sẵn, tắt được) | Sai 3 lần liên tiếp ở cùng một chữ mới hiện ヒント cho riêng chữ đó (`ま → ma`; kana JIS kèm phím: `か · T`, `゛ · [`), gõ qua là biến mất. Kanji đang ẩn furigana thì bậc 1 chỉ hé furigana của cụm đó (tô vàng — vẫn là tiếng Nhật), sai thêm 3 lần mới hiện cách gõ. Chữ phải nhờ gợi ý được liệt kê ở màn kết quả. |
+| **Ẩn furigana** (bài Kanji) | Furigana chỉ hiện sau khi gõ đúng cả cụm — luyện nhớ cách đọc kanji thay vì đọc hiragana nhỏ phía trên. |
+| **Vòng luyện điểm yếu** | Mọi chữ gõ sai được cộng vào danh sách "Chữ hay sai"; mỗi lượt danh sách giảm 15% nên một lần sai tự rơi khỏi danh sách sau 5 lượt không sai lại. Nội dung **Chữ hay sai** sinh câu từ danh sách này, rút theo căn bậc hai số lần sai (chữ yếu nhất ra nhiều hơn mà câu không đơn điệu). Màn kết quả có nút **Luyện lại các câu có lỗi** — lượt đó không tính kỷ lục. |
+
+### 1.4 Luật romaji của IME — chỗ người Việt hay vấp
 
 Bộ máy chấp nhận **mọi** cách gõ mà MS-IME/Google 日本語入力 chấp nhận, để tay quen ở đây thì sang máy thật gõ y hệt.
-**Màn gõ chỉ có tiếng Nhật.** Không hiện romaji mẫu, không gợi ý phím kế tiếp, không có bàn phím ảo — người học dùng
-bàn phím thật và phải tự nhớ cách gõ từ chữ Nhật, vì đó chính là kỹ năng cần luyện. Màn gõ chỉ phản chiếu các phím đã bấm
-của cụm chưa thành chữ (ví dụ `sh` trước khi thành し), giống ô ghép chữ của IME. Bảng luật dưới đây được tóm tắt ở màn chọn
-bài để tra **trước** khi gõ; nghĩa tiếng Việt của từng câu xem ở màn kết quả.
 
 | Kana | Chấp nhận | Ghi chú |
 |---|---|---|
@@ -93,7 +106,8 @@ khoảng 150–250; người gõ thi đấu vượt 400.
 
 - Kỷ lục cá nhân tách theo tổ hợp **cách nhập × nội dung × chế độ**: điểm cao nhất, tốc độ cao nhất, độ chính xác cao
   nhất và số lượt. Màn chọn bài hiện kỷ lục của tổ hợp đang chọn và 5 lượt gần nhất.
-- Lưu ở `localStorage` (khoá `kd.typing.history.v1`, giữ 10 lượt gần nhất) qua `web/src/lib/typing/history.ts`.
+- Lưu ở `localStorage` qua `web/src/lib/typing/history.ts`, khoá `kd.typing.history.v1:<id tài khoản>` — tách theo
+  tài khoản để máy dùng chung (máy ở nhà, phòng máy) thì mỗi người một kỷ lục. Giữ 10 lượt gần nhất và tối đa 40 chữ yếu.
   Dữ liệu hỏng hoặc trình duyệt chặn lưu trữ (ẩn danh) thì vẫn chơi được, chỉ không nhớ kỷ lục.
 - Lượt chưa gõ đúng phím nào không được ghi. Lựa chọn lần trước (nội dung, cách nhập, chế độ…) cũng được nhớ trên máy.
 
@@ -152,7 +166,7 @@ Nhờ vậy không cần trạng thái riêng hay quay lui cho ん/っ. Chế đ
 
 `web/src/data/typing-texts.ts` — 137 câu: 36 hiragana, 44 katakana (từ ngoại lai, có Phở フォー, Áo dài アオザイ,
 Bánh mì バインミー), 25 hỗn hợp, 32 câu kanji; kèm nghĩa tiếng Việt. Kanji viết `{日本語|にほんご}` để vừa hiện furigana
-vừa biết phải gõ gì. Kana ngẫu nhiên lấy từ `kana-data.json` (104 chữ mỗi bảng, gồm biến âm và âm ghép).
+vừa biết phải gõ gì. Kana ngẫu nhiên lấy từ `kana-data.json` theo nhóm đã chọn (46 cơ bản, 25 biến âm, 33 âm ghép mỗi bảng).
 
 Câu mẫu đóng gói sẵn ở frontend: nội dung cố định, không cần gọi máy chủ.
 Thêm câu mới chỉ cần sửa file này — test `phrases.test.ts` tự kiểm tra mọi câu **gõ trọn được bằng cả romaji lẫn kana JIS**
@@ -162,11 +176,11 @@ và đúng loại chữ của nhóm.
 
 | Tầng | Test |
 |---|---|
-| Web — `engine.test.ts` | Mọi biến thể romaji, luật ん/っ, âm ghép, katakana mở rộng, phím "lẽ ra phải bấm" bám theo cách người học đang gõ, phím sai không đổi trạng thái, bố cục JIS và phím thay thế trên bàn phím US |
-| Web — `phrases.test.ts` | Phân tích furigana; **từng câu trong kho** gõ trọn bằng romaji và kana; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được |
+| Web — `engine.test.ts` | Mọi biến thể romaji, luật ん/っ, âm ghép, katakana mở rộng, phím "lẽ ra phải bấm" và cách gõ cụm đang dở (cho gợi ý) bám theo cách người học đang gõ, nhãn phím JIS cho gợi ý, phím sai không đổi trạng thái, bố cục JIS và phím thay thế trên bàn phím US |
+| Web — `phrases.test.ts` | Phân tích furigana; **từng câu trong kho** gõ trọn bằng romaji và kana; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được; lọc đúng nhóm kana; "Chữ hay sai" chỉ rút từ danh sách yếu, đúng tỉ lệ; câu cố định gõ lần lượt |
 | Web — `ime.test.ts` | Chuẩn hoá chữ IME (NFKC, bỏ dấu câu), so khớp chữ đã chốt, quy đổi số phím; cụm kanji chỉ tính khi đổi đúng trọn cụm |
 | Web — `score.test.ts` | KPM, độ chính xác, điểm, sinh tử, thang đai |
-| Web — `history.test.ts` | Kỷ lục theo tổ hợp, chỉ đổi khi điểm cao hơn, giới hạn số lượt gần đây, dữ liệu hỏng thì bắt đầu lại |
+| Web — `history.test.ts` | Kỷ lục theo tổ hợp, chỉ đổi khi điểm cao hơn, giới hạn số lượt gần đây, dữ liệu hỏng thì bắt đầu lại; chữ yếu cộng dồn, giảm dần và bỏ kanji; khoá theo tài khoản |
 
 ---
 
@@ -174,8 +188,7 @@ và đúng loại chữ của nhóm.
 
 - **Đồng bộ lên tài khoản**: bảng `typing_sessions` + `POST /typing/sessions`, server **tự tính lại điểm** từ số phím
   (không tin điểm client gửi), chặn tốc độ phi thực tế (> 1 500 phím/phút), cộng XP vào `daily_activity` để tính streak,
-  mục tiêu ngày và bảng xếp hạng tuần.
-- **Luyện điểm yếu theo lịch sử**: ghi lại kana hay sai qua nhiều lượt, sinh bài luyện riêng từ đó (hiện chỉ hiện ở màn kết quả).
+  mục tiêu ngày và bảng xếp hạng tuần; đồng bộ cả danh sách chữ hay sai để luyện được trên nhiều máy.
 - **Nội dung từ vựng JLPT** lấy thẳng từ `/vocabulary` (đã có nghĩa tiếng Việt và câu ví dụ).
 - Huy hiệu luyện gõ (đạt 黒帯, 100 lượt…) và bảng xếp hạng riêng theo chế độ.
 - Bảng romaji tuỳ chỉnh (AZIK) — chỉ cần thêm một bảng ứng viên.

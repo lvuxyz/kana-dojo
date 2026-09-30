@@ -32,7 +32,7 @@ kana-dojo/
 | **Xác thực đầy đủ** | Email/mật khẩu + Google OAuth, JWT 15 phút, refresh token httpOnly |
 | **Phân quyền gói** | FREE (60 lượt ôn/ngày, N5) và PRO (không giới hạn, N1–N5) |
 | **Quiz** | 4 bài mẫu (trắc nghiệm + gõ romaji), đếm giờ, chấm và giải thích từng câu |
-| **Luyện gõ tiếng Nhật** | Gõ theo câu mẫu: 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 5 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên) × 3 chế độ (bài mẫu, đua giờ, sinh tử), thêm nghe chép; màn gõ chỉ có tiếng Nhật (không romaji gợi ý, dùng bàn phím thật); bấm giờ, chấm điểm KPM × chính xác³, xếp đai. Chạy hoàn toàn trên trình duyệt, kỷ lục lưu trên máy — xem [docs/TYPING.md](docs/TYPING.md) |
+| **Luyện gõ tiếng Nhật** | Gõ theo câu mẫu: 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 6 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên, chữ hay sai) × 3 chế độ (bài mẫu, đua giờ, sinh tử), thêm nghe chép; màn gõ chỉ có tiếng Nhật (không romaji gợi ý, dùng bàn phím thật) kèm gợi ý khi bị kẹt, ẩn furigana và luyện lại chữ hay sai; bấm giờ, chấm điểm KPM × chính xác³, xếp đai. Chạy hoàn toàn trên trình duyệt, kỷ lục lưu trên máy — xem [docs/TYPING.md](docs/TYPING.md) |
 | **Từ vựng JLPT** | 70 từ N5 + 10 từ N4 seed sẵn, nghĩa tiếng Việt, câu ví dụ; lược đồ hỗ trợ N1–N5 |
 | **Swagger UI** | `http://localhost:8080/swagger-ui.html` |
 
@@ -217,8 +217,8 @@ CI (GitHub Actions) chạy tất cả những lệnh trên cho mỗi pull reques
 
 Kiểm chứng ngày 2026-09-30 (thêm phòng luyện gõ, chỉ đổi frontend):
 
-- **Frontend:** `npm test` 218/218 · `npm run lint` sạch · `tsc --noEmit` · `next build` — thành công, 24 route
-- **End-to-end:** `/luyen-go` với romaji (bài mẫu), kana JIS (đua giờ), IME + kanji, sinh tử + nghe chép; kỷ lục lưu và đọc lại từ localStorage
+- **Frontend:** `npm test` 229/229 · `npm run lint` sạch · `tsc --noEmit` · `next build` — thành công, 24 route
+- **End-to-end:** `/luyen-go` với romaji (bài mẫu), kana JIS (đua giờ), IME + kanji, sinh tử + nghe chép; gợi ý khi bị kẹt hai bậc với kanji ẩn furigana, luyện lại câu có lỗi, bài "Chữ hay sai"; kỷ lục lưu theo tài khoản và đọc lại từ localStorage
 
 Kiểm chứng ngày 2026-09-28:
 
