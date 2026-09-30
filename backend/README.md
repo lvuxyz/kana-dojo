@@ -86,6 +86,7 @@ mvn flyway:repair    -Dflyway.url=$DB_URL -Dflyway.user=$DB_USER -Dflyway.passwo
 | `V1__init.sql` | Toàn bộ 22 bảng, chỉ mục và ràng buộc |
 | `V2__seed_reference.sql` | Hạn mức `plan_features` và 9 huy hiệu |
 | `V3__seed_content.sql` | 70 từ N5 + 10 từ N4, bộ thẻ "Từ vựng N5 cơ bản", 4 quiz đã xuất bản |
+| `V4__typing_sessions.sql` | Bảng `typing_sessions` cho phòng luyện gõ |
 
 Không dùng `ddl-auto: update`. Hibernate chỉ được đặt ở chế độ `validate`, nên mọi thay đổi
 lược đồ **phải** đi qua một file migration mới.

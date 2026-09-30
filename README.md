@@ -7,6 +7,7 @@ kana-dojo/
 ├── docs/
 │   ├── SPEC.md            Đặc tả kỹ thuật — nguồn sự thật cho cả BE và FE
 │   ├── ARCHITECTURE.md    Kiến trúc hệ thống, luồng dữ liệu, quyết định thiết kế
+│   ├── TYPING.md          Nghiên cứu & thiết kế phòng luyện gõ tiếng Nhật
 │   ├── DEVELOPMENT.md     Hướng dẫn thiết lập môi trường phát triển
 │   ├── DEPLOYMENT.md      Hướng dẫn triển khai production
 │   └── kana-data.json     208 ký tự · 148 glyph, trích từ KanjiVG (CC BY-SA 3.0)
@@ -31,6 +32,7 @@ kana-dojo/
 | **Xác thực đầy đủ** | Email/mật khẩu + Google OAuth, JWT 15 phút, refresh token httpOnly |
 | **Phân quyền gói** | FREE (60 lượt ôn/ngày, N5) và PRO (không giới hạn, N1–N5) |
 | **Quiz** | 4 bài mẫu (trắc nghiệm + gõ romaji), đếm giờ, chấm và giải thích từng câu |
+| **Luyện gõ tiếng Nhật** | Gõ theo câu mẫu: 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 5 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên) × 3 chế độ (bài mẫu, đua giờ, sinh tử), thêm nghe chép; bấm giờ, chấm điểm KPM × chính xác³, xếp đai, kỷ lục — xem [docs/TYPING.md](docs/TYPING.md) |
 | **Từ vựng JLPT** | 70 từ N5 + 10 từ N4 seed sẵn, nghĩa tiếng Việt, câu ví dụ; lược đồ hỗ trợ N1–N5 |
 | **Swagger UI** | `http://localhost:8080/swagger-ui.html` |
 
@@ -65,7 +67,7 @@ docker run -d --name kanadojo-db -p 5432:5432 \
   postgres:16
 ```
 
-Flyway tự tạo toàn bộ lược đồ (22 bảng) kèm dữ liệu khởi đầu (gói cước, huy hiệu, từ vựng, quiz mẫu), và `KanaSeeder` tự nạp 208 ký tự khi backend khởi động lần đầu — không cần chạy script SQL thủ công.
+Flyway tự tạo toàn bộ lược đồ (23 bảng) kèm dữ liệu khởi đầu (gói cước, huy hiệu, từ vựng, quiz mẫu), và `KanaSeeder` tự nạp 208 ký tự khi backend khởi động lần đầu — không cần chạy script SQL thủ công.
 
 ### Bước 2 — Backend
 
@@ -142,7 +144,7 @@ backend/src/main/java/com/japanese/learning/
 ├── config/             AppProperties, SecurityConfig, WebConfig, OpenApiConfig
 │                       SchedulingConfig, ProdSecretsValidator
 ├── domain/
-│   ├── entity/         22 JPA entity (users, kana_characters, review_cards, …)
+│   ├── entity/         23 JPA entity (users, kana_characters, review_cards, typing_sessions, …)
 │   ├── enums/          CardState, ItemType, KanaGroup, Script, BadgeTier, …
 │   └── StrokeError.java
 ├── repository/         Spring Data JPA repositories
@@ -152,8 +154,9 @@ backend/src/main/java/com/japanese/learning/
 ├── service/            AuthService, ReviewService, WritingService
 │                       BadgeService, GamificationService, …
 ├── srs/                FsrsEngine.java — thuần hàm, không Spring, unit test được
+├── typing/             TypingScoring.java — chấm điểm luyện gõ, thuần hàm (khớp score.ts)
 └── web/
-    ├── controller/     12 REST controller
+    ├── controller/     13 REST controller
     └── dto/            AuthDtos, ContentDtos, LearningDtos, GamificationDtos, …
 
 web/src/
@@ -161,6 +164,7 @@ web/src/
 │   ├── (app)/          Route group yêu cầu đăng nhập (layout.tsx có shell)
 │   │   ├── bang-dieu-khien/    Dashboard
 │   │   ├── luyen-viet/         Tập viết
+│   │   ├── luyen-go/           Luyện gõ tiếng Nhật (chọn bài → gõ → kết quả)
 │   │   ├── on-tap/             Ôn tập SRS
 │   │   ├── bang-xep-hang/      Bảng xếp hạng
 │   │   ├── ho-so/              Hồ sơ cá nhân
@@ -172,8 +176,10 @@ web/src/
 ├── components/
 │   ├── app/            Brand, Nav, ThemeToggle, GoogleButton
 │   ├── kana/           StrokeStage, KanaGrid, PracticePanel, HeroDemo
+│   ├── typing/         TypingSetup, TypingStage, TypingResult, PhraseView, VirtualKeyboard, useTypingGame
 │   └── ui/index.tsx    Design system: Button, Card, Field, Chip, Progress, Stat, …
 ├── data/kana-data.json  Dữ liệu nét bundle sẵn vào JS (57 KB, ~20 KB gzip)
+├── data/typing-texts.ts Kho câu mẫu luyện gõ, kanji viết {chữ|cách đọc}
 └── lib/
     ├── api.ts           Fetch wrapper: auto-refresh token, coalesce 401
     ├── auth-context.tsx React context xác thực
@@ -181,6 +187,7 @@ web/src/
     ├── kana.ts          Truy cập dữ liệu nét đã bundle
     ├── providers.tsx    QueryClientProvider + AuthProvider
     ├── stroke-match.ts  Bộ chấm điểm nét — arc-length resampling, thuần hàm
+    ├── typing/          Bộ máy luyện gõ: romaji.ts (bảng IME), kana-layout.ts (JIS), engine.ts, phrases.ts, score.ts
     └── types.ts         TypeScript types khớp với DTO backend / SPEC.md
 ```
 
@@ -189,7 +196,7 @@ web/src/
 ## Kiểm thử
 
 ```bash
-# Backend — 11 unit test + 24 integration test (PostgreSQL thật qua Testcontainers, cần Docker)
+# Backend — 16 unit test + 30 integration test (PostgreSQL thật qua Testcontainers, cần Docker)
 cd backend
 mvn test
 
@@ -208,6 +215,12 @@ CI (GitHub Actions) chạy tất cả những lệnh trên cho mỗi pull reques
 ---
 
 ## Trạng thái build đã kiểm chứng
+
+Kiểm chứng ngày 2026-09-30 (thêm phòng luyện gõ):
+
+- **Backend:** 46/46 test qua (16 unit + 30 integration) — lần này integration test chạy trên PostgreSQL 16 cục bộ vì máy không có Docker
+- **Frontend:** `npm test` 212/212 · `npm run lint` sạch · `tsc --noEmit` · `next build` — thành công, 24 route
+- **End-to-end:** đăng ký → `/luyen-go` với romaji (bài mẫu), kana JIS (đua giờ), IME + kanji, sinh tử + nghe chép → lưu điểm, XP và kỷ lục qua API thật
 
 Kiểm chứng ngày 2026-09-28:
 

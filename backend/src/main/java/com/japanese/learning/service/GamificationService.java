@@ -40,6 +40,10 @@ public class GamificationService {
     public static final int XP_QUIZ_BASE = 20;
     public static final int XP_QUIZ_PER_CORRECT = 5;
     public static final int XP_DAILY_GOAL_BONUS = 50;
+    public static final int XP_TYPING_BASE = 5;
+    public static final int XP_TYPING_KEYS_PER_POINT = 10;
+    public static final int XP_TYPING_MAX = 50;
+    public static final int TYPING_MIN_KEYS_FOR_XP = 20;
 
     private final UserStatsRepository userStatsRepository;
     private final DailyActivityRepository dailyActivityRepository;
@@ -59,6 +63,10 @@ public class GamificationService {
         public static ActivityDelta quiz(int xp, int durationMs) {
             return new ActivityDelta(xp, 0, 0, Math.max(durationMs, 0), 0);
         }
+
+        public static ActivityDelta typing(int xp, int durationMs) {
+            return new ActivityDelta(xp, 0, 0, Math.max(durationMs, 0), 0);
+        }
     }
 
     /** Kết quả ghi nhận: tổng XP thực nhận (đã gồm thưởng) và streak sau khi cập nhật. */
@@ -72,6 +80,17 @@ public class GamificationService {
 
     public static int quizXp(int correctCount) {
         return XP_QUIZ_BASE + correctCount * XP_QUIZ_PER_CORRECT;
+    }
+
+    /**
+     * XP cho một lượt luyện gõ: tỉ lệ với số phím đúng (5 + 1 XP mỗi 10 phím, tối đa 50) để chia nhỏ
+     * lượt gõ không cày được thêm XP. Dưới 20 phím đúng thì chưa tính là một lượt luyện.
+     */
+    public static int typingXp(int correctKeys) {
+        if (correctKeys < TYPING_MIN_KEYS_FOR_XP) {
+            return 0;
+        }
+        return Math.min(XP_TYPING_MAX, XP_TYPING_BASE + correctKeys / XP_TYPING_KEYS_PER_POINT);
     }
 
     public static int levelFor(long xpTotal) {

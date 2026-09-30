@@ -195,8 +195,38 @@ Chấm điểm: so khớp `correct_answer` với câu trả lời sau khi bỏ k
 | `V1__init.sql` | 22 bảng, chỉ mục, ràng buộc |
 | `V2__seed_reference.sql` | `plan_features` (8 dòng) + 9 huy hiệu |
 | `V3__seed_content.sql` | 70 từ N5 + 10 từ N4, bộ thẻ hệ thống "Từ vựng N5 cơ bản", 4 quiz đã xuất bản (38 câu) |
+| `V4__typing_sessions.sql` | bảng `typing_sessions` (luyện gõ, §2.7) |
 
 Kana (208 ký tự, 148 glyph) **không** nằm trong migration mà do `KanaSeeder` nạp từ JSON.
+
+### 2.7 Luyện gõ (`V4__typing_sessions.sql`)
+
+**typing_sessions** — mỗi dòng là một lượt gõ đã chấm, chỉ ghi thêm
+| cột | kiểu | ghi chú |
+|---|---|---|
+| user_id | FK NOT NULL | |
+| input_method | varchar(8) NOT NULL | ROMAJI \| KANA \| IME (CHECK) |
+| content_type | varchar(12) NOT NULL | HIRAGANA \| KATAKANA \| MIXED \| KANJI \| KANA_DRILL (CHECK) |
+| mode | varchar(16) NOT NULL | PASSAGE \| TIME_ATTACK \| SUDDEN_DEATH (CHECK) |
+| duration_ms | int NOT NULL | > 0 |
+| correct_keys, miss_keys | int NOT NULL | số phím đúng / sai (IME: quy đổi ra số phím romaji tối thiểu) |
+| chars_typed, phrases_completed | int NOT NULL | số kana và số câu đã gõ xong |
+| kpm, accuracy | double precision NOT NULL | **server tính lại**, `accuracy` ∈ [0, 1] |
+| score | int NOT NULL | server tính lại, xem dưới |
+| xp_earned | int NOT NULL DEFAULT 0 | |
+→ index `(user_id, created_at DESC)` và `(user_id, input_method, content_type, mode, score DESC)`
+
+Câu mẫu **không** nằm trong CSDL mà đóng gói ở frontend (`web/src/data/typing-texts.ts`), vì bảng chỉ cần số đo để xếp kỷ lục.
+
+Chấm điểm (`TypingScoring.java` ≡ `web/src/lib/typing/score.ts`, phải khớp tuyệt đối):
+```
+KPM      = correct_keys × 60000 / duration_ms
+accuracy = correct_keys / (correct_keys + miss_keys)      (chưa gõ gì = 1)
+score    = round(KPM × accuracy³)                          (cách chấm của e-typing)
+         = correct_keys                                    nếu mode = SUDDEN_DEATH
+```
+Client **không** gửi điểm; server từ chối lượt có KPM > 1500 (400, `errors.correctKeys`).
+Chi tiết nghiên cứu, luật chấp nhận romaji và thang đai: [TYPING.md](TYPING.md).
 
 ---
 
@@ -285,6 +315,7 @@ Ghi cả `score` gốc vào `review_logs.score` để sau này huấn luyện l�
 | Ôn 1 thẻ sai | 3 (vẫn thưởng để không phạt việc học) |
 | Viết đạt lần đầu 1 ký tự | 25 |
 | Hoàn thành quiz | 20 + đúng×5 |
+| Một lượt luyện gõ | `min(50, 5 + phím đúng / 10)`; dưới 20 phím đúng: 0 |
 | Đạt mục tiêu ngày | +50 thưởng |
 
 `level = floor(sqrt(xp_total / 100)) + 1`
@@ -385,6 +416,15 @@ vì tách sẽ tạo trạng thái nửa vời khi mạng rớt giữa chừng.
 
 Mỗi lượt chỉ nộp được một lần. `score` = % câu đúng trên tổng số câu của đề (câu không gửi tính là sai).
 Hết `timeLimitSec` thì client tự nộp; backend hiện không chặn nộp muộn.
+
+### Luyện gõ 🔒
+| Method | Path | Trả về |
+|---|---|---|
+| POST | `/typing/sessions` | body `{inputMethod, contentType, mode, durationMs (1000..3600000), correctKeys, missKeys, charsTyped, phrasesCompleted}` → `TypingResultDto{sessionId, score, kpm, accuracy, xpEarned, personalBest, newBest}` |
+| GET | `/typing/stats` | `TypingStatsDto{totalSessions, totalDurationMs, bests:[{inputMethod, contentType, mode, bestScore, bestKpm, bestAccuracy, plays, lastPlayedAt}], recent: TypingSessionDto[≤10]}` |
+
+Một lần gọi `POST /typing/sessions` là **một giao dịch**: tính lại điểm → so kỷ lục cũ → cộng XP/streak/`daily_activity`
+(`study_ms += durationMs`) → lưu lượt. `personalBest`/`newBest` so trong cùng tổ hợp cách nhập × nội dung × chế độ.
 
 ### Gói cước 🔒
 `GET /me/entitlements` → `{plan, features:{"srs.daily_reviews":60,...}, usage:{"srs.daily_reviews":12}}`

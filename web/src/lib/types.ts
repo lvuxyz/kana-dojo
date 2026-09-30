@@ -115,3 +115,33 @@ export interface QuizResultDto {
   attemptId: number; quizId: number; score: number; correctCount: number;
   totalCount: number; xpEarned: number; answers: AnswerResultDto[];
 }
+
+/* Luyện gõ — docs/SPEC.md mục 5 "Luyện gõ". Điểm do server tính lại từ số phím. */
+
+export type TypingInputMethod = "ROMAJI" | "KANA" | "IME";
+export type TypingContentType = "HIRAGANA" | "KATAKANA" | "MIXED" | "KANJI" | "KANA_DRILL";
+export type TypingModeCode = "PASSAGE" | "TIME_ATTACK" | "SUDDEN_DEATH";
+
+export interface TypingSessionRequest {
+  inputMethod: TypingInputMethod; contentType: TypingContentType; mode: TypingModeCode;
+  durationMs: number; correctKeys: number; missKeys: number; charsTyped: number; phrasesCompleted: number;
+}
+
+export interface TypingResultDto {
+  sessionId: number; score: number; kpm: number; accuracy: number;
+  xpEarned: number; personalBest: number; newBest: boolean;
+}
+
+export interface TypingBestDto {
+  inputMethod: TypingInputMethod; contentType: TypingContentType; mode: TypingModeCode;
+  bestScore: number; bestKpm: number; bestAccuracy: number; plays: number; lastPlayedAt: string;
+}
+
+export interface TypingSessionDto {
+  id: number; inputMethod: TypingInputMethod; contentType: TypingContentType; mode: TypingModeCode;
+  score: number; kpm: number; accuracy: number; durationMs: number; createdAt: string;
+}
+
+export interface TypingStatsDto {
+  totalSessions: number; totalDurationMs: number; bests: TypingBestDto[]; recent: TypingSessionDto[];
+}

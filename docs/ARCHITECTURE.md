@@ -25,7 +25,7 @@ Kana Dōjō là ứng dụng monorepo full-stack gồm ba lớp độc lập:
 └────────────────────────┬────────────────────────────────────┘
                          │ JDBC / HikariCP
                 ┌────────▼────────┐
-                │  PostgreSQL 16  │  22 bảng, Flyway migration
+                │  PostgreSQL 16  │  23 bảng, Flyway migration
                 └─────────────────┘
 ```
 

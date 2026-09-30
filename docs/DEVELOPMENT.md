@@ -158,23 +158,25 @@ mvn test -Dtest='com.japanese.learning.it.*'
 mvn package
 ```
 
-**35 test**, chia hai loại:
+**46 test**, chia hai loại:
 
 | Loại | Lớp | Cần gì |
 |---|---|---|
 | Unit | `srs/FsrsEngineTest` (11) — công thức FSRS-6, bước học, ngưỡng điểm nét → grade | Chỉ JDK |
+| | `typing/TypingScoringTest` (5) — KPM, độ chính xác, điểm × chính xác³, sinh tử, XP luyện gõ | Chỉ JDK |
 | Integration | `it/AuthFlowTest` (6) — đăng ký, refresh xoay vòng, tái sử dụng token thu hồi cả họ, đăng xuất, 401/409 | Docker |
 | | `it/WritingAttemptFlowTest` (5) — `POST /writing/attempts` ghi đủ 5 bước, XP lần đầu/lần sau, nét hỏng, 404, validation | Docker |
 | | `it/WritingAttemptAtomicityTest` (1) — lỗi ở bước cuối rollback cả 4 bước trước | Docker |
 | | `it/QuizFlowTest` (5) — quiz seed V3, đề không lộ đáp án, chấm điểm, nộp một lần | Docker |
 | | `it/ReviewQueueFlowTest` (5) — hình dạng JSON hàng đợi, thẻ từ vựng, hạn mức thẻ mới, chấm thẻ | Docker |
+| | `it/TypingFlowTest` (6) — server tự chấm, XP vào hoạt động ngày, kỷ lục theo tổ hợp, từ chối tốc độ phi thực tế | Docker |
 | | `it/HealthEndpointTest` (2) — `/actuator/health` công khai, không lộ chi tiết; actuator khác bị đóng | Docker |
 
-Integration test chạy **cả ứng dụng** trên PostgreSQL 16 thật do Testcontainers dựng (`postgres:16-alpine`, Flyway áp V1–V3,
+Integration test chạy **cả ứng dụng** trên PostgreSQL 16 thật do Testcontainers dựng (`postgres:16-alpine`, Flyway áp V1–V4,
 `KanaSeeder` nạp kana), gọi API qua MockMvc. Lớp nền `it/IntegrationTest` giữ một container và một Spring context cho cả lượt chạy;
 mỗi test tự đăng ký người dùng riêng nên không cần dọn dữ liệu. Không dùng H2: CSDL này không có kiểu `citext` mà `V1__init.sql` cần.
 
-- **Không có Docker** (hoặc Docker Desktop chưa bật): các lớp `it/*` bị bỏ qua (Maven báo 0 test cho chúng), `mvn test` vẫn xanh với 11 unit test.
+- **Không có Docker** (hoặc Docker Desktop chưa bật): các lớp `it/*` bị bỏ qua (Maven báo 0 test cho chúng), `mvn test` vẫn xanh với 16 unit test.
 - Lần chạy đầu tải image `postgres:16-alpine` (~100 MB); các lần sau khởi động container trong vài giây.
 - Testcontainers được ghim 1.21.x trong `pom.xml` vì bản 1.19 đi kèm Spring Boot 3.2 dùng Docker API quá cũ cho Docker Engine 29+.
 - CI chạy `mvn -B verify` trên runner có Docker, nên ở pull request các integration test **luôn** chạy.
@@ -238,7 +240,7 @@ com.japanese.learning/
 │   └── ProdSecretsValidator.java  Fail-fast nếu thiếu secret trên production
 │
 ├── domain/
-│   ├── entity/                    22 JPA entity (+ BaseEntity) — một entity cho mỗi bảng
+│   ├── entity/                    23 JPA entity (+ BaseEntity) — một entity cho mỗi bảng
 │   ├── enums/                     CardState, ItemType, KanaGroup, Script, BadgeTier, …
 │   └── StrokeError.java           @Embeddable — lưu lỗi từng nét trong writing_attempts
 │
@@ -306,11 +308,12 @@ Flyway tự động chạy khi backend khởi động:
 src/main/resources/db/migration/
 ├── V1__init.sql           Toàn bộ lược đồ 22 bảng
 ├── V2__seed_reference.sql plan_features + badges (dữ liệu seed tham chiếu)
-└── V3__seed_content.sql   80 từ vựng (N5, N4), 1 bộ thẻ hệ thống, 4 quiz mẫu
+├── V3__seed_content.sql   80 từ vựng (N5, N4), 1 bộ thẻ hệ thống, 4 quiz mẫu
+└── V4__typing_sessions.sql Bảng typing_sessions cho phòng luyện gõ
 ```
 
 **Thêm migration mới:**
-1. Tạo file `V4__<mô_tả>.sql` trong thư mục trên (số phiên bản kế tiếp)
+1. Tạo file `V5__<mô_tả>.sql` trong thư mục trên (số phiên bản kế tiếp)
 2. Đặt tên theo quy ước Flyway: `V{số}__{mô_tả_dấu_gạch_dưới}.sql`
 3. Không bao giờ sửa file migration đã commit — tạo file mới để sửa
 
@@ -338,7 +341,7 @@ Nếu cập nhật dữ liệu:
 
 ### Từ vựng và quiz
 
-Chưa có trang quản trị. Thêm nội dung bằng migration mới (`V4__…sql`) theo mẫu `V3__seed_content.sql`;
+Chưa có trang quản trị. Thêm nội dung bằng migration mới (`V5__…sql`) theo mẫu `V3__seed_content.sql`;
 quy ước giá trị `quiz_type` / `question_type` / `part_of_speech` xem [SPEC.md §2.5](SPEC.md).
 
 ---
