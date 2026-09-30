@@ -14,8 +14,6 @@ const DEFAULT_CONFIG: GameConfig = {
   phraseCount: 10,
   timeLimitSec: 60,
   drillScript: "h",
-  showGuide: true,
-  showKeyboard: true,
   dictation: false,
 };
 
@@ -29,8 +27,6 @@ const ALLOWED: { [K in keyof GameConfig]: readonly GameConfig[K][] } = {
   phraseCount: [5, 10, 20],
   timeLimitSec: [30, 60, 120],
   drillScript: ["h", "k"],
-  showGuide: [true, false],
-  showKeyboard: [true, false],
   dictation: [true, false],
 };
 

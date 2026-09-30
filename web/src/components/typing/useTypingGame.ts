@@ -16,14 +16,14 @@ export interface GameConfig {
   /** Số giây của chế độ đua giờ */
   timeLimitSec: number;
   drillScript: Script;
-  showGuide: boolean;
-  showKeyboard: boolean;
   /** Nghe chép: che chữ, đọc câu thành tiếng */
   dictation: boolean;
 }
 
 export interface PhraseRecord {
   text: string;
+  /** Nghĩa tiếng Việt — chỉ hiện ở màn kết quả, màn gõ chỉ có tiếng Nhật */
+  vi: string;
   ms: number;
   keys: number;
   misses: number;
@@ -174,7 +174,7 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
 
   const completePhrase = (at: number, keys: number) => {
     const l = liveRef.current!;
-    l.records.push({ text: l.phrase.text, ms: at - l.phraseStartedAt, keys, misses: l.phraseMisses });
+    l.records.push({ text: l.phrase.text, vi: l.phrase.vi, ms: at - l.phraseStartedAt, keys, misses: l.phraseMisses });
     if (config.mode === "PASSAGE" && l.records.length >= config.phraseCount) {
       finish("complete", at);
       return;

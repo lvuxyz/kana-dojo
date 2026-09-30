@@ -4,10 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Button, Card, Progress } from "@/components/ui";
 import { kanaFromKey } from "@/lib/typing/kana-layout";
-import { PhraseView, RomajiGuide } from "./PhraseView";
+import { PhraseView } from "./PhraseView";
 import { useSpeech } from "./useSpeech";
 import { useTypingGame, type GameConfig, type GameResult } from "./useTypingGame";
-import { VirtualKeyboard, capLabel, keyForKanaToken } from "./VirtualKeyboard";
 
 type Warning = "ime" | "vietnamese" | null;
 
@@ -98,7 +97,6 @@ export function TypingStage({
 
   const run = live.run;
   const cur = run?.current();
-  const nextKey = run?.nextKey();
   const limitMs = config.timeLimitSec * 1000;
   const clock = config.mode === "TIME_ATTACK" ? Math.max(0, limitMs - game.elapsed) : game.elapsed;
   const lowTime = config.mode === "TIME_ATTACK" && clock <= 10_000 && live.phase === "playing";
@@ -152,12 +150,7 @@ export function TypingStage({
             hidden={config.dictation}
           />
 
-          {live.phrase.vi && <p className="text-center text-sm font-medium text-sumi-3">{live.phrase.vi}</p>}
-
-          {method === "ROMAJI" && run && config.showGuide && (
-            <RomajiGuide typed={run.typed} rest={run.rest()} showRest={!config.dictation} />
-          )}
-          {method === "KANA" && config.showGuide && nextKey && !config.dictation && <KanaHint token={nextKey} />}
+          {run && <PendingKeys keys={run.buf} />}
         </div>
 
         {live.phase === "ready" && (
@@ -234,14 +227,6 @@ export function TypingStage({
         </div>
       )}
 
-      {config.showKeyboard && method !== "IME" && (
-        <VirtualKeyboard
-          method={method}
-          next={config.dictation ? undefined : nextKey}
-          className="mx-auto hidden w-full max-w-3xl md:block"
-        />
-      )}
-
       <div className="flex flex-wrap items-center justify-center gap-2">
         <Button variant="ghost" size="sm" onClick={onExit} tabIndex={-1}>
           ‹ Chọn bài khác <kbd className="ml-1 rounded border border-rule px-1 text-[10px]">Esc</kbd>
@@ -270,26 +255,18 @@ function formatClock(ms: number) {
   return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 }
 
-/** Chế độ kana: nói rõ phím nào, vì người mới chưa thuộc bố cục JIS. */
-function KanaHint({ token }: { token: string }) {
-  const key = keyForKanaToken(token);
+/**
+ * Phím đã gõ của cụm chưa thành chữ (ví dụ "sh" trước khi thành し, か chờ ゛) — giống ô ghép chữ
+ * của IME. Chỉ phản chiếu phím người học đã bấm, không bao giờ gợi ý phím tiếp theo: màn gõ chỉ
+ * có tiếng Nhật để người học tự nhớ cách gõ.
+ */
+function PendingKeys({ keys }: { keys: string }) {
   return (
-    <p className="text-center text-sm text-sumi-3">
-      Phím kế tiếp: <span className="font-japanese text-lg font-bold text-shu">{token}</span>
-      {key && (
-        <>
-          {" "}→{" "}
-          {key.shift && <Kbd>Shift</Kbd>}
-          {key.shift && " + "}
-          <Kbd>{capLabel(key.code)}</Kbd>
-        </>
-      )}
+    <p className="flex h-7 items-center justify-center font-mono text-lg text-sumi-2" aria-label="Phím đang gõ dở">
+      <span className="border-b-2 border-dashed border-sumi-3/60 px-0.5 empty:hidden">{keys}</span>
+      <span className="ml-0.5 inline-block h-5 w-0.5 animate-pulse rounded-full bg-shu" aria-hidden />
     </p>
   );
-}
-
-function Kbd({ children }: { children: React.ReactNode }) {
-  return <kbd className="rounded-md border border-rule bg-surface px-1.5 py-0.5 font-mono text-xs text-sumi">{children}</kbd>;
 }
 
 function WarningNote({ kind }: { kind: Exclude<Warning, null> }) {

@@ -63,15 +63,6 @@ export function kanaFromKey(code: string, shift: boolean): string | undefined {
   return shift ? (k.shiftKana ?? k.kana) : k.kana;
 }
 
-/** Phím cần bấm để ra một token kana — để tô sáng trên bàn phím ảo. Ưu tiên phím JIS gốc. */
-export function keyForKana(token: string): { code: string; shift: boolean } | undefined {
-  for (const k of JIS_KANA_ROWS.flat()) {
-    if (k.kana === token) return { code: k.code, shift: false };
-    if (k.shiftKana === token) return { code: k.code, shift: true };
-  }
-  return undefined;
-}
-
 const VOICED: Record<string, string> = {
   が: "か", ぎ: "き", ぐ: "く", げ: "け", ご: "こ",
   ざ: "さ", じ: "し", ず: "す", ぜ: "せ", ぞ: "そ",

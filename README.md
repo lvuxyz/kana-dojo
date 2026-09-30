@@ -32,7 +32,7 @@ kana-dojo/
 | **Xác thực đầy đủ** | Email/mật khẩu + Google OAuth, JWT 15 phút, refresh token httpOnly |
 | **Phân quyền gói** | FREE (60 lượt ôn/ngày, N5) và PRO (không giới hạn, N1–N5) |
 | **Quiz** | 4 bài mẫu (trắc nghiệm + gõ romaji), đếm giờ, chấm và giải thích từng câu |
-| **Luyện gõ tiếng Nhật** | Gõ theo câu mẫu: 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 5 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên) × 3 chế độ (bài mẫu, đua giờ, sinh tử), thêm nghe chép; bấm giờ, chấm điểm KPM × chính xác³, xếp đai. Chạy hoàn toàn trên trình duyệt, kỷ lục lưu trên máy — xem [docs/TYPING.md](docs/TYPING.md) |
+| **Luyện gõ tiếng Nhật** | Gõ theo câu mẫu: 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 5 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên) × 3 chế độ (bài mẫu, đua giờ, sinh tử), thêm nghe chép; màn gõ chỉ có tiếng Nhật (không romaji gợi ý, dùng bàn phím thật); bấm giờ, chấm điểm KPM × chính xác³, xếp đai. Chạy hoàn toàn trên trình duyệt, kỷ lục lưu trên máy — xem [docs/TYPING.md](docs/TYPING.md) |
 | **Từ vựng JLPT** | 70 từ N5 + 10 từ N4 seed sẵn, nghĩa tiếng Việt, câu ví dụ; lược đồ hỗ trợ N1–N5 |
 | **Swagger UI** | `http://localhost:8080/swagger-ui.html` |
 
@@ -175,7 +175,7 @@ web/src/
 ├── components/
 │   ├── app/            Brand, Nav, ThemeToggle, GoogleButton
 │   ├── kana/           StrokeStage, KanaGrid, PracticePanel, HeroDemo
-│   ├── typing/         TypingSetup, TypingStage, TypingResult, PhraseView, VirtualKeyboard, useTypingGame
+│   ├── typing/         TypingSetup, TypingStage, TypingResult, PhraseView, useTypingGame
 │   └── ui/index.tsx    Design system: Button, Card, Field, Chip, Progress, Stat, …
 ├── data/kana-data.json  Dữ liệu nét bundle sẵn vào JS (57 KB, ~20 KB gzip)
 ├── data/typing-texts.ts Kho câu mẫu luyện gõ, kanji viết {chữ|cách đọc}

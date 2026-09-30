@@ -18,7 +18,7 @@ export const METHOD_INFO: Record<InputMethod, { ja: string; label: string; hint:
   KANA: {
     ja: "かな入力",
     label: "Kana (JIS)",
-    hint: "Mỗi phím là một chữ kana theo bố cục JIS, dấu ゛゜ là phím riêng. Ít phím hơn romaji khi đã thuộc vị trí.",
+    hint: "Mỗi phím là một chữ kana theo bố cục JIS, dấu ゛゜ là phím riêng. Cần bàn phím Nhật có in chữ kana.",
   },
   IME: {
     ja: "日本語IME",
@@ -101,6 +101,12 @@ export function TypingSetup({
                 <Tile key={m} active={config.method === m} onClick={() => set("method", m)} {...METHOD_INFO[m]} />
               ))}
             </div>
+            {config.method === "KANA" && (
+              <p className="mt-3 rounded-xl border border-rule/80 bg-paper-sunk px-3.5 py-2.5 text-[12.5px] text-sumi-2">
+                Gõ theo chữ kana in trên phím (bố cục JIS). Bàn phím US không có phím <b>¥</b> và <b>ろ</b>: dùng{" "}
+                <Code>`</Code> cho ー và <Code>Shift + `</Code> cho ろ.
+              </p>
+            )}
             {touch && config.method !== "IME" && (
               <p className="mt-3 rounded-xl border border-gold/30 bg-gold-tint px-3.5 py-2.5 text-[12.5px] font-medium text-gold">
                 Cách nhập này đọc phím vật lý. Trên điện thoại, hãy chọn “Bộ gõ IME” để gõ bằng bàn phím flick.
@@ -136,22 +142,8 @@ export function TypingSetup({
             )}
           </Section>
 
-          <Section step="4" title="Hỗ trợ">
+          <Section step="4" title="Tuỳ chọn">
             <div className="flex flex-col gap-2.5">
-              <Toggle
-                checked={config.showGuide}
-                onChange={(v) => set("showGuide", v)}
-                label={config.method === "KANA" ? "Gợi ý phím kế tiếp" : "Hiện dòng gợi ý romaji"}
-                hint="Tắt đi khi đã quen để tự nhớ cách gõ."
-                disabled={config.method === "IME"}
-              />
-              <Toggle
-                checked={config.showKeyboard}
-                onChange={(v) => set("showKeyboard", v)}
-                label="Bàn phím ảo"
-                hint="Tô sáng phím cần bấm — rất có ích khi tập かな入力."
-                disabled={config.method === "IME"}
-              />
               <Toggle
                 checked={config.dictation}
                 onChange={(v) => set("dictation", v)}

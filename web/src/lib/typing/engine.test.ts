@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TypingRun } from "./engine";
-import { kanaFromKey, keyForKana } from "./kana-layout";
+import { kanaFromKey } from "./kana-layout";
 import { toHiragana, toRomaji } from "./romaji";
 
 /** Gõ lần lượt từng phím; trả về số phím bị từ chối và câu đã xong chưa. */
@@ -175,8 +175,8 @@ describe("kana JIS", () => {
     expect(kanaFromKey("KeyZ", false)).toBe("つ");
     expect(kanaFromKey("KeyZ", true)).toBe("っ");
     expect(kanaFromKey("Digit7", true)).toBe("ゃ");
-    expect(keyForKana("ょ")).toEqual({ code: "Digit9", shift: true });
-    expect(keyForKana("を")).toEqual({ code: "Digit0", shift: true });
+    expect(kanaFromKey("Digit9", true)).toBe("ょ");
+    expect(kanaFromKey("Digit0", true)).toBe("を");
   });
 
   it("bàn phím US thiếu phím ¥ và ろ thì dùng phím `", () => {

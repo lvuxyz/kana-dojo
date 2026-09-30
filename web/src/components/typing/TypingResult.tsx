@@ -168,8 +168,8 @@ function advice(r: GameResult): string {
   if (r.kpm < 60) {
     return "Nền tảng tốt! Luyện thêm chế độ “Kana ngẫu nhiên” để thuộc vị trí phím và phản xạ nhanh hơn.";
   }
-  if (r.config.showGuide && r.config.method !== "IME") {
-    return "Tốc độ ổn định — thử tắt gợi ý phím hoặc bật chế độ nghe chép để luyện nhớ cách đọc.";
+  if (!r.config.dictation) {
+    return "Tốc độ ổn định — thử bật chế độ nghe chép để luyện nghe và nhớ cách viết.";
   }
   return "Rất vững! Thử chế độ Đua giờ hoặc Sinh tử để đẩy giới hạn của bạn.";
 }
@@ -215,12 +215,13 @@ function PhraseSpeedChart({ phrases }: { phrases: PhraseRecord[] }) {
         ))}
       </div>
       <details className="text-[12px] text-sumi-3">
-        <summary className="cursor-pointer select-none">Xem bảng số liệu</summary>
+        <summary className="cursor-pointer select-none">Xem các câu đã gõ</summary>
         <table className="mt-2 w-full text-left tnum">
           <thead>
             <tr className="text-sumi-2">
               <th className="py-1 font-semibold">#</th>
               <th className="py-1 font-semibold">Câu</th>
+              <th className="py-1 font-semibold">Nghĩa</th>
               <th className="py-1 text-right font-semibold">Phím/phút</th>
               <th className="py-1 text-right font-semibold">Sai</th>
             </tr>
@@ -230,6 +231,7 @@ function PhraseSpeedChart({ phrases }: { phrases: PhraseRecord[] }) {
               <tr key={i} className="border-t border-rule/60">
                 <td className="py-1">{i + 1}</td>
                 <td className="py-1 font-japanese text-sumi">{p.text}</td>
+                <td className="py-1 pr-2">{p.vi || "—"}</td>
                 <td className="py-1 text-right">{Math.round(speeds[i])}</td>
                 <td className="py-1 text-right">{p.misses}</td>
               </tr>

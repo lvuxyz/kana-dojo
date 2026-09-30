@@ -1,7 +1,8 @@
 /* Bảng quy đổi kana → phím gõ, theo đúng hành vi của bộ gõ IME (MS-IME, Google 日本語入力):
  * người học quen tay ở đây thì sang máy thật gõ y hệt. Cách đầu tiên trong mỗi danh sách là cách
- * hiển thị làm gợi ý (Hepburn — cùng hệ romaji với phần còn lại của ứng dụng); các cách sau vẫn
- * được chấp nhận (kunrei-shiki "si/ti/tu", "x/l" cho kana nhỏ…). */
+ * chuẩn (Hepburn — cùng hệ romaji với phần còn lại của ứng dụng), dùng để quy đổi số phím và thống
+ * kê phím hay nhầm; các cách sau vẫn được chấp nhận (kunrei-shiki "si/ti/tu", "x/l" cho kana nhỏ…).
+ * Màn gõ không hiện romaji: người học phải tự nhớ cách gõ từ chữ Nhật. */
 
 /** Một cách gõ cho cụm kana bắt đầu tại một vị trí: chuỗi phím và số kana nó phủ. */
 export interface Candidate {
@@ -134,7 +135,7 @@ export function romajiCandidates(kana: string): Candidate[][] {
   return out;
 }
 
-/** Cách gõ gợi ý (ngắn gọn, Hepburn) cho cả chuỗi — dùng để hiện dòng romaji mẫu. */
+/** Cách gõ chuẩn (ngắn gọn, Hepburn) cho cả chuỗi — dùng để quy đổi số phím ở chế độ IME. */
 export function toRomaji(kana: string): string {
   const cands = romajiCandidates(kana);
   let out = "";

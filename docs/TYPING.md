@@ -24,7 +24,7 @@ các quyết định thiết kế và lý do.
 
 Kết luận cho người Việt học tiếng Nhật: **romaji là mặc định** (dùng lại bàn phím US quen thuộc, đúng như gõ máy thật);
 **IME** cần thiết khi gõ câu có kanji và là cách duy nhất khả thi trên điện thoại; **kana JIS** là lựa chọn nâng cao —
-đáng có vì bàn phím ảo giúp người học thuộc bố cục, nhưng không đặt làm mặc định.
+dành cho người có bàn phím Nhật in sẵn chữ kana, không đặt làm mặc định.
 
 ### 1.2 Các kiểu bài luyện phổ biến
 
@@ -37,13 +37,15 @@ Kết luận cho người Việt học tiếng Nhật: **romaji là mặc địn
 | Chuỗi kana rời để làm quen phím | các trang タイピング練習 cho người mới | Nội dung **Kana ngẫu nhiên** |
 | 聞き取りタイピング — nghe rồi gõ lại | bài luyện nghe ngoại ngữ | Tuỳ chọn **Nghe chép** (che chữ, đọc bằng giọng ja-JP) |
 
-Ba trục độc lập nên người học tự phối: **3 cách nhập × 5 loại nội dung × 3 chế độ**, cộng tuỳ chọn gợi ý phím,
-bàn phím ảo và nghe chép.
+Ba trục độc lập nên người học tự phối: **3 cách nhập × 5 loại nội dung × 3 chế độ**, cộng tuỳ chọn nghe chép.
 
 ### 1.3 Luật romaji của IME — chỗ người Việt hay vấp
 
 Bộ máy chấp nhận **mọi** cách gõ mà MS-IME/Google 日本語入力 chấp nhận, để tay quen ở đây thì sang máy thật gõ y hệt.
-Dòng gợi ý hiện cách ngắn gọn theo Hepburn và **tự đổi theo cách người học đang chọn** (gõ `s` rồi `i` thì gợi ý bỏ `h`).
+**Màn gõ chỉ có tiếng Nhật.** Không hiện romaji mẫu, không gợi ý phím kế tiếp, không có bàn phím ảo — người học dùng
+bàn phím thật và phải tự nhớ cách gõ từ chữ Nhật, vì đó chính là kỹ năng cần luyện. Màn gõ chỉ phản chiếu các phím đã bấm
+của cụm chưa thành chữ (ví dụ `sh` trước khi thành し), giống ô ghép chữ của IME. Bảng luật dưới đây được tóm tắt ở màn chọn
+bài để tra **trước** khi gõ; nghĩa tiếng Việt của từng câu xem ở màn kết quả.
 
 | Kana | Chấp nhận | Ghi chú |
 |---|---|---|
@@ -110,7 +112,7 @@ web/src/lib/typing/
 └── score.ts        KPM, độ chính xác, điểm, thang đai
 web/src/components/typing/
 ├── useTypingGame.ts   Trạng thái một ván: đồng hồ, đếm phím, điểm yếu, kết thúc
-├── TypingSetup/Stage/Result.tsx, PhraseView.tsx, VirtualKeyboard.tsx, useSpeech.ts
+├── TypingSetup/Stage/Result.tsx, PhraseView.tsx, useSpeech.ts
 web/src/data/typing-texts.ts   Kho câu mẫu
 web/src/app/(app)/luyen-go/    Trang: chọn bài → gõ → kết quả
 ```
@@ -137,7 +139,7 @@ Nhờ vậy không cần trạng thái riêng hay quay lui cho ん/っ. Chế đ
 - **Unikey/EVKey (Telex)** biến `aa`, `w`, `dd` thành `â`, `ư`, `đ`. Gặp chữ Latin có dấu, trang bỏ qua phím đó (không tính
   sai) và nhắc chuyển bộ gõ sang tiếng Anh — lỗi rất hay gặp với người Việt.
 - Kana JIS đọc theo `KeyboardEvent.code` (vị trí phím) chứ không theo `key`. Bàn phím US thiếu hai phím ¥ và ろ của JIS:
-  phím `` ` `` thay cho ー, `` Shift + ` `` thay cho ろ; bàn phím ảo vẽ theo hình US và ghi chú điều này.
+  phím `` ` `` thay cho ー, `` Shift + ` `` thay cho ろ; màn chọn bài ghi chú điều này khi chọn kana JIS.
 - Bỏ qua phím giữ lặp (`repeat`) và tổ hợp Ctrl/Alt/Meta. Space đọc lại câu, Esc thoát.
 - **IME**: so chữ đã chốt (sau NFKC, bỏ dấu câu) với chữ hiển thị kể cả kanji; chỉ đánh giá khi hết ghép chữ
   (`compositionend` hoặc `input` không `isComposing`). Mỗi lần chuyển từ "khớp" sang "có chữ sai" tính một lỗi.
@@ -160,7 +162,7 @@ và đúng loại chữ của nhóm.
 
 | Tầng | Test |
 |---|---|
-| Web — `engine.test.ts` | Mọi biến thể romaji, luật ん/っ, âm ghép, katakana mở rộng, gợi ý thích ứng, phím sai không đổi trạng thái, bố cục JIS và phím thay thế trên bàn phím US |
+| Web — `engine.test.ts` | Mọi biến thể romaji, luật ん/っ, âm ghép, katakana mở rộng, phím "lẽ ra phải bấm" bám theo cách người học đang gõ, phím sai không đổi trạng thái, bố cục JIS và phím thay thế trên bàn phím US |
 | Web — `phrases.test.ts` | Phân tích furigana; **từng câu trong kho** gõ trọn bằng romaji và kana; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được |
 | Web — `ime.test.ts` | Chuẩn hoá chữ IME (NFKC, bỏ dấu câu), so khớp chữ đã chốt, quy đổi số phím; cụm kanji chỉ tính khi đổi đúng trọn cụm |
 | Web — `score.test.ts` | KPM, độ chính xác, điểm, sinh tử, thang đai |

@@ -96,18 +96,3 @@ export function PhraseView({
 function Caret() {
   return <span className="absolute -bottom-2 left-0 right-0 h-[3px] rounded-full bg-shu shadow-sm shadow-shu/40" />;
 }
-
-/** Dòng romaji: phần đã gõ, phím kế tiếp (nổi bật) và phần còn lại. */
-export function RomajiGuide({ typed, rest, showRest = true }: { typed: string; rest: string; showRest?: boolean }) {
-  return (
-    <p className="max-w-full break-all text-center font-mono text-lg tracking-wide sm:text-xl" aria-label="Gợi ý romaji">
-      <span className="text-genko/70">{typed}</span>
-      {showRest && rest && (
-        <>
-          <span className="rounded-md bg-shu-tint px-0.5 font-bold text-shu">{rest[0]}</span>
-          <span className="text-sumi-3">{rest.slice(1)}</span>
-        </>
-      )}
-    </p>
-  );
-}
