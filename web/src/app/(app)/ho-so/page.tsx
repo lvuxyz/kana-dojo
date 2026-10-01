@@ -7,30 +7,36 @@ import { get, patch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import type { StatsDto, UserDto } from "@/lib/types";
 
-interface Entitlements {
-  plan: "FREE" | "PRO";
-  features: Record<string, number | null>;
-  usage: Record<string, number>;
-}
-
-const FEATURE_LABEL: Record<string, string> = {
-  "srs.daily_reviews": "Lượt ôn mỗi ngày",
-  "writing.daily_attempts": "Lượt tập viết mỗi ngày",
-  "content.jlpt_levels": "Cấp độ JLPT mở khoá",
-  "stats.history_days": "Lịch sử thống kê (ngày)",
-};
+// CHẾ ĐỘ CÁ NHÂN (tạm thời) — xem docs/LOCAL_MODE.md: không có gói cước nên không có hạn mức theo gói.
+// [máy chủ — đang tắt] interface Entitlements {
+// [máy chủ — đang tắt]   plan: "FREE" | "PRO";
+// [máy chủ — đang tắt]   features: Record<string, number | null>;
+// [máy chủ — đang tắt]   usage: Record<string, number>;
+// [máy chủ — đang tắt] }
+// [máy chủ — đang tắt]
+// [máy chủ — đang tắt] const FEATURE_LABEL: Record<string, string> = {
+// [máy chủ — đang tắt]   "srs.daily_reviews": "Lượt ôn mỗi ngày",
+// [máy chủ — đang tắt]   "writing.daily_attempts": "Lượt tập viết mỗi ngày",
+// [máy chủ — đang tắt]   "content.jlpt_levels": "Cấp độ JLPT mở khoá",
+// [máy chủ — đang tắt]   "stats.history_days": "Lịch sử thống kê (ngày)",
+// [máy chủ — đang tắt] };
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  // [máy chủ — đang tắt] const { user, logout } = useAuth();
+  const { user, reloadUser, resetData } = useAuth();
   const qc = useQueryClient();
   const [goal, setGoal] = useState(String(user?.dailyGoalXp ?? 50));
 
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => get<StatsDto>("/stats/me") });
-  const ent = useQuery({ queryKey: ["entitlements"], queryFn: () => get<Entitlements>("/me/entitlements") });
+  // [máy chủ — đang tắt] const ent = useQuery({ queryKey: ["entitlements"], queryFn: () => get<Entitlements>("/me/entitlements") });
 
   const save = useMutation({
     mutationFn: (body: Partial<UserDto>) => patch<UserDto>("/auth/me", body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["stats"] }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["stats"] });
+      // Hồ sơ nằm trong context: nạp lại để múi giờ/mục tiêu mới hiện ngay, không cần tải lại trang.
+      reloadUser();
+    },
   });
 
   if (!user) return <Spinner />;
@@ -46,12 +52,15 @@ export default function ProfilePage() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-mincho text-lg">{user.displayName}</p>
-          <p className="text-[13px] text-sumi-3">{user.email}</p>
+          {/* [máy chủ — đang tắt] <p className="text-[13px] text-sumi-3">{user.email}</p> */}
+          <p className="text-[13px] text-sumi-3">Tiến độ chỉ lưu trên trình duyệt này</p>
         </div>
+        {/* [máy chủ — đang tắt]
         <span className={`rounded-full px-3 py-1 text-[12px] font-medium ${
           user.plan === "PRO" ? "bg-shu text-white" : "border border-rule text-sumi-2"}`}>
           {user.plan === "PRO" ? "PRO" : "Miễn phí"}
-        </span>
+        </span> */}
+        <span className="rounded-full border border-rule px-3 py-1 text-[12px] font-medium text-sumi-2">Cá nhân</span>
       </Card>
 
       <Card className="grid grid-cols-3 gap-4 px-5 py-4">
@@ -99,6 +108,7 @@ export default function ProfilePage() {
         </Button>
       </Card>
 
+      {/* [máy chủ — đang tắt]
       {ent.data && (
         <Card className="flex flex-col gap-3 px-5 py-4">
           <span className="label-xs">Hạn mức gói {ent.data.plan === "PRO" ? "PRO" : "miễn phí"}</span>
@@ -114,8 +124,25 @@ export default function ProfilePage() {
           </ul>
         </Card>
       )}
+      */}
 
-      <Button variant="ghost" onClick={logout} className="self-start">Đăng xuất</Button>
+      {/* [máy chủ — đang tắt] <Button variant="ghost" onClick={logout} className="self-start">Đăng xuất</Button> */}
+      <Card className="flex flex-col gap-3 px-5 py-4">
+        <span className="label-xs">Dữ liệu trên máy này</span>
+        <p className="text-[12.5px] leading-relaxed text-sumi-3">
+          Tiến độ, điểm và lịch ôn được lưu ngay trong trình duyệt, không cần tài khoản. Xoá dữ liệu trình duyệt hoặc
+          dùng máy khác thì sẽ mất tiến độ.
+        </p>
+        <Button
+          variant="ghost"
+          className="self-start"
+          onClick={() => {
+            if (window.confirm("Xoá toàn bộ tiến độ học trên máy này? Không thể hoàn tác.")) resetData();
+          }}
+        >
+          Xoá toàn bộ dữ liệu
+        </Button>
+      </Card>
     </div>
   );
 }

@@ -1,0 +1,538 @@
+[
+ {
+  "id": 1,
+  "title": "Hiragana cơ bản: đọc âm",
+  "description": "Nhìn chữ hiragana, chọn cách đọc romaji đúng. Tập trung vào các cặp dễ nhầm.",
+  "quizType": "KANA_READING",
+  "jlptLevel": null,
+  "timeLimitSec": 180,
+  "published": true,
+  "questions": [
+   {
+    "id": 101,
+    "prompt": "あ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "o",
+     "a",
+     "u",
+     "e"
+    ],
+    "correctAnswer": "a",
+    "explanationVi": "あ (a) và お (o) đều có nét cong lớn; あ có nét ngang cắt nét dọc ở trên.",
+    "position": 0
+   },
+   {
+    "id": 102,
+    "prompt": "き",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "ki",
+     "sa",
+     "chi",
+     "ke"
+    ],
+    "correctAnswer": "ki",
+    "explanationVi": "き có hai nét ngang; さ (sa) chỉ có một.",
+    "position": 1
+   },
+   {
+    "id": 103,
+    "prompt": "す",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "tsu",
+     "su",
+     "mu",
+     "ru"
+    ],
+    "correctAnswer": "su",
+    "explanationVi": "す có vòng xoắn ở giữa nét dọc.",
+    "position": 2
+   },
+   {
+    "id": 104,
+    "prompt": "ぬ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "me",
+     "nu",
+     "ne",
+     "mu"
+    ],
+    "correctAnswer": "nu",
+    "explanationVi": "ぬ giống め (me) nhưng có vòng nhỏ ở cuối nét.",
+    "position": 3
+   },
+   {
+    "id": 105,
+    "prompt": "ね",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "re",
+     "wa",
+     "ne",
+     "nu"
+    ],
+    "correctAnswer": "ne",
+    "explanationVi": "ね, れ (re), わ (wa) chung phần bên trái; ね kết thúc bằng vòng xoắn.",
+    "position": 4
+   },
+   {
+    "id": 106,
+    "prompt": "ち",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "sa",
+     "chi",
+     "ra",
+     "ki"
+    ],
+    "correctAnswer": "chi",
+    "explanationVi": "ち là さ (sa) lật ngược: nét cong mở sang phải.",
+    "position": 5
+   },
+   {
+    "id": 107,
+    "prompt": "つ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "tsu",
+     "shi",
+     "su",
+     "n"
+    ],
+    "correctAnswer": "tsu",
+    "explanationVi": "つ là một nét cong duy nhất, đọc là tsu.",
+    "position": 6
+   },
+   {
+    "id": 108,
+    "prompt": "そ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "ro",
+     "so",
+     "ko",
+     "to"
+    ],
+    "correctAnswer": "so",
+    "explanationVi": "そ có nét zig-zag ở trên rồi cong xuống.",
+    "position": 7
+   },
+   {
+    "id": 109,
+    "prompt": "お",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "a",
+     "o",
+     "mu",
+     "su"
+    ],
+    "correctAnswer": "o",
+    "explanationVi": "お có chấm nhỏ ở góc trên bên phải; あ thì không.",
+    "position": 8
+   },
+   {
+    "id": 110,
+    "prompt": "こ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "ni",
+     "ko",
+     "i",
+     "ta"
+    ],
+    "correctAnswer": "ko",
+    "explanationVi": "こ là hai nét ngang; に (ni) có thêm nét dọc bên trái.",
+    "position": 9
+   }
+  ]
+ },
+ {
+  "id": 2,
+  "title": "Katakana cơ bản: đọc âm",
+  "description": "Phân biệt các cặp katakana khó như シ/ツ, ソ/ン, ヌ/メ.",
+  "quizType": "KANA_READING",
+  "jlptLevel": null,
+  "timeLimitSec": 180,
+  "published": true,
+  "questions": [
+   {
+    "id": 201,
+    "prompt": "ア",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "a",
+     "ma",
+     "ku",
+     "o"
+    ],
+    "correctAnswer": "a",
+    "explanationVi": "ア giống マ (ma) nhưng nét dọc thứ hai kéo dài xuống dưới.",
+    "position": 0
+   },
+   {
+    "id": 202,
+    "prompt": "シ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "tsu",
+     "shi",
+     "so",
+     "n"
+    ],
+    "correctAnswer": "shi",
+    "explanationVi": "シ: hai chấm xếp dọc bên trái, nét cuối vẩy từ dưới lên.",
+    "position": 1
+   },
+   {
+    "id": 203,
+    "prompt": "ツ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "shi",
+     "tsu",
+     "n",
+     "so"
+    ],
+    "correctAnswer": "tsu",
+    "explanationVi": "ツ: hai chấm xếp ngang phía trên, nét cuối kéo từ trên xuống.",
+    "position": 2
+   },
+   {
+    "id": 204,
+    "prompt": "ソ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "n",
+     "so",
+     "ri",
+     "tsu"
+    ],
+    "correctAnswer": "so",
+    "explanationVi": "ソ: chấm nằm phía trên, nét dài kéo từ trên xuống.",
+    "position": 3
+   },
+   {
+    "id": 205,
+    "prompt": "ン",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "so",
+     "n",
+     "shi",
+     "ri"
+    ],
+    "correctAnswer": "n",
+    "explanationVi": "ン: chấm nằm bên trái, nét dài vẩy từ dưới lên.",
+    "position": 4
+   },
+   {
+    "id": 206,
+    "prompt": "ク",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "ta",
+     "ke",
+     "ku",
+     "wa"
+    ],
+    "correctAnswer": "ku",
+    "explanationVi": "ク giống タ (ta) nhưng không có nét chấm ở giữa.",
+    "position": 5
+   },
+   {
+    "id": 207,
+    "prompt": "ヌ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "su",
+     "nu",
+     "fu",
+     "me"
+    ],
+    "correctAnswer": "nu",
+    "explanationVi": "ヌ giống ス (su) nhưng có thêm nét chéo cắt qua.",
+    "position": 6
+   },
+   {
+    "id": 208,
+    "prompt": "メ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "nu",
+     "me",
+     "na",
+     "ne"
+    ],
+    "correctAnswer": "me",
+    "explanationVi": "メ chỉ có hai nét chéo cắt nhau.",
+    "position": 7
+   },
+   {
+    "id": 209,
+    "prompt": "ホ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "ho",
+     "ha",
+     "ki",
+     "mo"
+    ],
+    "correctAnswer": "ho",
+    "explanationVi": "ホ có chữ thập ở giữa và hai chấm hai bên.",
+    "position": 8
+   },
+   {
+    "id": 210,
+    "prompt": "ヨ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "e",
+     "yo",
+     "ko",
+     "ro"
+    ],
+    "correctAnswer": "yo",
+    "explanationVi": "ヨ có ba nét ngang và mở về bên trái.",
+    "position": 9
+   }
+  ]
+ },
+ {
+  "id": 3,
+  "title": "Từ vựng N5: chọn nghĩa đúng",
+  "description": "Chọn nghĩa tiếng Việt cho từ tiếng Nhật thường gặp ở trình độ N5.",
+  "quizType": "VOCAB_MEANING",
+  "jlptLevel": 5,
+  "timeLimitSec": 240,
+  "published": true,
+  "questions": [
+   {
+    "id": 301,
+    "prompt": "食べる",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "ăn",
+     "uống",
+     "ngủ",
+     "đọc"
+    ],
+    "correctAnswer": "ăn",
+    "explanationVi": "食べる (taberu) — ăn. Uống là 飲む (nomu).",
+    "position": 0
+   },
+   {
+    "id": 302,
+    "prompt": "学校",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "công ty",
+     "nhà ga",
+     "trường học",
+     "bệnh viện"
+    ],
+    "correctAnswer": "trường học",
+    "explanationVi": "学校 (gakkou) — trường học. Công ty là 会社 (kaisha).",
+    "position": 1
+   },
+   {
+    "id": 303,
+    "prompt": "高い",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "rẻ",
+     "cao; đắt",
+     "nhỏ",
+     "mới"
+    ],
+    "correctAnswer": "cao; đắt",
+    "explanationVi": "高い (takai) vừa là \"cao\" vừa là \"đắt\". Rẻ là 安い (yasui).",
+    "position": 2
+   },
+   {
+    "id": 304,
+    "prompt": "猫",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "con chó",
+     "con cá",
+     "con mèo",
+     "con chim"
+    ],
+    "correctAnswer": "con mèo",
+    "explanationVi": "猫 (neko) — con mèo. Con chó là 犬 (inu).",
+    "position": 3
+   },
+   {
+    "id": 305,
+    "prompt": "明日",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "hôm qua",
+     "hôm nay",
+     "ngày mai",
+     "buổi sáng"
+    ],
+    "correctAnswer": "ngày mai",
+    "explanationVi": "明日 (ashita) — ngày mai. Hôm qua là 昨日 (kinou).",
+    "position": 4
+   },
+   {
+    "id": 306,
+    "prompt": "書く",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "viết",
+     "nghe",
+     "nói",
+     "mua"
+    ],
+    "correctAnswer": "viết",
+    "explanationVi": "書く (kaku) — viết. Đọc là 読む (yomu).",
+    "position": 5
+   },
+   {
+    "id": 307,
+    "prompt": "静か",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "ồn ào",
+     "yên tĩnh",
+     "nổi tiếng",
+     "khỏe mạnh"
+    ],
+    "correctAnswer": "yên tĩnh",
+    "explanationVi": "静か (shizuka) — tính từ đuôi な: 静かな公園 (công viên yên tĩnh).",
+    "position": 6
+   },
+   {
+    "id": 308,
+    "prompt": "天気",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "thời gian",
+     "thời tiết",
+     "mưa",
+     "núi"
+    ],
+    "correctAnswer": "thời tiết",
+    "explanationVi": "天気 (tenki) — thời tiết. Thời gian là 時間 (jikan).",
+    "position": 7
+   },
+   {
+    "id": 309,
+    "prompt": "待つ",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "chờ đợi",
+     "đi",
+     "đến",
+     "thức dậy"
+    ],
+    "correctAnswer": "chờ đợi",
+    "explanationVi": "待つ (matsu) — chờ đợi: 友達を待ちます (đợi bạn).",
+    "position": 8
+   },
+   {
+    "id": 310,
+    "prompt": "友達",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": [
+     "gia đình",
+     "giáo viên",
+     "bạn bè",
+     "trẻ con"
+    ],
+    "correctAnswer": "bạn bè",
+    "explanationVi": "友達 (tomodachi) — bạn bè. Gia đình là 家族 (kazoku).",
+    "position": 9
+   }
+  ]
+ },
+ {
+  "id": 4,
+  "title": "Gõ romaji cho từ hiragana",
+  "description": "Tự gõ cách đọc theo Hepburn. Không cần phân biệt hoa thường.",
+  "quizType": "ROMAJI_INPUT",
+  "jlptLevel": 5,
+  "timeLimitSec": 300,
+  "published": true,
+  "questions": [
+   {
+    "id": 401,
+    "prompt": "さかな",
+    "questionType": "TEXT_INPUT",
+    "options": [],
+    "correctAnswer": "sakana",
+    "explanationVi": "さ-か-な: cá (魚).",
+    "position": 0
+   },
+   {
+    "id": 402,
+    "prompt": "ねこ",
+    "questionType": "TEXT_INPUT",
+    "options": [],
+    "correctAnswer": "neko",
+    "explanationVi": "ね-こ: con mèo (猫).",
+    "position": 1
+   },
+   {
+    "id": 403,
+    "prompt": "やま",
+    "questionType": "TEXT_INPUT",
+    "options": [],
+    "correctAnswer": "yama",
+    "explanationVi": "や-ま: núi (山).",
+    "position": 2
+   },
+   {
+    "id": 404,
+    "prompt": "はな",
+    "questionType": "TEXT_INPUT",
+    "options": [],
+    "correctAnswer": "hana",
+    "explanationVi": "は-な: hoa (花).",
+    "position": 3
+   },
+   {
+    "id": 405,
+    "prompt": "すし",
+    "questionType": "TEXT_INPUT",
+    "options": [],
+    "correctAnswer": "sushi",
+    "explanationVi": "し đọc là shi theo Hepburn, không phải si.",
+    "position": 4
+   },
+   {
+    "id": 406,
+    "prompt": "つくえ",
+    "questionType": "TEXT_INPUT",
+    "options": [],
+    "correctAnswer": "tsukue",
+    "explanationVi": "つ đọc là tsu: つくえ là cái bàn (机).",
+    "position": 5
+   },
+   {
+    "id": 407,
+    "prompt": "ちかてつ",
+    "questionType": "TEXT_INPUT",
+    "options": [],
+    "correctAnswer": "chikatetsu",
+    "explanationVi": "ち là chi, つ là tsu: tàu điện ngầm (地下鉄).",
+    "position": 6
+   },
+   {
+    "id": 408,
+    "prompt": "きっぷ",
+    "questionType": "TEXT_INPUT",
+    "options": [],
+    "correctAnswer": "kippu",
+    "explanationVi": "っ nhỏ nhân đôi phụ âm đứng sau: きっぷ → kippu (vé).",
+    "position": 7
+   }
+  ]
+ }
+]

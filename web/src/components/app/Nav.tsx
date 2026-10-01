@@ -20,7 +20,8 @@ export const NAV = [
   { href: "/luyen-viet", label: "Luyện viết", icon: "brush" },
   { href: "/tu-vung", label: "Từ vựng", icon: "book" },
   { href: "/quiz", label: "Quiz", icon: "quiz" },
-  { href: "/bang-xep-hang", label: "Xếp hạng", icon: "trophy" },
+  // [máy chủ — đang tắt] Cần dữ liệu nhiều người dùng; bật lại cùng trang /bang-xep-hang (docs/LOCAL_MODE.md).
+  // [máy chủ — đang tắt] { href: "/bang-xep-hang", label: "Xếp hạng", icon: "trophy" },
   { href: "/ho-so", label: "Hồ sơ", icon: "user" },
 ] as const;
 

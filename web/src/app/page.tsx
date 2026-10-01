@@ -127,11 +127,13 @@ export default function Landing() {
 
             <ThemeToggle />
 
+            {/* [máy chủ — đang tắt] Chế độ cá nhân không có tài khoản (docs/LOCAL_MODE.md).
             <Link href="/dang-nhap">
               <Button size="sm" variant="outline" className="hidden sm:inline-flex">
                 Đăng nhập
               </Button>
             </Link>
+            */}
             <Link href="/dang-ky">
               <Button size="sm" variant="solid">
                 Bắt đầu học
@@ -485,7 +487,8 @@ export default function Landing() {
                     size="lg"
                     className="bg-white text-shu hover:bg-white/95 hover:scale-[1.02] shadow-xl font-bold text-base px-9 py-4 cursor-pointer"
                   >
-                    Tạo tài khoản miễn phí
+                    {/* [máy chủ — đang tắt] Tạo tài khoản miễn phí */}
+                    Bắt đầu học ngay
                   </Button>
                 </Link>
                 <Link href="/bang-chu-cai/hiragana">
@@ -516,11 +519,16 @@ export default function Landing() {
             <Link href="/luyen-viet" className="hover:text-sumi transition-colors">
               Studio luyện viết
             </Link>
+            {/* [máy chủ — đang tắt] Chế độ cá nhân không có tài khoản (docs/LOCAL_MODE.md).
             <Link href="/dang-nhap" className="hover:text-sumi transition-colors">
               Đăng nhập tài khoản
             </Link>
             <Link href="/dang-ky" className="hover:text-sumi transition-colors">
               Đăng ký mới
+            </Link>
+            */}
+            <Link href="/bang-dieu-khien" className="hover:text-sumi transition-colors">
+              Vào ứng dụng
             </Link>
           </div>
           <div className="flex items-center gap-2 text-sumi-3">
