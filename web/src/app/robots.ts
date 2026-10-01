@@ -1,10 +1,12 @@
 import type { MetadataRoute } from "next";
 
+export const dynamic = "force-static";
+
 export default function robots(): MetadataRoute.Robots {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
   return {
-    // Khu vực đăng nhập không có nội dung công khai, để Google bò vào chỉ tốn ngân sách thu thập
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/", "/bang-dieu-khien", "/on-tap", "/luyen-viet", "/tu-vung", "/quiz", "/bang-xep-hang", "/ho-so"] }],
+    // Ba trang này chỉ hiện tiến độ cá nhân đọc từ trình duyệt của từng người — không có gì để lập chỉ mục.
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/bang-dieu-khien", "/on-tap", "/cai-dat"] }],
     sitemap: `${base}/sitemap.xml`,
   };
 }

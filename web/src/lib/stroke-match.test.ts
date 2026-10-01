@@ -3,7 +3,6 @@ import {
   PASS_THRESHOLD,
   dirText,
   dist,
-  gradeFromScore,
   polyLen,
   posText,
   resample,
@@ -109,19 +108,6 @@ describe("scoreStroke", () => {
     const wild = scoreStroke(line({ x: 0, y: 0 }, { x: 109, y: 109 }, 5).reverse(), TARGET, TARGET_LEN);
     expect(wild.score).toBeGreaterThanOrEqual(0);
     expect(wild.score).toBeLessThanOrEqual(100);
-  });
-});
-
-describe("gradeFromScore", () => {
-  // Phải khớp tuyệt đối FsrsEngine.gradeFromScore bên backend (FsrsEngineTest khoá cùng các mốc).
-  it.each([
-    [0, 1], [47, 1], [48, 2], [69, 2], [70, 3], [87, 3], [88, 4], [100, 4],
-  ] as const)("điểm %i → grade %i", (score, grade) => {
-    expect(gradeFromScore(score, false)).toBe(grade);
-  });
-
-  it("có nét hỏng thì luôn là Again", () => {
-    expect(gradeFromScore(100, true)).toBe(1);
   });
 });
 

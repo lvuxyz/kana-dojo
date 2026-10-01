@@ -57,7 +57,7 @@ export default async function KanaTablePage({ params }: { params: Promise<{ scri
           <Brand />
           <nav className="flex items-center gap-2.5">
             <ThemeToggle />
-            <Link href="/dang-ky">
+            <Link href="/luyen-viet">
               <Button size="sm" variant="solid">
                 Tập viết miễn phí
               </Button>
@@ -83,7 +83,7 @@ export default async function KanaTablePage({ params }: { params: Promise<{ scri
                 Xem bảng {m.other} ›
               </Button>
             </Link>
-            <Link href="/dang-ky">
+            <Link href="/luyen-viet">
               <Button variant="solid" className="font-semibold px-6 shadow-md shadow-shu/25">
                 Tập viết tương tác ngay
               </Button>
@@ -115,7 +115,7 @@ export default async function KanaTablePage({ params }: { params: Promise<{ scri
                       c ? (
                         <Link
                           key={c.c}
-                          href="/dang-ky"
+                          href={`/luyen-viet?c=${encodeURIComponent(c.c)}`}
                           title={`${c.c} — ${c.r}, đọc gần như "${c.vn}", ${c.n} nét`}
                           className="group relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl border border-rule/85 bg-surface p-1.5 shadow-2xs transition-all duration-200 hover:z-10 hover:-translate-y-1 hover:border-genko hover:shadow-lg"
                         >
@@ -169,7 +169,7 @@ export default async function KanaTablePage({ params }: { params: Promise<{ scri
           <p className="max-w-[46ch] text-base leading-relaxed text-sumi-2">
             Chỉ khi tự tay cầm bút vẽ từng nét, cơ bắp và não bộ mới ghi nhớ sâu sắc. Kana Dōjō chấm từng nét bạn viết và tự xếp lịch ôn lại theo thuật toán FSRS.
           </p>
-          <Link href="/dang-ky" className="pt-2">
+          <Link href="/luyen-viet" className="pt-2">
             <Button variant="solid" size="lg" className="px-8 font-semibold shadow-lg shadow-shu/25">
               Bắt đầu tập viết {m.name} ngay
             </Button>

@@ -1,24 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import { Badge, Button, Card, Progress, Spinner, Stat } from "@/components/ui";
-import { get } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
-import type { BadgeDto, HeatmapDay, ProgressSummaryDto, StatsDto } from "@/lib/types";
+import { useBadges, useHeatmap, useStats, useSummary } from "@/lib/learning/hooks";
+import type { HeatmapDay } from "@/lib/types";
+
+const HEATMAP_DAYS = 112;
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const stats = useQuery({ queryKey: ["stats"], queryFn: () => get<StatsDto>("/stats/me") });
-  const summary = useQuery({ queryKey: ["progress", "summary"], queryFn: () => get<ProgressSummaryDto>("/progress/summary") });
-  const heat = useQuery({ queryKey: ["heatmap"], queryFn: () => get<HeatmapDay[]>("/stats/heatmap?days=112") });
-  const badges = useQuery({ queryKey: ["badges"], queryFn: () => get<BadgeDto[]>("/badges") });
+  const { stats: s, ready } = useStats();
+  const { summary: sum } = useSummary();
+  const { days } = useHeatmap(HEATMAP_DAYS);
+  const { badges } = useBadges();
 
-  if (stats.isLoading) return <Spinner label="Đang nạp dữ liệu rèn luyện" />;
+  if (!ready) return <Spinner label="Đang nạp dữ liệu rèn luyện" />;
 
-  const s = stats.data;
-  const sum = summary.data;
-  const due = sum?.dueToday ?? 0;
+  const due = sum.dueToday;
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,7 +23,7 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-rule/60 pb-4">
         <div>
           <h1 className="font-mincho text-2xl font-bold sm:text-3xl text-sumi">
-            おかえり, <span className="text-shu">{user?.displayName}</span>
+            おかえり<span className="text-shu">！</span>
           </h1>
           <p className="mt-1 text-sm font-medium text-sumi-3">
             {due > 0
@@ -86,31 +83,31 @@ export default function DashboardPage() {
         <Card variant="interactive" className="p-5.5">
           <Stat
             label="Chuỗi ngày rèn luyện"
-            value={s?.currentStreak ?? 0}
-            sub={`Kỷ lục dài nhất: ${s?.longestStreak ?? 0} ngày`}
+            value={s.currentStreak}
+            sub={`Kỷ lục dài nhất: ${s.longestStreak} ngày`}
             tone="shu"
           />
         </Card>
         <Card variant="interactive" className="p-5.5">
           <Stat
             label="Đẳng cấp Dōjō"
-            value={`Cấp ${s?.level ?? 1}`}
-            sub={`Còn ${s?.xpToNextLevel ?? 0} XP để thăng cấp`}
+            value={`Cấp ${s.level}`}
+            sub={`Còn ${s.xpToNextLevel} XP để thăng cấp`}
             tone="gold"
           />
         </Card>
         <Card variant="interactive" className="p-5.5">
           <Stat
             label="Kana đã tinh thông"
-            value={sum?.kanaMastered ?? 0}
-            sub={`Đã rèn qua ${sum?.kanaLearned ?? 0} ký tự`}
+            value={sum.kanaMastered}
+            sub={`Đã rèn qua ${sum.kanaLearned} ký tự`}
             tone="genko"
           />
         </Card>
         <Card variant="interactive" className="p-5.5">
           <Stat
             label="Tổng điểm tích luỹ"
-            value={(s?.xpTotal ?? 0).toLocaleString("vi-VN")}
+            value={s.xpTotal.toLocaleString("vi-VN")}
             sub="XP rèn luyện từ đầu"
           />
         </Card>
@@ -121,12 +118,12 @@ export default function DashboardPage() {
         <div className="mb-2.5 flex items-baseline justify-between">
           <span className="label-xs">Mục tiêu điểm rèn luyện hôm nay</span>
           <span className="text-xs font-bold text-sumi tnum">
-            {s?.todayXp ?? 0} / {s?.dailyGoalXp ?? 50} XP
+            {s.todayXp} / {s.dailyGoalXp} XP
           </span>
         </div>
-        <Progress value={s?.todayXp ?? 0} max={s?.dailyGoalXp ?? 50} tone="shu" />
+        <Progress value={s.todayXp} max={s.dailyGoalXp} tone="shu" />
         <p className="mt-3 text-xs font-medium text-sumi-3">
-          {s?.goalMet
+          {s.goalMet
             ? "🎉 Đã hoàn thành mục tiêu ngày hôm nay — chuỗi ngày kiên trì của bạn đã được ghi nhận vào sổ bộ!"
             : "Chuỗi ngày chỉ tăng khi bạn đạt mục tiêu XP bằng nét vẽ thực thụ, không phải chỉ mở ứng dụng."}
         </p>
@@ -140,57 +137,46 @@ export default function DashboardPage() {
             Mỗi ô là một ngày rèn luyện
           </span>
         </div>
-        <Heatmap days={heat.data ?? []} />
+        <Heatmap days={days} />
       </Card>
 
       {/* Bộ sưu tập huy hiệu danh dự */}
-      {badges.data && badges.data.length > 0 && (
-        <Card variant="glass" className="p-6">
-          <span className="label-xs">Huy hiệu danh dự đạt được</span>
-          <ul className="mt-4 flex flex-wrap gap-2.5">
-            {badges.data.map((b) => (
-              <li
-                key={b.code}
-                title={b.descriptionVi}
-                className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
-                  b.earnedAt
-                    ? "border-gold/50 bg-gold-tint/60 text-sumi shadow-xs ring-1 ring-gold/20"
-                    : "border-rule/80 bg-surface-2 text-sumi-3 opacity-50"
-                }`}
-              >
-                <span className="text-base" aria-hidden>{b.icon}</span>
-                <span>{b.nameVi}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      <Card variant="glass" className="p-6">
+        <span className="label-xs">Huy hiệu danh dự đạt được</span>
+        <ul className="mt-4 flex flex-wrap gap-2.5">
+          {badges.map((b) => (
+            <li
+              key={b.code}
+              title={b.descriptionVi}
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
+                b.earnedAt
+                  ? "border-gold/50 bg-gold-tint/60 text-sumi shadow-xs ring-1 ring-gold/20"
+                  : "border-rule/80 bg-surface-2 text-sumi-3 opacity-50"
+              }`}
+            >
+              <span className="text-base" aria-hidden>{b.icon}</span>
+              <span>{b.nameVi}</span>
+            </li>
+          ))}
+        </ul>
+      </Card>
     </div>
   );
 }
 
 /** Lưới nhiệt kiểu bảng đóng dấu điểm danh — mỗi cột một tuần, đọc từ trái sang. */
 function Heatmap({ days }: { days: HeatmapDay[] }) {
-  const byDate = new Map(days.map((d) => [d.date, d]));
-  const cells: { date: string; xp: number }[] = [];
-  const today = new Date();
-  for (let i = 111; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    cells.push({ date: key, xp: byDate.get(key)?.xp ?? 0 });
-  }
-  const max = Math.max(50, ...cells.map((c) => c.xp));
+  const max = Math.max(50, ...days.map((d) => d.xp));
 
   return (
     <div className="mt-4 overflow-x-auto pb-1">
       <div className="grid grid-flow-col grid-rows-7 gap-[4px]" style={{ width: "max-content" }}>
-        {cells.map((c) => {
-          const level = c.xp === 0 ? 0 : Math.min(4, Math.ceil((c.xp / max) * 4));
+        {days.map((d) => {
+          const level = d.xp === 0 ? 0 : Math.min(4, Math.ceil((d.xp / max) * 4));
           return (
             <span
-              key={c.date}
-              title={`${c.date} · ${c.xp} XP`}
+              key={d.date}
+              title={`${d.date} · ${d.xp} XP`}
               className="h-3 w-3 rounded-[3px] transition-transform hover:scale-125 hover:z-10"
               style={{
                 background: level === 0 ? "var(--rule)" : "var(--genko)",

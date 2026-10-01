@@ -1,37 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { get } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
+import Link from "next/link";
 import { Brand } from "@/components/app/Brand";
 import { BottomNav, SideNav } from "@/components/app/Nav";
 import { ThemeToggle } from "@/components/app/ThemeToggle";
-import { Progress, Spinner } from "@/components/ui";
-import type { StatsDto } from "@/lib/types";
+import { Progress } from "@/components/ui";
+import { usePersistent, useStats } from "@/lib/learning/hooks";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) router.replace("/dang-nhap");
-  }, [loading, user, router]);
-
-  const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: () => get<StatsDto>("/stats/me"),
-    enabled: !!user,
-  });
-
-  if (loading || !user) {
-    return (
-      <div className="grid min-h-dvh place-items-center bg-paper">
-        <Spinner label="Đang chuẩn bị đạo trường" />
-      </div>
-    );
-  }
+  const { stats, ready } = useStats();
+  const persistent = usePersistent();
 
   return (
     <div className="relative min-h-screen bg-paper text-sumi">
@@ -50,7 +28,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Brand href="/bang-dieu-khien" compact />
             </div>
 
-            {stats && (
+            {ready ? (
               <>
                 {/* Chuỗi ngày Streak rực lửa */}
                 <div
@@ -78,10 +56,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   Cấp <b className="tnum text-sumi">{stats.level}</b>
                 </span>
               </>
+            ) : (
+              <div className="flex-1" />
             )}
 
             <ThemeToggle />
           </header>
+
+          {!persistent && (
+            <p role="alert" className="mb-5 rounded-2xl border border-gold/40 bg-gold-tint/80 px-4.5 py-3 text-xs font-semibold text-sumi-2 shadow-xs">
+              Trình duyệt đang không cho lưu dữ liệu (có thể bạn đang ở chế độ riêng tư), nên tiến độ chỉ giữ được đến khi đóng
+              tab này. Bạn vẫn học bình thường — vào <Link href="/cai-dat" className="underline">Cài đặt</Link> để tải tiến độ về máy trước khi thoát.
+            </p>
+          )}
 
           <main>{children}</main>
         </div>

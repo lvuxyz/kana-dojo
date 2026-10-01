@@ -1,22 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StrokeStage, type AttemptResult } from "@/components/kana/StrokeStage";
 import { Button, Card, Empty, Progress, Spinner } from "@/components/ui";
-import { get, post } from "@/lib/api";
 import { KANA } from "@/lib/kana";
-import type { GradeResultDto, ItemType, ReviewQueueDto, ReviewQueueItemDto, WritingResultDto } from "@/lib/types";
+import { useProgress } from "@/lib/learning/hooks";
+import { createReviewQueue, gradeReviewCard, recordWritingAttempt } from "@/lib/learning/store";
+import type { Grade, GradeResult, ItemType, ReviewQueue, ReviewQueueItem } from "@/lib/types";
 
 /** Thẻ đã quy về dạng hỏi–đáp để hiển thị, bất kể là thẻ kana hay từ vựng. */
 interface ReviewCard {
-  cardId: number; itemType: ItemType; itemId: number;
+  cardKey: string; itemType: ItemType; itemId: string;
   prompt: string; answer: string; hint: string | null;
 }
 
-function toCard(item: ReviewQueueItemDto): ReviewCard {
-  const base = { cardId: item.cardId, itemType: item.itemType, itemId: item.itemId };
+function toCard(item: ReviewQueueItem): ReviewCard {
+  const base = { cardKey: item.cardKey, itemType: item.itemType, itemId: item.itemId };
   switch (item.itemType) {
     case "VOCAB_MEANING":
       return { ...base, prompt: item.word ?? "", answer: item.meaningVi ?? "", hint: item.reading };
@@ -27,81 +27,84 @@ function toCard(item: ReviewQueueItemDto): ReviewCard {
   }
 }
 
-const GRADE_LABEL: Record<1 | 2 | 3 | 4, { text: string; hint: string; tone: string }> = {
+const GRADE_LABEL: Record<Grade, { text: string; hint: string; tone: string }> = {
   1: { text: "Quên rồi", hint: "gặp lại sau ~1 phút", tone: "border-shu/50 text-shu hover:bg-shu-tint" },
   2: { text: "Khó", hint: "khoảng cách ngắn", tone: "border-gold/50 text-gold hover:bg-surface-2" },
   3: { text: "Được", hint: "khoảng cách bình thường", tone: "border-genko/50 text-genko hover:bg-genko-tint" },
   4: { text: "Dễ", hint: "khoảng cách dài hơn", tone: "border-genko/50 text-genko hover:bg-genko-tint" },
 };
 
+const QUEUE_SIZE = 30;
+
 export default function ReviewPage() {
-  const qc = useQueryClient();
+  const { ready } = useProgress();
+  const [queue, setQueue] = useState<ReviewQueue | null>(null);
   const [i, setI] = useState(0);
   const [revealed, setRevealed] = useState(false);
-  const [last, setLast] = useState<GradeResultDto | null>(null);
+  const [last, setLast] = useState<GradeResult | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Chốt đồng bộ chống chấm đúp. Không dựa vào state `last`: hai click trong cùng một tick (hoặc chạm đúp)
+  // đều thấy `last` còn null vì React chưa kịp render lại giữa chúng.
+  const locked = useRef(false);
 
-  const queue = useQuery({
-    queryKey: ["reviews", "queue"],
-    queryFn: () => get<ReviewQueueDto>("/reviews/queue?limit=30"),
-    staleTime: 0,
-  });
-
-  const cards = useMemo(() => (queue.data?.content ?? []).map(toCard), [queue.data]);
-  const card = cards[i];
-
-  const advance = () => {
+  // Hàng đợi chỉ là ảnh chụp lúc mở trang: giữ cố định cả phiên để thẻ không nhảy chỗ khi vừa chấm xong.
+  const loadQueue = useCallback(() => {
+    clearTimeout(timer.current);
+    locked.current = false;
+    setQueue(createReviewQueue({ limit: QUEUE_SIZE }));
+    setI(0);
     setRevealed(false);
     setLast(null);
-    setI((v) => v + 1);
-  };
+  }, []);
 
-  const grade = useMutation({
-    mutationFn: (input: { cardId: number; grade: number; score?: number; durationMs: number }) =>
-      post<GradeResultDto>("/reviews/grade", input),
-    onSuccess: (res) => {
-      setLast(res);
-      qc.invalidateQueries({ queryKey: ["stats"] });
-      qc.invalidateQueries({ queryKey: ["progress"] });
-      setTimeout(advance, 700);
-    },
-  });
+  useEffect(() => {
+    if (ready) loadQueue();
+    return () => clearTimeout(timer.current);
+  }, [ready, loadQueue]);
 
-  const writing = useMutation({
-    mutationFn: (input: { kanaCharacterId: number; r: AttemptResult }) =>
-      post<WritingResultDto>("/writing/attempts", {
-        kanaCharacterId: input.kanaCharacterId,
-        mode: "TEST",
-        strokeScores: input.r.strokeScores,
-        strokeErrors: input.r.strokeErrors,
-        avgScore: input.r.avgScore,
-        durationMs: input.r.durationMs,
-      }),
-    onSuccess: (res) => {
-      setLast(res.card);
-      qc.invalidateQueries({ queryKey: ["stats"] });
-      qc.invalidateQueries({ queryKey: ["progress"] });
-      setTimeout(advance, 1100);
-    },
-  });
-
-  useEffect(() => { setI(0); setRevealed(false); }, [queue.dataUpdatedAt]);
+  const cards = useMemo(() => (queue?.content ?? []).map(toCard), [queue]);
+  const card = cards[i];
 
   const kanaChar = useMemo(
     () => (card ? KANA.chars.find((c) => c.c === card.prompt) ?? null : null),
     [card],
   );
 
-  if (queue.isLoading) return <Spinner label="Đang dựng hàng đợi ôn tập" />;
+  /** Hiện kết quả một lát rồi sang thẻ kế. Trong lúc chờ, `locked` khoá việc chấm để không chấm đúp một thẻ. */
+  const showThenAdvance = (res: GradeResult, delayMs: number) => {
+    setLast(res);
+    timer.current = setTimeout(() => {
+      locked.current = false;
+      setRevealed(false);
+      setLast(null);
+      setI((v) => v + 1);
+    }, delayMs);
+  };
 
-  if (queue.isError) {
-    return (
-      <Empty
-        title="Chưa kết nối được máy chủ"
-        hint="Hàng đợi ôn tập nằm ở phía máy chủ vì lịch ôn phải giống nhau trên mọi thiết bị của bạn."
-        action={<Button onClick={() => queue.refetch()}>Thử lại</Button>}
-      />
-    );
-  }
+  const grade = (g: Grade) => {
+    if (!card || locked.current) return;
+    locked.current = true;
+    try {
+      showThenAdvance(gradeReviewCard(card.cardKey, g), 700);
+    } catch (e) {
+      locked.current = false; // lỗi thì nhả khoá, đừng để hàng đợi kẹt
+      throw e;
+    }
+  };
+
+  const submitWriting = (r: AttemptResult) => {
+    if (!card || locked.current) return;
+    locked.current = true;
+    try {
+      const res = recordWritingAttempt({ character: card.itemId, avgScore: r.avgScore, strokeErrors: r.strokeErrors, durationMs: r.durationMs });
+      showThenAdvance(res.card, 1100);
+    } catch (e) {
+      locked.current = false;
+      throw e;
+    }
+  };
+
+  if (!queue) return <Spinner label="Đang dựng hàng đợi ôn tập" />;
 
   if (cards.length === 0) {
     return (
@@ -117,8 +120,8 @@ export default function ReviewPage() {
     return (
       <Empty
         title={`Xong ${cards.length} thẻ`}
-        hint="Tiến độ đã được lưu và lịch ôn kế tiếp đã được tính lại."
-        action={<Button variant="solid" onClick={() => queue.refetch()}>Tải thêm thẻ</Button>}
+        hint="Tiến độ đã được lưu trong trình duyệt và lịch ôn kế tiếp đã được tính lại."
+        action={<Button variant="solid" onClick={loadQueue}>Tải thêm thẻ</Button>}
       />
     );
   }
@@ -142,10 +145,10 @@ export default function ReviewPage() {
 
           <div className="w-full" style={{ maxWidth: kanaChar.c.length > 1 ? 560 : 360 }}>
             <StrokeStage
-              key={card.cardId}
+              key={card.cardKey}
               char={kanaChar}
               mode="TEST"
-              onComplete={(r) => writing.mutate({ kanaCharacterId: card.itemId, r })}
+              onComplete={submitWriting}
             />
           </div>
 
@@ -172,8 +175,8 @@ export default function ReviewPage() {
           {([1, 2, 3, 4] as const).map((g) => (
             <button
               key={g}
-              disabled={grade.isPending}
-              onClick={() => grade.mutate({ cardId: card.cardId, grade: g, durationMs: 0 })}
+              disabled={!!last}
+              onClick={() => grade(g)}
               className={`flex flex-col items-center gap-0.5 rounded-lg border bg-surface px-3 py-2.5 transition-colors disabled:opacity-50 ${GRADE_LABEL[g].tone}`}
             >
               <span className="text-sm font-medium">{GRADE_LABEL[g].text}</span>
@@ -185,7 +188,11 @@ export default function ReviewPage() {
 
       {last && (
         <p className="text-center text-[13px] text-genko">
-          Ôn lại sau <b className="tnum">{last.intervalDays}</b> ngày
+          {last.intervalDays > 0 ? (
+            <>Ôn lại sau <b className="tnum">{last.intervalDays}</b> ngày</>
+          ) : (
+            <>Gặp lại trong ít phút</>
+          )}
           <span className="text-sumi-3"> · độ bền trí nhớ {last.stability.toFixed(1)} ngày</span>
         </p>
       )}

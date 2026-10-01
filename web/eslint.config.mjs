@@ -7,7 +7,7 @@ const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta
 // Cấu hình chuẩn của Next 15 cho ESLint 9 (flat config). `next lint` đã bị khai tử từ 15.5,
 // nên script `lint` gọi thẳng ESLint CLI.
 const config = [
-  { ignores: [".next/**", "node_modules/**", "next-env.d.ts"] },
+  { ignores: [".next/**", "out/**", "node_modules/**", "next-env.d.ts"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 
