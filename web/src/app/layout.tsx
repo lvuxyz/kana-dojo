@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ServiceWorkerRegister } from "@/components/app/ServiceWorkerRegister";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,6 +19,9 @@ export const metadata: Metadata = {
     description: "Máy chấm từng nét viết của bạn và tự lên lịch ôn tập. Học trực tiếp trên trình duyệt.",
   },
   robots: { index: true, follow: true },
+  applicationName: "Kana Dōjō",
+  // Safari iOS: mở toàn màn hình khi chạy từ biểu tượng ngoài màn hình chính. Icon cảm ứng lấy từ app/apple-icon.png.
+  appleWebApp: { capable: true, title: "Kana Dōjō", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -48,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

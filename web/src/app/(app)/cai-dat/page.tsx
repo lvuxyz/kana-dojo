@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { InstallCard } from "@/components/app/InstallCard";
 import { Button, Card, Field, Spinner, Stat } from "@/components/ui";
 import { useStats } from "@/lib/learning/hooks";
 import { MAX_DAILY_GOAL_XP, MIN_DAILY_GOAL_XP } from "@/lib/learning/state";
@@ -75,6 +76,8 @@ export default function SettingsPage() {
           và sẽ mất nếu bạn xoá dữ liệu trang web — hãy tải tiến độ về định kỳ ở mục bên dưới.
         </p>
       </Card>
+
+      <InstallCard />
 
       <Card className="grid grid-cols-3 gap-4 px-5 py-4">
         <Stat label="Chuỗi dài nhất" value={stats.longestStreak} tone="shu" />
