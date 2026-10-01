@@ -1,16 +1,20 @@
-# Web ở chế độ cá nhân (tạm thời)
+# Chế độ cá nhân: bỏ server, web chạy trên từng máy (tạm thời)
 
-> **Trạng thái:** có trên nhánh `claude/read-source-write-docs-bbc090`, chưa commit và chưa vào `master`.
-> Backend (`backend/`), Docker Compose và CI **không bị đổi** — chỉ `web/`.
+> **Trạng thái:** nằm trong [PR #3](https://github.com/lvuxyz/kana-dojo/pull/3), chưa vào `master`.
 
-Hiện tại web được dùng cho **một người, trên một trình duyệt**. Vì vậy mọi mã của web chạm tới backend/CSDL
-(gọi API, đăng nhập, cookie refresh token, rewrite `/api/v1`) được **comment lại, giữ nguyên từng dòng**, và dữ liệu học tập
-được lưu ngay trong trình duyệt (`localStorage`). Không cần chạy backend hay PostgreSQL:
+Hiện tại Kana Dōjō chỉ là **web chạy trên từng máy**: một người, một trình duyệt, **không có server**. Vì vậy:
+
+- **Mọi mã của server đã được comment lại, giữ nguyên từng dòng** — `backend/` (Spring Boot, JPA, Flyway, PostgreSQL), phần `db`/`backend`
+  của Docker Compose, job backend của CI, script khởi động PostgreSQL/Spring Boot, và mọi lời gọi từ web tới backend. Mỗi chỗ đã tắt đều có dấu
+  **`[máy chủ — đang tắt]`** (hoặc, với các file Java/SQL/YAML, 4 dòng ghi chú ở đầu file).
+- **Dữ liệu học tập lưu trong trình duyệt** (`localStorage`), tách riêng trên từng máy. Không có tài khoản, không có đồng bộ.
+
+Không cần Java, Maven, Docker hay PostgreSQL để chạy:
 
 ```bash
 cd web
 npm install
-npm run dev        # http://localhost:3001 — dùng được ngay, không cần backend
+npm run dev        # http://localhost:3001 — dùng được ngay
 ```
 
 ---
@@ -48,7 +52,8 @@ Nội dung cố định lấy từ `web/src/data/`:
 | `badges.json` | 9 huy hiệu | `V2__seed_reference.sql` |
 
 > Id kana ở hai chế độ **trùng nhau** (đều theo thứ tự trong file, từ 1), nên `kana-data.json` là nguồn duy nhất.
-> Nếu sửa nội dung seed trong migration, phải trích lại các file JSON ở trên — chúng không tự đồng bộ.
+> Các file JSON còn lại được trích từ migration (nay nằm ở `backend/src/main/resources/db/disabled/`); nếu sửa nội dung seed ở đó,
+> phải trích lại — chúng không tự đồng bộ.
 
 ### Đường dẫn được xử lý
 
@@ -87,6 +92,7 @@ Một khoá `localStorage` duy nhất: **`kd.local.v1`** (JSON, vài trăm byte 
 
 | Chủ đề | Bản có máy chủ | Chế độ cá nhân |
 |---|---|---|
+| Server, CSDL | Spring Boot + PostgreSQL | **Không có** |
 | Tài khoản | Đăng ký / đăng nhập / Google / đăng xuất | Không có. `/dang-nhap`, `/dang-ky` chuyển thẳng vào dashboard; hồ sơ mặc định "Học viên" |
 | Múi giờ mặc định | `Asia/Ho_Chi_Minh` | Múi giờ của trình duyệt (đổi được ở Hồ sơ) |
 | Gói FREE/PRO | Hạn mức ôn/viết mỗi ngày, từ vựng chỉ N5 | **Không giới hạn**; thấy cả từ vựng N4. Trang Hồ sơ không còn thẻ "Hạn mức gói" |
@@ -102,17 +108,44 @@ heatmap lệch ngày — xem [STATUS.md §5](STATUS.md).
 
 ## 4. Mã đã comment
 
-Mọi chỗ đã tắt đều có dấu **`[máy chủ — đang tắt]`**. Liệt kê chúng:
+Liệt kê mọi chỗ đã tắt (ngoài `backend/`, nơi mọi file đều có 4 dòng ghi chú đầu file):
 
 ```bash
-grep -rn "máy chủ — đang tắt" web/src web/next.config.mjs
+grep -rn "máy chủ — đang tắt" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=backend --exclude-dir=.git --exclude-dir=docs .
+grep -rl "^// ĐANG TẮT — web chạy ở chế độ cá nhân" backend/src      # file Java
 ```
+
+### 4.1 `backend/` — tắt toàn bộ
+
+Theo đúng quy ước của repo cho mã đang tắt ([TYPING.md §3.4](TYPING.md)): mỗi file mở đầu bằng 4 dòng ghi chú, phần còn lại là mã gốc có tiền tố
+comment. Đã kiểm tra: **khôi phục nguyên văn 128/128 file** bằng các lệnh ở §5, và toàn bộ 122 file Java sau khi comment vẫn biên dịch (`javac`, không lỗi).
+
+| Phần | Đã làm |
+|---|---|
+| `src/**/*.java` (122 file: 114 main + 8 test) | Comment bằng `// ` — nên `mvn test` hiện không chạy test nào |
+| `src/main/resources/db/migration/*.sql` (3 file) | Đổi thư mục thành **`db/disabled/`** (Flyway không còn thấy) và comment bằng `-- ` |
+| `src/main/resources/application.yml`, `application-prod.yml`, `backend/Dockerfile` | Comment bằng `# ` |
+| **Giữ nguyên** | `pom.xml` (XML không comment lồng được và nó chỉ khai báo phụ thuộc), `data/kana-data.json` (JSON không có comment), `.dockerignore`, `README.md` (có ghi chú đầu trang) |
+
+### 4.2 Hạ tầng và script
+
+| File | Đã làm |
+|---|---|
+| `docker-compose.yml` | Comment dịch vụ `db`, `backend`, volume `pgdata`; `web` bỏ `depends_on`, `BACKEND_URL`, build-arg Google. Còn một dịch vụ `web` |
+| `web/Dockerfile` | Comment `ARG`/`ENV` của `BACKEND_URL` và `NEXT_PUBLIC_GOOGLE_CLIENT_ID` |
+| `.env.example`, `web/.env.example` | Comment `DB_*`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `SRS_NEW_CARDS_PER_DAY`, `BACKEND_URL`. Còn `SITE_URL`, `WEB_PORT` / `NEXT_PUBLIC_SITE_URL` |
+| `.github/workflows/ci.yml` | Comment job `backend`; job `docker` chỉ `needs: [web]`, chỉ dựng `web`, `.env` chỉ có `SITE_URL` |
+| `scripts/smoke-test.sh` | Chỉ còn các bước kiểm tra web (11 bước); hàm `smoke_server` (rewrite → BFF → cookie → CORS) được comment ở cuối file |
+| `start-services.ps1` | Comment bước PostgreSQL, tìm Java, Spring Boot và các dòng URL backend/Swagger/DB; chỉ bật frontend |
+| `stop-services.ps1` | Chỉ dừng cổng **3001**. Bản cũ `Stop-Process -Force` mọi tiến trình đang nghe cổng 5432 và 8080 — kể cả một PostgreSQL hay dịch vụ khác của máy — nên bỏ hai cổng này là cần thiết, không chỉ là dọn dẹp |
+
+### 4.3 `web/`
 
 | File | Đã làm | Mã gốc |
 |---|---|---|
 | `lib/api.ts` | `get/post/patch` chuyển sang bộ xử lý cục bộ | Khối comment cuối file: `fetch('/api/v1…')`, tự refresh token khi 401, gom refresh đồng thời |
 | `lib/auth-context.tsx` | `AuthProvider` đọc hồ sơ từ `localStorage`; thêm `reloadUser`, `resetData` | Khối comment cuối file: khôi phục phiên bằng cookie, `login`, `register`, `loginWithGoogle`, `logout` |
-| `lib/auth-proxy.ts` | Comment toàn bộ (thêm `export {};`) | Tách refresh token vào cookie httpOnly `kd_rt` |
+| `lib/auth-proxy.ts`, `components/app/GoogleButton.tsx` | Comment toàn bộ (thêm `export {};`) | Tách refresh token vào cookie httpOnly `kd_rt`; nút đăng nhập Google |
 | `app/api/auth/{login,register,google,refresh,logout}/route.ts` | Comment toàn bộ (thêm `export {};`) | BFF chuyển tiếp tới backend |
 | `next.config.mjs` | Bỏ `rewrites()` | Rewrite `/api/v1/:path*` → `BACKEND_URL` |
 | `app/(auth)/dang-nhap`, `dang-ky/page.tsx` | Thay bằng `redirect("/bang-dieu-khien")` | Toàn bộ trang |
@@ -123,34 +156,68 @@ grep -rn "máy chủ — đang tắt" web/src web/next.config.mjs
 | `app/page.tsx` (landing) | Ẩn nút/link "Đăng nhập", "Đăng ký"; "Tạo tài khoản miễn phí" → "Bắt đầu học ngay"; thêm link "Vào ứng dụng" | Phần bị bỏ nằm trong comment |
 
 Không đổi: các trang `/luyen-viet`, `/on-tap`, `/tu-vung`, `/quiz`, `/bang-dieu-khien`, `PracticePanel`, `StrokeStage`, `stroke-match.ts` —
-chúng không biết dữ liệu đến từ đâu. `components/app/GoogleButton.tsx` còn nguyên nhưng không trang nào dùng.
+chúng không biết dữ liệu đến từ đâu.
+
+> Các tài liệu mô tả server ([SPEC.md](SPEC.md), [ARCHITECTURE.md](ARCHITECTURE.md), [DEVELOPMENT.md](DEVELOPMENT.md), [DEPLOYMENT.md](DEPLOYMENT.md),
+> `backend/README.md`) **không bị sửa nội dung**, chỉ có ghi chú đầu trang rằng chúng mô tả bản có máy chủ đang tắt.
 
 ---
 
-## 5. Bật lại bản có máy chủ
+## 5. Bật lại server
+
+### 5.1 `backend/`
+
+```bash
+cd backend
+
+# Java: bỏ 4 dòng ghi chú đầu file và tiền tố `// `
+for f in $(grep -rl "^// ĐANG TẮT — web chạy ở chế độ cá nhân" src); do sed -i '1,4d; s#^// \{0,1\}##' "$f"; done
+
+# Migration: đưa lại vào thư mục Flyway rồi bỏ comment
+git mv src/main/resources/db/disabled src/main/resources/db/migration
+sed -i '1,4d; s#^-- \{0,1\}##' src/main/resources/db/migration/*.sql
+
+# YAML và Dockerfile
+sed -i '1,4d; s/^# \{0,1\}//' src/main/resources/application.yml src/main/resources/application-prod.yml Dockerfile
+```
+
+### 5.2 Hạ tầng và script
+
+Bỏ comment các dòng `[máy chủ — đang tắt]` (và xoá các dòng thay thế kề bên) ở: `docker-compose.yml`, `web/Dockerfile`, `.env.example`,
+`.github/workflows/ci.yml` (trả lại `needs: [backend, web]` và các biến `DB_PASSWORD`/`JWT_SECRET`/`GOOGLE_CLIENT_ID`), `start-services.ps1`,
+`stop-services.ps1`. Trong `scripts/smoke-test.sh`: bỏ comment `smoke_server`, các dòng `JAR`/`trap`/`json` ở đầu file, và gọi `smoke_server` thay cho `smoke_local`.
+
+### 5.3 `web/`
 
 1. `lib/api.ts`: bỏ comment khối cuối file; xoá `import { handleLocal }`, hàm `api` và `RequestOptions` cục bộ ở đầu file. Bản gốc dùng `ApiError` trong `toError`, nên thay dòng `export { ApiError } from …` bằng `import { ApiError } from "./api-error"; export { ApiError };` (các trang import `ApiError` từ `@/lib/api`).
 2. `lib/auth-context.tsx`: bỏ comment khối cuối, xoá bản `AuthProvider` cục bộ và phần `getUser`/`resetState`; bỏ comment các dòng `[máy chủ — đang tắt]` trong `interface AuthState`; trả lại `import` của `useRouter` và `setAccessToken`.
-3. `lib/auth-proxy.ts` và 5 file `app/api/auth/*/route.ts`: bỏ tiền tố `// `, xoá `export {};`.
+3. `lib/auth-proxy.ts`, `components/app/GoogleButton.tsx` và 5 file `app/api/auth/*/route.ts`: bỏ tiền tố `// `, xoá `export {};`.
 4. `next.config.mjs`: bỏ comment `rewrites()`. `BACKEND_URL` phải có sẵn **lúc build** ([DEPLOYMENT.md](DEPLOYMENT.md#giá-trị-nào-chốt-lúc-build-giá-trị-nào-đọc-lúc-chạy)).
 5. Hai trang `(auth)`, trang `bang-xep-hang`: xoá đoạn `redirect`/thông báo ở đầu, bỏ tiền tố `// ` ở phần mã gốc.
-6. `Nav.tsx`, `ho-so/page.tsx`, `app/page.tsx`: bỏ comment các dòng `[máy chủ — đang tắt]`, xoá phần thay thế.
+6. `Nav.tsx`, `ho-so/page.tsx`, `app/page.tsx`, `sitemap.ts`: bỏ comment các dòng `[máy chủ — đang tắt]`, xoá phần thay thế.
 7. Có thể xoá `lib/local/` và `data/{vocabulary,quizzes,badges}.json` (không bắt buộc). **Giữ** `lib/api-error.ts` và `data/kana-data.json`.
-8. Chạy `npm run lint && npm run typecheck && npm test && npm run build`.
-9. `scripts/smoke-test.sh` mặc định ở chế độ `local`; dùng `SMOKE_MODE=server scripts/smoke-test.sh <url>` cho bản có máy chủ, và thêm `SMOKE_MODE: server` vào bước "Smoke test" của job `docker` trong `.github/workflows/ci.yml`.
+
+### 5.4 Kiểm tra sau khi bật lại
+
+```bash
+cd web && npm run lint && npm run typecheck && npm test && npm run build
+cd ../backend && mvn -B verify          # 11 unit + 24 integration test, cần Docker
+cd .. && docker compose up -d --build --wait && bash scripts/smoke-test.sh http://localhost:3000
+```
 
 Dữ liệu trong `localStorage` **không tự chuyển lên máy chủ**: tài khoản mới ở bản có máy chủ bắt đầu từ số 0.
 
 ---
 
-## 6. Ảnh hưởng tới CI và Docker
+## 6. CI và Docker
 
-- Job **`web`** của CI (`lint`, `typecheck`, `test`, `build`) vẫn xanh — đã chạy lại với thay đổi này.
-- Job **`docker`**: `scripts/smoke-test.sh` có hai chế độ qua biến `SMOKE_MODE`. Mặc định `local` kiểm tra web tự đứng được (trang chủ, bảng
-  Hiragana/Katakana dựng tĩnh, robots/sitemap, `/bang-dieu-khien` mở được, `/dang-nhap` và `/dang-ky` → 307 về dashboard, và **không còn** đường tới backend:
-  `/api/v1/*` → 404, `POST /api/auth/login` → 404/405). `SMOKE_MODE=server` giữ nguyên các bước gốc (rewrite → BFF → cookie → CORS). Workflow CI không phải đổi.
-- `docker-compose.yml` vẫn dựng cả `db` và `backend` (web `depends_on` backend). Chế độ cá nhân không cần chúng; nếu chỉ chạy web, dùng `npm run dev` hoặc bỏ phụ thuộc đó.
+- Job **`web`** (`lint`, `typecheck`, `test`, `build`) không đổi.
+- Job **`backend`** đã bị comment (không còn mã để kiểm thử).
+- Job **`docker`**: chỉ dựng dịch vụ `web` rồi chạy `scripts/smoke-test.sh` — trang chủ, bảng Hiragana/Katakana dựng tĩnh, robots/sitemap (không còn `/dang-ky`),
+  `/bang-dieu-khien` mở được, `/dang-nhap` và `/dang-ky` → 307 về dashboard, và **không còn** đường tới backend (`/api/v1/*` → 404, `POST /api/auth/login` → 404/405).
 - Healthcheck của image web (`/dang-nhap`) vẫn qua: `wget` theo redirect tới dashboard.
+- Các nhánh đang làm song song (luyện gõ có backend, route guard + sửa đăng xuất, chặn giả mạo IP — [STATUS.md §4](STATUS.md)) chạm vào `backend/`,
+  `ci.yml`, `smoke-test.sh`, `docker-compose.yml`: **sẽ xung đột** khi gộp, vì các file đó giờ là toàn comment hoặc đã đổi cấu trúc.
 
 ---
 
@@ -159,8 +226,10 @@ Dữ liệu trong `localStorage` **không tự chuyển lên máy chủ**: tài 
 | Việc | Kết quả |
 |---|---|
 | `npm test` | 74/74 (22 cũ + 52 mới: port FSRS khớp `FsrsEngineTest`, streak/thẻ băng/múi giờ/huy hiệu, toàn bộ luồng API cục bộ) |
-| `npm run lint`, `npm run typecheck` | Sạch |
-| `npm run build` | Thành công, 23 trang/route |
+| `npm run lint`, `npm run typecheck`, `npm run build` | Sạch; build thành công, 23 trang/route |
 | Chạy thật trên trình duyệt (không có backend) | Dashboard, Ôn tập, Từ vựng, Quiz, Hồ sơ, Xếp hạng (thông báo), `/dang-nhap` → dashboard. Làm xong quiz gõ romaji: 7/8 = 88 điểm, +105 XP, streak 1, level 2, tải lại vẫn còn; **không có request nào tới `/api/`** |
-| `scripts/smoke-test.sh` | Chạy trên bản build standalone (`node server.js`, như image Docker): chế độ `local` 11/11 bước; `SMOKE_MODE=server` đỏ đúng ở bước rewrite khi không có backend; `SMOKE_MODE` sai bị từ chối |
-| Chưa kiểm | Vẽ nét trên canvas rồi nộp qua bộ xử lý cục bộ (luồng ghi bài viết chỉ được test ở mức hàm; phần canvas không đổi); chạy job `docker` trên CI (`docker compose` dựng cả stack) |
+| `scripts/smoke-test.sh` | Chạy trên bản build standalone (`node server.js`, như image Docker): 11/11 bước |
+| `backend/` đã comment | Khôi phục bằng các lệnh §5.1 cho **nguyên văn 128/128 file**; 122 file Java biên dịch bằng `javac` không lỗi |
+| `docker-compose.yml`, `ci.yml` | Đọc bằng trình phân tích YAML: compose chỉ còn dịch vụ `web`, CI còn job `web` + `docker` (`needs: [web]`) |
+| `start-services.ps1`, `stop-services.ps1` | Trình phân tích PowerShell: 0 lỗi cú pháp |
+| Chưa kiểm | Vẽ nét trên canvas rồi nộp qua bộ xử lý cục bộ (luồng ghi bài viết chỉ được test ở mức hàm; phần canvas không đổi); `docker compose build` và job `docker` trên CI (máy kiểm chứng không có Docker); chạy thật hai script `.ps1`; `mvn` (không có Maven) |

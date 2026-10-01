@@ -1,9 +1,11 @@
 <#
 .SYNOPSIS
-    Dừng toàn bộ dịch vụ Kana Dōjō: PostgreSQL 16, Spring Boot Backend, và Next.js Frontend.
+    Dừng Kana Dōjō: Next.js Frontend (cổng 3001). Chế độ cá nhân không có PostgreSQL/Spring Boot nên không đụng tới
+    cổng 5432 và 8080 (docs/LOCAL_MODE.md) — tránh tắt nhầm một PostgreSQL hay dịch vụ khác của máy.
 #>
 
-$ports = @(5432, 8080, 3001)
+# [máy chủ — đang tắt] $ports = @(5432, 8080, 3001)
+$ports = @(3001)
 
 foreach ($port in $ports) {
     $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
@@ -19,4 +21,5 @@ foreach ($port in $ports) {
     }
 }
 
-Write-Host "Tất cả các tiến trình trên port 5432, 8080, 3001 đã được dừng." -ForegroundColor Green
+# [máy chủ — đang tắt] Write-Host "Tất cả các tiến trình trên port 5432, 8080, 3001 đã được dừng." -ForegroundColor Green
+Write-Host "Đã dừng tiến trình trên port 3001." -ForegroundColor Green

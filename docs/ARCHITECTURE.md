@@ -1,5 +1,7 @@
 # Kana Dōjō — Kiến trúc hệ thống
 
+> **Tạm thời không áp dụng.** Kiến trúc dưới đây là của bản có máy chủ (Next.js BFF → Spring Boot → PostgreSQL), hiện đã tắt. Còn đúng với bản hiện tại: engine tập viết, FSRS-6, trò chơi hoá (chạy trong trình duyệt). Web đang ở chế độ cá nhân, không có server — xem [LOCAL_MODE.md](LOCAL_MODE.md).
+
 ## Tổng quan
 
 Kana Dōjō là ứng dụng monorepo full-stack gồm ba lớp độc lập:

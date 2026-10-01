@@ -1,5 +1,7 @@
 # Kana Dōjō — Hướng dẫn phát triển
 
+> **Tạm thời không áp dụng.** Các mục về backend, PostgreSQL, Flyway, Swagger và test backend mô tả bản có máy chủ, hiện đã tắt. Phần web (`npm run dev`, test, lint) vẫn dùng được. Web đang ở chế độ cá nhân, không có server — xem [LOCAL_MODE.md](LOCAL_MODE.md).
+
 ## Yêu cầu môi trường
 
 | Công cụ | Phiên bản tối thiểu | Ghi chú |

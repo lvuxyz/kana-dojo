@@ -1,5 +1,7 @@
 # Kana Dōjō — Đặc tả kỹ thuật v1 (nguồn sự thật cho cả BE và FE)
 
+> **Tạm thời không áp dụng.** Tài liệu này là đặc tả của bản có máy chủ (backend + PostgreSQL), hiện đã tắt; bộ xử lý cục bộ của web vẫn theo hợp đồng API ở §5. Web đang ở chế độ cá nhân, không có server — xem [LOCAL_MODE.md](LOCAL_MODE.md).
+
 Mọi con số, tên bảng, tên trường, đường dẫn API trong tài liệu này là **bắt buộc**.
 Backend và frontend được xây từ cùng file này nên phải khớp tuyệt đối.
 

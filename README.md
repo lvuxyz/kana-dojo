@@ -2,21 +2,28 @@
 
 Ứng dụng web dạy viết Hiragana và Katakana đúng thứ tự nét, kết hợp thuật toán lặp lại ngắt quãng FSRS-6 để tối ưu hóa việc ghi nhớ lâu dài.
 
+> ## ⚠️ Chế độ cá nhân — server đang tắt
+> Hiện tại Kana Dōjō chỉ là **web chạy trên từng máy**: không có backend, không có CSDL, không có tài khoản. Tiến độ học lưu trong
+> trình duyệt của từng người (`localStorage`). Toàn bộ mã của server — `backend/` (Spring Boot + PostgreSQL), Docker Compose cho `db`/`backend`,
+> job backend của CI, script khởi động PostgreSQL/Spring Boot — được **comment lại, giữ nguyên từng dòng** (đánh dấu `[máy chủ — đang tắt]`).
+> Các mục bên dưới nói về backend, API, CSDL, đăng nhập, gói cước, bảng xếp hạng mô tả bản có máy chủ và **hiện không chạy**.
+> Xem [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md): cách hoạt động, giới hạn, và cách bật lại server.
+
 ```
 kana-dojo/
 ├── docs/
 │   ├── SPEC.md            Đặc tả kỹ thuật — nguồn sự thật cho cả BE và FE
 │   ├── ARCHITECTURE.md    Kiến trúc hệ thống, luồng dữ liệu, quyết định thiết kế
 │   ├── STATUS.md          Hiện trạng: đã làm, đang làm, lỗi đã biết, chưa làm
-│   ├── LOCAL_MODE.md      Web ở chế độ cá nhân: không gọi backend, dữ liệu lưu trong trình duyệt
+│   ├── LOCAL_MODE.md      Bỏ server: web chạy trên từng máy, dữ liệu lưu trong trình duyệt, cách bật lại server
 │   ├── DEVELOPMENT.md     Hướng dẫn thiết lập môi trường phát triển
 │   ├── DEPLOYMENT.md      Hướng dẫn triển khai production
 │   └── kana-data.json     208 ký tự · 148 glyph, trích từ KanjiVG (CC BY-SA 3.0)
-├── backend/               Spring Boot 3.2.5 · Java 17 · PostgreSQL 16 (+ Dockerfile)
+├── backend/               [đang tắt — comment] Spring Boot 3.2.5 · Java 17 · PostgreSQL 16 (+ Dockerfile)
 ├── web/                   Next.js 15 App Router · TypeScript · Tailwind CSS v4 (+ Dockerfile)
-├── docker-compose.yml     PostgreSQL + backend + web, chỉ mở cổng web
-├── .github/workflows/     CI: test backend, lint/test/build web, smoke test qua Docker
-├── scripts/smoke-test.sh  Kiểm tra nhanh một bản triển khai đang chạy
+├── docker-compose.yml     Chỉ dịch vụ web (db và backend đang tắt — comment)
+├── .github/workflows/     CI: lint/test/build web, smoke test qua Docker (job backend đang tắt)
+├── scripts/smoke-test.sh  Kiểm tra nhanh một bản web đang chạy
 └── archive/legacy-v1/     Bản offline HTML/CSS/JS thuần — không server, không tài khoản
 ```
 
@@ -38,7 +45,24 @@ kana-dojo/
 
 ---
 
-## Khởi động nhanh (5 phút)
+## Khởi động nhanh (1 phút)
+
+Chỉ cần Node.js 20+. Không cần Java, Maven, Docker hay PostgreSQL:
+
+```bash
+cd web
+npm install
+npm run dev        # http://localhost:3001 — script `dev` chạy ở cổng 3001
+```
+
+- **Windows:** `start-services.bat` bật frontend ở cổng 3001 (và `stop-services.bat` tắt nó).
+- **Docker:** `cp .env.example .env` rồi `docker compose up -d --build --wait`, mở <http://localhost:3000>. Chỉ có dịch vụ `web`.
+- Tiến độ lưu trong trình duyệt — xem [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) về giới hạn (đổi máy/xoá dữ liệu trình duyệt là mất).
+
+<details>
+<summary>Bản có máy chủ (đang tắt): Docker Compose đủ bộ, PostgreSQL, Spring Boot</summary>
+
+> **Hiện không chạy được:** mã server đã được comment lại. Giữ ở đây để tham khảo và để bật lại sau (xem [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md#5-bật-lại-server)).
 
 **Chỉ muốn chạy thử?** Có Docker là đủ:
 
@@ -50,14 +74,14 @@ docker compose up -d --build --wait
 Mở <http://localhost:3000>. Chi tiết: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#chạy-bằng-docker-compose).
 Các bước dưới đây dành cho **phát triển** (hot reload, chạy từng phần riêng).
 
-### Yêu cầu hệ thống
+#### Yêu cầu hệ thống
 
 - Java 17+
 - Maven 3.9+
 - Node.js 20+
 - Docker (để chạy PostgreSQL)
 
-### Bước 1 — Cơ sở dữ liệu
+#### Bước 1 — Cơ sở dữ liệu
 
 ```bash
 docker run -d --name kanadojo-db -p 5432:5432 \
@@ -69,7 +93,7 @@ docker run -d --name kanadojo-db -p 5432:5432 \
 
 Flyway tự tạo toàn bộ lược đồ (22 bảng) kèm dữ liệu khởi đầu (gói cước, huy hiệu, từ vựng, quiz mẫu), và `KanaSeeder` tự nạp 208 ký tự khi backend khởi động lần đầu — không cần chạy script SQL thủ công.
 
-### Bước 2 — Backend
+#### Bước 2 — Backend
 
 Ở môi trường dev mọi biến đều có mặc định khớp với container ở bước 1, nên chỉ cần:
 
@@ -81,24 +105,7 @@ mvn spring-boot:run
 Muốn ghi đè (DB khác, khoá JWT riêng…) xem bảng [Biến môi trường](#biến-môi-trường) và [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 Backend sẵn sàng khi thấy log `Started KanaDojoApplication`.
 
-### Bước 3 — Frontend
-
-```bash
-cd web
-copy .env.example .env.local   # Windows
-# cp .env.example .env.local   # macOS/Linux
-
-npm install
-npm run dev
-```
-
-Mở <http://localhost:3001> (script `dev` chạy ở cổng 3001).
-
-> **Chế độ cá nhân (tạm thời):** web hiện **không gọi backend/CSDL** — Bước 1 và 2 là tuỳ chọn, tiến độ lưu trong trình duyệt.
-> Xem [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) (gồm cách bật lại máy chủ).
-
-> **Windows:** `start-services.bat` bật cả PostgreSQL portable, backend (JAR đã build) và frontend — điều kiện xem
-> [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#cách-nhanh-trên-windows-start-servicesbat).
+</details>
 
 ---
 
@@ -194,21 +201,33 @@ web/src/
 ## Kiểm thử
 
 ```bash
-# Backend — 11 unit test + 24 integration test (PostgreSQL thật qua Testcontainers, cần Docker)
-cd backend
-mvn test
-
-# Frontend — unit test (Vitest), lint, kiểm tra kiểu, build
+# Frontend — unit test (Vitest; gồm 52 test cho bộ xử lý cục bộ), lint, kiểm tra kiểu, build
 cd web
 npm test
 npm run lint
 npm run typecheck
 npm run build
+
+# Smoke test một bản web đang chạy (mặc định http://localhost:3000)
+bash scripts/smoke-test.sh http://localhost:3000
 ```
 
-Không có Docker thì integration test tự bỏ qua. Chi tiết từng bộ test: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#chạy-kiểm-thử).
-CI (GitHub Actions) chạy tất cả những lệnh trên cho mỗi pull request, rồi dựng cả stack bằng `docker compose` và chạy
+CI (GitHub Actions) chạy lint → typecheck → test → build cho web, rồi dựng `docker compose` (chỉ dịch vụ `web`) và chạy
 `scripts/smoke-test.sh` — xem [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#ci-github-actions).
+
+<details>
+<summary>Bản có máy chủ (đang tắt): test backend</summary>
+
+```bash
+# Backend — 11 unit test + 24 integration test (PostgreSQL thật qua Testcontainers, cần Docker)
+cd backend
+mvn test
+```
+
+Mã backend và các test của nó đã được comment lại nên lệnh trên hiện không chạy test nào. Không có Docker thì integration test tự bỏ qua.
+Chi tiết từng bộ test: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#chạy-kiểm-thử).
+
+</details>
 
 ---
 
@@ -243,7 +262,7 @@ Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPM
 | [docs/SPEC.md](docs/SPEC.md) | Đặc tả kỹ thuật đầy đủ — lược đồ DB, API, thuật toán |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Kiến trúc hệ thống, luồng xác thực, quyết định thiết kế |
 | [docs/STATUS.md](docs/STATUS.md) | Hiện trạng dự án: phần đã chạy, các nhánh đang làm, lỗi và sai lệch đã phát hiện |
-| [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) | Web ở chế độ cá nhân (tạm thời): chạy không cần backend, dữ liệu lưu trong trình duyệt, cách bật lại máy chủ |
+| [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) | Chế độ cá nhân (tạm thời): server đã tắt, web chạy trên từng máy, dữ liệu lưu trong trình duyệt, cách bật lại server |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Thiết lập môi trường dev, gỡ lỗi, quy ước code |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Triển khai production với Docker và Nginx |
 | [archive/legacy-v1/README.md](archive/legacy-v1/README.md) | Giải thích đầy đủ thuật toán chấm nét (arc-length, forward-only) |

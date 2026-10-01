@@ -9,10 +9,11 @@
 - **Phạm vi:** `backend/` (114 file Java, 3 migration), `web/` (39 file `.ts/.tsx`), hạ tầng (Docker, CI), cùng 4 nhánh/worktree đang phát triển song song
 - **Ký hiệu:** ✅ chạy đúng · 🟡 chạy nhưng có lỗi hoặc thiếu sót · 🚧 đang làm, chưa vào `master` · ⬜ chưa làm
 
-> **Cập nhật cùng ngày — web chuyển sang chế độ cá nhân.** Sau khi viết các mục bên dưới, web được đổi để chạy **không cần backend/CSDL**:
-> mã gọi máy chủ được comment lại và dữ liệu học tập lưu trong trình duyệt — xem [LOCAL_MODE.md](LOCAL_MODE.md).
-> Thay đổi này nằm trên nhánh `claude/read-source-write-docs-bbc090`, **chưa commit, chưa vào `master`**. Các mục §1–§6 mô tả `master`
-> (bản có máy chủ); §5 ghi rõ lỗi nào còn áp dụng ở chế độ cá nhân.
+> **Cập nhật cùng ngày — bỏ server, web chạy trên từng máy.** Sau khi viết các mục bên dưới, dự án được chuyển sang chế độ cá nhân:
+> **toàn bộ mã server (`backend/`, `db`/`backend` trong Docker Compose, job backend của CI, script khởi động PostgreSQL/Spring Boot) và mọi lời gọi từ web tới
+> máy chủ được comment lại, giữ nguyên từng dòng**; dữ liệu học tập lưu trong trình duyệt từng máy — xem [LOCAL_MODE.md](LOCAL_MODE.md).
+> Thay đổi nằm trong [PR #3](https://github.com/lvuxyz/kana-dojo/pull/3), chưa vào `master`. Các mục §1–§6 mô tả `master` (bản có máy chủ, **nay đã tắt**);
+> §5 ghi rõ lỗi nào còn áp dụng ở chế độ cá nhân.
 
 ---
 
@@ -233,7 +234,7 @@ Sắp theo mức độ ảnh hưởng. "Chưa tái hiện" nghĩa là suy ra t�
 
 **Ở chế độ cá nhân của web** ([LOCAL_MODE.md](LOCAL_MODE.md)): A, B, F, G, M **không áp dụng** (không có tài khoản, đăng xuất, hạn mức gói hay máy chủ);
 E được sửa ngay trong bản cục bộ (đếm thẻ mới theo ngày giới thiệu); J được sửa một phần (hồ sơ nạp lại sau khi lưu); K đổi thành múi giờ mặc định theo trình duyệt;
-C, D, H, I, N **vẫn còn**. Backend không đổi nên tất cả lỗi vẫn đúng với bản có máy chủ.
+C, D, H, I, N **vẫn còn**. Mã backend chỉ bị comment (không sửa) nên các lỗi phía server vẫn đúng với bản có máy chủ khi bật lại.
 
 | # | Mức | Vấn đề | Bằng chứng | Tình trạng |
 |---|---|---|---|---|

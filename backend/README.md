@@ -1,5 +1,7 @@
 # Kana Dōjō — Backend
 
+> **Tạm thời không áp dụng.** Toàn bộ mã backend đã được comment lại (mỗi file có 4 dòng ghi chú đầu file; migration nằm ở `src/main/resources/db/disabled/`), nên các lệnh dưới đây hiện không chạy được. Cách bật lại: LOCAL_MODE.md §5.1. Web đang ở chế độ cá nhân, không có server — xem [LOCAL_MODE.md](../docs/LOCAL_MODE.md).
+
 Backend Spring Boot cho ứng dụng học tiếng Nhật **Kana Dōjō**: bảng chữ kana kèm dữ liệu nét viết,
 luyện viết có chấm điểm, lịch ôn tập theo **FSRS-6**, trò chơi hóa (XP / streak / huy hiệu / bảng xếp hạng)
 và hạn mức theo gói cước.

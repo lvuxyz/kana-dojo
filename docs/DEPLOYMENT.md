@@ -1,5 +1,7 @@
 # Kana Dōjō — Hướng dẫn triển khai Production
 
+> **Tạm thời không áp dụng.** Chỉ dịch vụ `web` còn được dựng và triển khai; các phần về backend, PostgreSQL, JWT, CORS, Google OAuth và sao lưu CSDL mô tả bản có máy chủ, hiện đã tắt. Web đang ở chế độ cá nhân, không có server — xem [LOCAL_MODE.md](LOCAL_MODE.md).
+
 ## Tổng quan kiến trúc production
 
 ```

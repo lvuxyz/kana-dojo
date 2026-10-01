@@ -1,32 +1,31 @@
 #!/usr/bin/env bash
 # Kiểm tra nhanh một bản triển khai đang chạy.
 #
-#   scripts/smoke-test.sh [BASE_URL]                    # mặc định http://localhost:3000, chế độ local
-#   SMOKE_MODE=server scripts/smoke-test.sh [BASE_URL]  # bản có máy chủ (backend + PostgreSQL)
+#   scripts/smoke-test.sh [BASE_URL]      # mặc định http://localhost:3000
 #
-# SMOKE_MODE=local  (mặc định) — web ở chế độ cá nhân (docs/LOCAL_MODE.md): không có backend, không có tài khoản.
-#                   Kiểm tra web tự đứng được: trang chủ, bảng chữ cái dựng tĩnh, SEO, lối vào ứng dụng, các trang
-#                   đăng nhập/đăng ký chuyển thẳng vào ứng dụng, và KHÔNG còn đường nào đi tới backend.
-# SMOKE_MODE=server — đi đúng đường của trình duyệt: trang web → rewrite /api/v1 → BFF /api/auth (cookie) →
-#                   request ghi có header Origin (CORS). Dùng sau khi bật lại máy chủ (xem docs/LOCAL_MODE.md §5).
+# Web ở chế độ cá nhân (docs/LOCAL_MODE.md): không có backend, không có tài khoản. Script kiểm tra web tự đứng được:
+# trang chủ, bảng chữ cái dựng tĩnh, SEO, lối vào ứng dụng, các trang đăng nhập/đăng ký chuyển thẳng vào ứng dụng,
+# và KHÔNG còn đường nào đi tới backend.
 #
-# Chỉ cần bash, curl và node. Chế độ server tạo một tài khoản thử mới mỗi lần chạy.
+# Các bước của bản có máy chủ (rewrite /api/v1 → BFF /api/auth (cookie) → request ghi có header Origin (CORS)) được giữ
+# nguyên dưới dạng comment, đánh dấu `[máy chủ — đang tắt]`, ở cuối file.
+#
+# Chỉ cần bash và curl.
 set -euo pipefail
 
-MODE="${SMOKE_MODE:-local}"
 BASE="${1:-http://localhost:3000}"
 BASE="${BASE%/}"
-JAR="$(mktemp)"
-trap 'rm -f "$JAR"' EXIT
+# [máy chủ — đang tắt] JAR="$(mktemp)"
+# [máy chủ — đang tắt] trap 'rm -f "$JAR"' EXIT
 
 pass() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$1" >&2; exit 1; }
-# json <biểu thức JS trên biến d> — đọc JSON từ stdin
-json() { node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{const d=JSON.parse(s);const v=('"$1"');process.stdout.write(String(v))})'; }
+# [máy chủ — đang tắt] # json <biểu thức JS trên biến d> — đọc JSON từ stdin (cần node)
+# [máy chủ — đang tắt] json() { node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{const d=JSON.parse(s);const v=('"$1"');process.stdout.write(String(v))})'; }
 # status <đường dẫn> [tham số curl…] — in mã HTTP, không theo redirect
 status() { local path="$1"; shift; curl -s -o /dev/null -w '%{http_code}' "$@" "$BASE$path"; }
 
-echo "Smoke test ($MODE): $BASE"
+echo "Smoke test: $BASE"
 
 # Container vừa lên có thể chưa nhận kết nối; chờ tối đa 30 giây thay vì báo lỗi oan.
 for _ in $(seq 1 30); do
@@ -69,7 +68,7 @@ smoke_local() {
   done
 
   # Không còn đường nào tới backend: rewrite /api/v1 và BFF /api/auth đã tắt. Nếu bước này đỏ, có thể ai đó bật lại
-  # một nửa — chạy SMOKE_MODE=server hoặc xem docs/LOCAL_MODE.md.
+  # một nửa — xem docs/LOCAL_MODE.md.
   code=$(status "/api/v1/kana?script=HIRAGANA")
   [ "$code" = 404 ] && pass "/api/v1/* không được chuyển tới backend (404)" \
     || fail "/api/v1/kana trả $code — rewrite tới backend còn bật?"
@@ -78,43 +77,40 @@ smoke_local() {
     || fail "POST /api/auth/login trả $code — route BFF còn bật?"
 }
 
-# ---------------------------------------------------------------------------------------------------------------
-# Bản có máy chủ: trang web → rewrite → BFF (cookie) → CORS.
-# ---------------------------------------------------------------------------------------------------------------
-smoke_server() {
-  code=$(status /)
-  [ "$code" = 200 ] && pass "Trang chủ 200" || fail "Trang chủ trả $code"
+# [máy chủ — đang tắt] ---------------------------------------------------------------------------------------------------------------
+# [máy chủ — đang tắt] Bản có máy chủ: trang web → rewrite → BFF (cookie) → CORS. Bật lại: bỏ comment hàm này và các dòng
+# [máy chủ — đang tắt] JAR/trap/json ở đầu file, rồi gọi smoke_server thay cho smoke_local (xem docs/LOCAL_MODE.md).
+# [máy chủ — đang tắt] ---------------------------------------------------------------------------------------------------------------
+# [máy chủ — đang tắt] smoke_server() {
+# [máy chủ — đang tắt]   code=$(status /)
+# [máy chủ — đang tắt]   [ "$code" = 200 ] && pass "Trang chủ 200" || fail "Trang chủ trả $code"
+# [máy chủ — đang tắt]
+# [máy chủ — đang tắt]   kana=$(curl -sf "$BASE/api/v1/kana?script=HIRAGANA" | json 'd.length') || fail "Không gọi được /api/v1/kana qua rewrite"
+# [máy chủ — đang tắt]   [ "$kana" -ge 46 ] && pass "Rewrite /api/v1 → backend ($kana ký tự hiragana)" || fail "Chỉ có $kana ký tự"
+# [máy chủ — đang tắt]
+# [máy chủ — đang tắt]   user="smoke$(date +%s)$RANDOM"
+# [máy chủ — đang tắt]   auth=$(curl -sf -c "$JAR" -X POST "$BASE/api/auth/register" -H 'Content-Type: application/json' \
+# [máy chủ — đang tắt]     -d "{\"email\":\"$user@smoke.test\",\"username\":\"$user\",\"password\":\"smoketest123\",\"displayName\":\"Smoke\"}") \
+# [máy chủ — đang tắt]     || fail "Đăng ký qua BFF /api/auth/register thất bại"
+# [máy chủ — đang tắt]   token=$(printf '%s' "$auth" | json 'd.accessToken')
+# [máy chủ — đang tắt]   has_rt=$(printf '%s' "$auth" | json '"refreshToken" in d')
+# [máy chủ — đang tắt]   [ -n "$token" ] && [ "$has_rt" = false ] && pass "BFF đăng ký: trả accessToken, giấu refreshToken" \
+# [máy chủ — đang tắt]     || fail "Phản hồi BFF sai (refreshToken không được lộ ra JS)"
+# [máy chủ — đang tắt]   grep -q 'kd_rt' "$JAR" && pass "Cookie kd_rt đã được đặt" || fail "Không thấy cookie kd_rt"
+# [máy chủ — đang tắt]
+# [máy chủ — đang tắt]   quizzes=$(curl -sf -H "Authorization: Bearer $token" "$BASE/api/v1/quizzes" | json 'd.content[0].id') \
+# [máy chủ — đang tắt]     || fail "Không đọc được danh sách quiz"
+# [máy chủ — đang tắt]   pass "Có quiz seed (id $quizzes)"
+# [máy chủ — đang tắt]
+# [máy chủ — đang tắt]   # Trình duyệt luôn gửi Origin với POST; rewrite chuyển tiếp nó → backend kiểm tra CORS.
+# [máy chủ — đang tắt]   code=$(status "/api/v1/quizzes/$quizzes/attempts" -X POST -H "Origin: $BASE" -H "Authorization: Bearer $token")
+# [máy chủ — đang tắt]   [ "$code" = 200 ] && pass "POST có Origin qua rewrite: 200 (CORS_ORIGINS đúng)" \
+# [máy chủ — đang tắt]     || fail "POST có Origin trả $code — kiểm tra CORS_ORIGINS/SITE_URL"
+# [máy chủ — đang tắt]
+# [máy chủ — đang tắt]   code=$(status /api/auth/refresh -b "$JAR" -X POST)
+# [máy chủ — đang tắt]   [ "$code" = 200 ] && pass "Refresh bằng cookie: 200" || fail "Refresh trả $code"
+# [máy chủ — đang tắt] }
 
-  kana=$(curl -sf "$BASE/api/v1/kana?script=HIRAGANA" | json 'd.length') || fail "Không gọi được /api/v1/kana qua rewrite"
-  [ "$kana" -ge 46 ] && pass "Rewrite /api/v1 → backend ($kana ký tự hiragana)" || fail "Chỉ có $kana ký tự"
-
-  user="smoke$(date +%s)$RANDOM"
-  auth=$(curl -sf -c "$JAR" -X POST "$BASE/api/auth/register" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$user@smoke.test\",\"username\":\"$user\",\"password\":\"smoketest123\",\"displayName\":\"Smoke\"}") \
-    || fail "Đăng ký qua BFF /api/auth/register thất bại"
-  token=$(printf '%s' "$auth" | json 'd.accessToken')
-  has_rt=$(printf '%s' "$auth" | json '"refreshToken" in d')
-  [ -n "$token" ] && [ "$has_rt" = false ] && pass "BFF đăng ký: trả accessToken, giấu refreshToken" \
-    || fail "Phản hồi BFF sai (refreshToken không được lộ ra JS)"
-  grep -q 'kd_rt' "$JAR" && pass "Cookie kd_rt đã được đặt" || fail "Không thấy cookie kd_rt"
-
-  quizzes=$(curl -sf -H "Authorization: Bearer $token" "$BASE/api/v1/quizzes" | json 'd.content[0].id') \
-    || fail "Không đọc được danh sách quiz"
-  pass "Có quiz seed (id $quizzes)"
-
-  # Trình duyệt luôn gửi Origin với POST; rewrite chuyển tiếp nó → backend kiểm tra CORS.
-  code=$(status "/api/v1/quizzes/$quizzes/attempts" -X POST -H "Origin: $BASE" -H "Authorization: Bearer $token")
-  [ "$code" = 200 ] && pass "POST có Origin qua rewrite: 200 (CORS_ORIGINS đúng)" \
-    || fail "POST có Origin trả $code — kiểm tra CORS_ORIGINS/SITE_URL"
-
-  code=$(status /api/auth/refresh -b "$JAR" -X POST)
-  [ "$code" = 200 ] && pass "Refresh bằng cookie: 200" || fail "Refresh trả $code"
-}
-
-case "$MODE" in
-  local)  smoke_local ;;
-  server) smoke_server ;;
-  *) fail "SMOKE_MODE phải là local hoặc server (nhận được: $MODE)" ;;
-esac
+smoke_local
 
 echo "Tất cả đều ổn."

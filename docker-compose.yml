@@ -1,59 +1,60 @@
-# Kana Dōjō — chạy trọn bộ PostgreSQL + Spring Boot + Next.js.
+# Kana Dōjō — chạy web (Next.js). Web ở chế độ cá nhân: không có backend, không có PostgreSQL (docs/LOCAL_MODE.md).
 #   cp .env.example .env    # rồi điền giá trị
 #   docker compose up -d --build --wait
-# Chỉ web được mở cổng ra máy chủ; backend và CSDL nằm trong mạng nội bộ của compose.
 # Đặt Nginx (TLS) phía trước cổng web khi chạy thật — xem docs/DEPLOYMENT.md.
+#
+# Mã của `db` và `backend` được giữ nguyên bên dưới dạng comment (đánh dấu `[máy chủ — đang tắt]`).
 
 name: kana-dojo
 
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: kanadojo
-      POSTGRES_USER: ${DB_USER:-kanadojo}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Đặt DB_PASSWORD trong .env}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d kanadojo"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  backend:
-    build: ./backend
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://db:5432/kanadojo
-      DB_USER: ${DB_USER:-kanadojo}
-      DB_PASSWORD: ${DB_PASSWORD:?Đặt DB_PASSWORD trong .env}
-      JWT_SECRET: ${JWT_SECRET:?Đặt JWT_SECRET trong .env (openssl rand -base64 48)}
-      # Rewrite của Next chuyển tiếp header Origin, nên phải cho phép chính URL công khai của web.
-      CORS_ORIGINS: ${SITE_URL:?Đặt SITE_URL trong .env}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Đặt GOOGLE_CLIENT_ID trong .env}
-      SRS_NEW_CARDS_PER_DAY: ${SRS_NEW_CARDS_PER_DAY:-10}
+  # [máy chủ — đang tắt] db:
+  # [máy chủ — đang tắt]   image: postgres:16-alpine
+  # [máy chủ — đang tắt]   restart: unless-stopped
+  # [máy chủ — đang tắt]   environment:
+  # [máy chủ — đang tắt]     POSTGRES_DB: kanadojo
+  # [máy chủ — đang tắt]     POSTGRES_USER: ${DB_USER:-kanadojo}
+  # [máy chủ — đang tắt]     POSTGRES_PASSWORD: ${DB_PASSWORD:?Đặt DB_PASSWORD trong .env}
+  # [máy chủ — đang tắt]   volumes:
+  # [máy chủ — đang tắt]     - pgdata:/var/lib/postgresql/data
+  # [máy chủ — đang tắt]   healthcheck:
+  # [máy chủ — đang tắt]     test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d kanadojo"]
+  # [máy chủ — đang tắt]     interval: 5s
+  # [máy chủ — đang tắt]     timeout: 5s
+  # [máy chủ — đang tắt]     retries: 10
+  # [máy chủ — đang tắt]
+  # [máy chủ — đang tắt] backend:
+  # [máy chủ — đang tắt]   build: ./backend
+  # [máy chủ — đang tắt]   restart: unless-stopped
+  # [máy chủ — đang tắt]   depends_on:
+  # [máy chủ — đang tắt]     db:
+  # [máy chủ — đang tắt]       condition: service_healthy
+  # [máy chủ — đang tắt]   environment:
+  # [máy chủ — đang tắt]     SPRING_PROFILES_ACTIVE: prod
+  # [máy chủ — đang tắt]     DB_URL: jdbc:postgresql://db:5432/kanadojo
+  # [máy chủ — đang tắt]     DB_USER: ${DB_USER:-kanadojo}
+  # [máy chủ — đang tắt]     DB_PASSWORD: ${DB_PASSWORD:?Đặt DB_PASSWORD trong .env}
+  # [máy chủ — đang tắt]     JWT_SECRET: ${JWT_SECRET:?Đặt JWT_SECRET trong .env (openssl rand -base64 48)}
+  # [máy chủ — đang tắt]     # Rewrite của Next chuyển tiếp header Origin, nên phải cho phép chính URL công khai của web.
+  # [máy chủ — đang tắt]     CORS_ORIGINS: ${SITE_URL:?Đặt SITE_URL trong .env}
+  # [máy chủ — đang tắt]     GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Đặt GOOGLE_CLIENT_ID trong .env}
+  # [máy chủ — đang tắt]     SRS_NEW_CARDS_PER_DAY: ${SRS_NEW_CARDS_PER_DAY:-10}
 
   web:
     build:
       context: ./web
       args:
-        BACKEND_URL: http://backend:8080
+        # [máy chủ — đang tắt] BACKEND_URL: http://backend:8080
         NEXT_PUBLIC_SITE_URL: ${SITE_URL:?Đặt SITE_URL trong .env}
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+        # [máy chủ — đang tắt] NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    environment:
-      BACKEND_URL: http://backend:8080
+    # [máy chủ — đang tắt] depends_on:
+    # [máy chủ — đang tắt]   backend:
+    # [máy chủ — đang tắt]     condition: service_healthy
+    # [máy chủ — đang tắt] environment:
+    # [máy chủ — đang tắt]   BACKEND_URL: http://backend:8080
     ports:
       - "${WEB_PORT:-3000}:3000"
 
-volumes:
-  pgdata:
+# [máy chủ — đang tắt] volumes:
+# [máy chủ — đang tắt]   pgdata:

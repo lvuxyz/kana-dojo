@@ -1,5 +1,8 @@
 name: CI
 
+# Web ở chế độ cá nhân (docs/LOCAL_MODE.md): không có backend/CSDL nên không có job backend.
+# Mã của phần server được giữ nguyên dưới dạng comment (đánh dấu `[máy chủ — đang tắt]`).
+
 on:
   push:
     branches: [master]
@@ -13,27 +16,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend:
-    name: Backend (unit + integration)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: "17"
-          cache: maven
-          cache-dependency-path: backend/pom.xml
-      # Runner có Docker nên integration test (Testcontainers + PostgreSQL 16) chạy thật, không bị bỏ qua.
-      - run: mvn -B verify
-      - if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: surefire-reports
-          path: backend/target/surefire-reports/
+  # [máy chủ — đang tắt] backend:
+  # [máy chủ — đang tắt]   name: Backend (unit + integration)
+  # [máy chủ — đang tắt]   runs-on: ubuntu-latest
+  # [máy chủ — đang tắt]   defaults:
+  # [máy chủ — đang tắt]     run:
+  # [máy chủ — đang tắt]       working-directory: backend
+  # [máy chủ — đang tắt]   steps:
+  # [máy chủ — đang tắt]     - uses: actions/checkout@v7
+  # [máy chủ — đang tắt]     - uses: actions/setup-java@v6
+  # [máy chủ — đang tắt]       with:
+  # [máy chủ — đang tắt]         distribution: temurin
+  # [máy chủ — đang tắt]         java-version: "17"
+  # [máy chủ — đang tắt]         cache: maven
+  # [máy chủ — đang tắt]         cache-dependency-path: backend/pom.xml
+  # [máy chủ — đang tắt]     # Runner có Docker nên integration test (Testcontainers + PostgreSQL 16) chạy thật, không bị bỏ qua.
+  # [máy chủ — đang tắt]     - run: mvn -B verify
+  # [máy chủ — đang tắt]     - if: failure()
+  # [máy chủ — đang tắt]       uses: actions/upload-artifact@v7
+  # [máy chủ — đang tắt]       with:
+  # [máy chủ — đang tắt]         name: surefire-reports
+  # [máy chủ — đang tắt]         path: backend/target/surefire-reports/
 
   web:
     name: Web (lint, typecheck, test, build)
@@ -55,8 +58,9 @@ jobs:
       - run: npm run build
 
   docker:
-    name: Docker compose smoke test
-    needs: [backend, web]
+    name: Docker (web) smoke test
+    # [máy chủ — đang tắt] needs: [backend, web]
+    needs: [web]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -64,9 +68,9 @@ jobs:
         run: |
           {
             echo "SITE_URL=http://localhost:3000"
-            echo "DB_PASSWORD=$(openssl rand -hex 16)"
-            echo "JWT_SECRET=$(openssl rand -base64 48)"
-            echo "GOOGLE_CLIENT_ID=ci-placeholder.apps.googleusercontent.com"
+            # [máy chủ — đang tắt] echo "DB_PASSWORD=$(openssl rand -hex 16)"
+            # [máy chủ — đang tắt] echo "JWT_SECRET=$(openssl rand -base64 48)"
+            # [máy chủ — đang tắt] echo "GOOGLE_CLIENT_ID=ci-placeholder.apps.googleusercontent.com"
           } > .env
       - name: Build và khởi động
         run: docker compose up -d --build --wait --wait-timeout 300
