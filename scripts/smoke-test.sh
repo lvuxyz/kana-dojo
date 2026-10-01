@@ -16,7 +16,8 @@ BASE="${BASE%/}"
 
 pass() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$1" >&2; exit 1; }
-status() { curl -s -o /dev/null -w '%{http_code}' "$BASE$1"; }
+# -g: tắt globbing của curl, nếu không `[id]` / `%5B` trong URL bị coi là dải ký tự
+status() { curl -gs -o /dev/null -w '%{http_code}' "$BASE$1"; }
 
 echo "Smoke test: $BASE"
 
@@ -46,6 +47,23 @@ body=$(curl -sf "$BASE/robots.txt") || fail "Không đọc được /robots.txt"
 body=$(curl -sf "$BASE/sitemap.xml") || fail "Không đọc được /sitemap.xml"
 [[ "$body" == *"<urlset"* ]] && pass "sitemap.xml hợp lệ" || fail "sitemap.xml không hợp lệ"
 
+# --- PWA: manifest, icon và service worker ---
+body=$(curl -sf "$BASE/manifest.webmanifest") || fail "Không đọc được /manifest.webmanifest"
+[[ "$body" == *'"start_url"'* && "$body" == *'icon-512.png'* && "$body" == *'maskable'* ]] && pass "manifest.webmanifest hợp lệ" || fail "manifest.webmanifest thiếu start_url/icon"
+for icon in /icons/icon-192.png /icons/icon-512.png /icons/icon-maskable-512.png /apple-icon.png; do
+  [ "$(status "$icon")" = 200 ] && pass "$icon 200" || fail "$icon không tải được"
+done
+sw=$(curl -sf "$BASE/sw.js") || fail "Không đọc được /sw.js"
+[[ "$sw" == *"const PRECACHE"* && "$sw" != *"__VERSION__"* && "$sw" != *"__PRECACHE__"* ]] || fail "sw.js chưa được sinh đúng (còn chỗ trống của mẫu?)"
+# Service worker cài bằng cache.addAll: chỉ cần MỘT URL trong danh sách không trả 200 là cả lần cài đặt hỏng và app mất offline.
+precached=0
+while IFS= read -r line; do
+  url="${line#*\"}"; url="${url%%\"*}"
+  [ "$(status "$url")" = 200 ] || fail "Tệp trong precache của sw.js không trả 200: $url"
+  precached=$((precached + 1))
+done <<<"$(grep -E '^  "/' <<<"$sw")"
+[ "$precached" -ge 40 ] && pass "sw.js precache $precached tệp, tất cả trả 200" || fail "Precache chỉ có $precached tệp"
+
 # 404 phải là 404 thật (không phải 200 với trang rỗng), kèm trang 404 của site
 [ "$(status /khong-ton-tai)" = 404 ] && pass "Đường dẫn lạ trả 404" || fail "Đường dẫn lạ không trả 404"
 body=$(curl -s "$BASE/khong-ton-tai")
@@ -66,5 +84,10 @@ html=$(curl -s "$BASE/")
 asset="${BASH_REMATCH[1]}"
 headers=$(curl -sI "$BASE$asset")
 grep -qi '^cache-control: max-age=31536000' <<<"$headers" && pass "Tệp tĩnh có mã băm được cache 1 năm" || fail "$asset không được cache dài hạn"
+
+headers=$(curl -sI "$BASE/sw.js")
+grep -qi '^cache-control: no-cache' <<<"$headers" && pass "sw.js không bị cache lâu" || fail "sw.js phải là Cache-Control: no-cache để bản deploy mới cập nhật được cache offline"
+headers=$(curl -sI "$BASE/manifest.webmanifest")
+grep -qi '^content-type: application/manifest+json' <<<"$headers" && pass "manifest đúng Content-Type" || fail "manifest.webmanifest sai Content-Type"
 
 echo "Tất cả đều ổn."
