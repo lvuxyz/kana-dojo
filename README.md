@@ -130,6 +130,7 @@ Mở <http://localhost:3001> (script `dev` chạy ở cổng 3001).
 | `BACKEND_URL` | `http://localhost:8080` | URL backend (server-side only) |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3001` | URL công khai của site |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | *(trống)* | Client ID Google OAuth |
+| `NEXT_PUBLIC_STANDALONE` | `false` | `true` = chạy web **không cần backend/PostgreSQL**, dữ liệu lưu ở trình duyệt — xem [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#chế-độ-độc-lập-chạy-web-không-cần-backendpostgresql) |
 
 ---
 

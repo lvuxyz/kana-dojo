@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { setAccessToken } from "./api";
+import { refreshSession, setAccessToken } from "./api";
+import { loadLocal } from "./standalone";
 import type { UserDto } from "./types";
 
 interface AuthState {
@@ -22,6 +23,10 @@ export interface RegisterInput {
 const Ctx = createContext<AuthState | null>(null);
 
 async function callAuth(path: string, body?: unknown) {
+  if (loadLocal) {
+    const { localAuth } = await loadLocal();
+    return localAuth(path, body);
+  }
   const res = await fetch(`/api/auth/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -39,19 +44,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Khôi phục phiên: cookie refresh là httpOnly nên chỉ có server đọc được,
   // client phải hỏi qua route handler mới biết mình còn đăng nhập hay không.
+  // Phải đi qua `refreshSession()` (gộp request): StrictMode chạy effect này hai lần ở `next dev`, mà hai
+  // refresh đồng thời cùng một cookie bị backend coi là tái sử dụng token và thu hồi cả phiên.
   useEffect(() => {
     let alive = true;
     (async () => {
-      try {
-        const data = await callAuth("refresh");
-        if (!alive) return;
-        setAccessToken(data.accessToken);
-        setUser(data.user);
-      } catch {
-        if (alive) setAccessToken(null);
-      } finally {
-        if (alive) setLoading(false);
-      }
+      const data = await refreshSession();
+      if (!alive) return;
+      if (data) setUser(data.user);
+      else setAccessToken(null);
+      setLoading(false);
     })();
     return () => { alive = false; };
   }, []);
@@ -68,7 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register: async (input) => finish(await callAuth("register", input)),
     loginWithGoogle: async (idToken) => finish(await callAuth("google", { idToken })),
     logout: async () => {
-      await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+      if (loadLocal) (await loadLocal()).localLogout();
+      else await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
       setAccessToken(null);
       setUser(null);
       router.push("/");

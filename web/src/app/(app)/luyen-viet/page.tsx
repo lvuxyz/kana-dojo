@@ -48,6 +48,9 @@ export default function WritingPage() {
     const m = new Map<string, CellState>();
     const now = Date.now();
     for (const p of progress.data ?? []) {
+      // Backend trả một ô cho MỌI ký tự kể cả chưa học (level 0); ô trống đã là mặc định của lưới,
+      // và `learned` bên dưới đếm số ô — nếu không bỏ qua thì tài khoản mới hiện "đã rèn 104/104".
+      if (p.level === 0) continue;
       m.set(p.character, {
         level: p.level,
         bestScore: p.bestScore,

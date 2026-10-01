@@ -123,6 +123,36 @@ Mở <http://localhost:3001>.
 - JAR backend đã build sẵn: `mvn clean package -DskipTests` (script **không** tự build).
 - Java: script tìm JDK 21 ở vài đường dẫn quen thuộc rồi mới dùng `java` trong `PATH`; JDK 17 trở lên đều chạy được.
 
+### Chế độ độc lập: chạy web không cần backend/PostgreSQL
+
+Khi chỉ cần xem/sửa giao diện hoặc chưa dựng được backend, bật chế độ độc lập — **không phải dịch vụ nào ngoài `next dev`**:
+
+```bash
+cd web
+echo NEXT_PUBLIC_STANDALONE=true >> .env.local   # sau đó khởi động lại `npm run dev`
+```
+
+Mọi lời gọi `/api/v1/*` và `/api/auth/*` được xử lý ngay trong trình duyệt bởi `web/src/lib/local/`, giữ nguyên hợp đồng
+của `docs/SPEC.md` §5 (cùng đường dẫn, DTO, lỗi RFC 7807) nên **không trang nào phải sửa** và mọi chức năng vẫn chạy:
+đăng ký/đăng nhập, luyện viết, ôn tập FSRS-6, XP/streak/huy hiệu, quiz, từ vựng, bảng xếp hạng, hồ sơ và hạn mức gói.
+
+| | Chế độ độc lập | Có backend |
+|---|---|---|
+| Nội dung (kana, từ vựng, quiz, huy hiệu, hạn mức gói) | `src/data/*.json`, trích từ `V2`/`V3` migration | PostgreSQL |
+| Tiến độ và tài khoản | `localStorage` (khoá `kanadojo.local.v1`) của **trình duyệt đó** | PostgreSQL |
+| Bảng xếp hạng | chỉ gồm các tài khoản đã đăng ký trên trình duyệt này | toàn hệ thống |
+| Đăng nhập Google | tắt (cần máy chủ) | có |
+| Bảo mật mật khẩu | chỉ băm có muối, **không phải bảo mật thật** | BCrypt + JWT |
+
+Xoá toàn bộ dữ liệu cục bộ: `localStorage.removeItem("kanadojo.local.v1")` trong DevTools. Dữ liệu hỏng được sao lưu sang
+`kanadojo.local.v1.corrupt` thay vì bị ghi đè. Khi tắt cờ này, mã của chế độ độc lập bị loại khỏi bundle.
+
+> **Giữ hai bản đồng bộ:** `lib/local/fsrs.ts` là bản port của `FsrsEngine.java` (test `fsrs.test.ts` port từ `FsrsEngineTest`),
+> còn XP, streak, huy hiệu, hàng đợi, quiz… port từ các `*Service.java`. Đổi luật ở backend thì phải đổi cả `lib/local/`.
+> `web/src/data/content.json` sinh từ migration `V2`/`V3` bằng `node scripts/gen-local-content.mjs` — thêm từ vựng/quiz ở migration
+> thì chạy lại lệnh này (script kiểm tra số lượng theo SPEC §2.6 và dừng nếu lệch).
+> Một khác biệt có chủ ý: `GET /progress/kana` trả `level` thang 0–2 (đúng với `types.ts`/`KanaGrid`); backend trả 0–5 nên ô đã thuộc chắc không được tô.
+
 ---
 
 ## Cấu trúc `.env.local` đầy đủ
@@ -136,6 +166,9 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3001
 
 # Google OAuth (tùy chọn — bỏ trống nếu không cần đăng nhập Google)
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+
+# Chạy không cần backend/PostgreSQL (xem "Chế độ độc lập"); mặc định false
+NEXT_PUBLIC_STANDALONE=false
 ```
 
 ---
@@ -381,6 +414,23 @@ gọi `revokeFamily` rồi ném 401. Exception đó rollback transaction bao ngo
 nên token mới nhất (có thể nằm trong tay kẻ trộm) vẫn dùng được.
 
 **Xử lý:** lệnh thu hồi chạy trong transaction riêng (`REQUIRES_NEW`) nên được commit trước khi 401 được ném ra.
+
+### Đăng nhập xong tải lại trang (F5) ở `next dev` là bị đăng xuất
+
+**Vấn đề (đã sửa):** `AuthProvider` khôi phục phiên bằng `POST /api/auth/refresh` trong `useEffect`. `reactStrictMode: true` khiến
+effect chạy **hai lần** ở `next dev`, nên bắn hai refresh đồng thời với cùng một cookie. Lần đầu xoay vòng token; lần hai trình
+token đã bị thay thế → `RefreshTokenService.rotate` coi là tái sử dụng và thu hồi cả họ token (kể cả token mới), người dùng bị
+đăng xuất. Lỗi này từng bị che bởi lỗi rollback ở mục trên; sửa mục đó (commit thật việc thu hồi) làm nó lộ ra. Production không
+chạy effect hai lần nên khó gặp, nhưng mở hai tab cùng lúc vẫn có thể đụng.
+
+**Xử lý:** mọi lần làm mới phiên đi qua `refreshSession()` trong `web/src/lib/api.ts`, gộp các lời gọi đồng thời thành một request
+(cả việc khôi phục phiên lúc tải trang lẫn vòng thử lại khi gặp 401). Test: `web/src/lib/api.test.ts`.
+Quy tắc: **không gọi `/api/auth/refresh` trực tiếp từ component** — dùng `refreshSession()`.
+
+### Ô "Đã rèn luyện" ở trang Luyện viết hiện 104/104 với tài khoản mới
+
+**Vấn đề (đã sửa):** `GET /progress/kana` trả một dòng cho **mọi** ký tự, kể cả chưa học (`level 0`), còn trang đếm `states.size`.
+**Xử lý:** `luyen-viet/page.tsx` bỏ qua dòng `level 0` khi dựng bản đồ trạng thái (ô trống vốn đã là mặc định của lưới).
 
 ### `npm install` báo `Cannot read properties of null (reading 'edgesOut')`
 
