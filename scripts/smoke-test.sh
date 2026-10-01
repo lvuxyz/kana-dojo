@@ -49,8 +49,12 @@ smoke_local() {
 
   code=$(status /robots.txt)
   [ "$code" = 200 ] && pass "robots.txt 200" || fail "robots.txt trả $code"
-  curl -sf "$BASE/sitemap.xml" | grep -q '/bang-chu-cai/hiragana' && pass "sitemap.xml 200, có trang Hiragana" \
-    || fail "sitemap.xml lỗi hoặc thiếu /bang-chu-cai/hiragana"
+  sitemap=$(curl -sf "$BASE/sitemap.xml") || fail "sitemap.xml không đọc được"
+  grep -q '/bang-chu-cai/hiragana' <<<"$sitemap" && pass "sitemap.xml 200, có trang Hiragana" \
+    || fail "sitemap.xml thiếu /bang-chu-cai/hiragana"
+  # /dang-ky chỉ còn chuyển hướng vào ứng dụng nên không được nằm trong sitemap.
+  grep -q '/dang-ky' <<<"$sitemap" && fail "sitemap.xml còn liệt kê /dang-ky (trang này chuyển hướng)" \
+    || pass "sitemap.xml không liệt kê /dang-ky"
 
   # Khung ứng dụng là trang tĩnh; dữ liệu học nằm trong trình duyệt nên không cần đăng nhập để mở.
   code=$(status /bang-dieu-khien)

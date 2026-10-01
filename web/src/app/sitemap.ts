@@ -7,6 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: base, lastModified: now, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/bang-chu-cai/hiragana`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${base}/bang-chu-cai/katakana`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${base}/dang-ky`, lastModified: now, changeFrequency: "yearly", priority: 0.6 },
+    // [máy chủ — đang tắt] Chế độ cá nhân không có tài khoản: /dang-ky chuyển thẳng vào ứng dụng (docs/LOCAL_MODE.md).
+    // [máy chủ — đang tắt] { url: `${base}/dang-ky`, lastModified: now, changeFrequency: "yearly", priority: 0.6 },
   ];
 }

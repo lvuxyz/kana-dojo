@@ -119,6 +119,7 @@ grep -rn "máy chủ — đang tắt" web/src web/next.config.mjs
 | `app/(app)/bang-xep-hang/page.tsx` | Thay bằng thông báo "đang tạm tắt" | Toàn bộ trang |
 | `app/(app)/ho-so/page.tsx` | Bỏ thẻ hạn mức, nút đăng xuất, email và nhãn gói; thêm nút xoá dữ liệu; `reloadUser()` sau khi lưu | Phần bị bỏ nằm trong comment `{/* … */}` |
 | `components/app/Nav.tsx` | Ẩn mục "Xếp hạng" | Dòng bị comment |
+| `app/sitemap.ts` | Bỏ mục `/dang-ky` (trang này giờ chỉ chuyển hướng vào ứng dụng) | Dòng bị comment |
 | `app/page.tsx` (landing) | Ẩn nút/link "Đăng nhập", "Đăng ký"; "Tạo tài khoản miễn phí" → "Bắt đầu học ngay"; thêm link "Vào ứng dụng" | Phần bị bỏ nằm trong comment |
 
 Không đổi: các trang `/luyen-viet`, `/on-tap`, `/tu-vung`, `/quiz`, `/bang-dieu-khien`, `PracticePanel`, `StrokeStage`, `stroke-match.ts` —
@@ -161,5 +162,5 @@ Dữ liệu trong `localStorage` **không tự chuyển lên máy chủ**: tài 
 | `npm run lint`, `npm run typecheck` | Sạch |
 | `npm run build` | Thành công, 23 trang/route |
 | Chạy thật trên trình duyệt (không có backend) | Dashboard, Ôn tập, Từ vựng, Quiz, Hồ sơ, Xếp hạng (thông báo), `/dang-nhap` → dashboard. Làm xong quiz gõ romaji: 7/8 = 88 điểm, +105 XP, streak 1, level 2, tải lại vẫn còn; **không có request nào tới `/api/`** |
-| `scripts/smoke-test.sh` | Chạy trên bản build standalone (`node server.js`, như image Docker): chế độ `local` 10/10 bước; `SMOKE_MODE=server` đỏ đúng ở bước rewrite khi không có backend; `SMOKE_MODE` sai bị từ chối |
+| `scripts/smoke-test.sh` | Chạy trên bản build standalone (`node server.js`, như image Docker): chế độ `local` 11/11 bước; `SMOKE_MODE=server` đỏ đúng ở bước rewrite khi không có backend; `SMOKE_MODE` sai bị từ chối |
 | Chưa kiểm | Vẽ nét trên canvas rồi nộp qua bộ xử lý cục bộ (luồng ghi bài viết chỉ được test ở mức hàm; phần canvas không đổi); chạy job `docker` trên CI (`docker compose` dựng cả stack) |
