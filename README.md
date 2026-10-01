@@ -7,6 +7,8 @@ kana-dojo/
 ├── docs/
 │   ├── SPEC.md            Đặc tả kỹ thuật — nguồn sự thật cho cả BE và FE
 │   ├── ARCHITECTURE.md    Kiến trúc hệ thống, luồng dữ liệu, quyết định thiết kế
+│   ├── STATUS.md          Hiện trạng: đã làm, đang làm, lỗi đã biết, chưa làm
+│   ├── LOCAL_MODE.md      Web ở chế độ cá nhân: không gọi backend, dữ liệu lưu trong trình duyệt
 │   ├── DEVELOPMENT.md     Hướng dẫn thiết lập môi trường phát triển
 │   ├── DEPLOYMENT.md      Hướng dẫn triển khai production
 │   └── kana-data.json     208 ký tự · 148 glyph, trích từ KanjiVG (CC BY-SA 3.0)
@@ -91,6 +93,9 @@ npm run dev
 ```
 
 Mở <http://localhost:3001> (script `dev` chạy ở cổng 3001).
+
+> **Chế độ cá nhân (tạm thời):** web hiện **không gọi backend/CSDL** — Bước 1 và 2 là tuỳ chọn, tiến độ lưu trong trình duyệt.
+> Xem [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) (gồm cách bật lại máy chủ).
 
 > **Windows:** `start-services.bat` bật cả PostgreSQL portable, backend (JAR đã build) và frontend — điều kiện xem
 > [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#cách-nhanh-trên-windows-start-servicesbat).
@@ -237,6 +242,8 @@ Xem chi tiết các vấn đề đã phát hiện và sửa tại [docs/DEVELOPM
 |---|---|
 | [docs/SPEC.md](docs/SPEC.md) | Đặc tả kỹ thuật đầy đủ — lược đồ DB, API, thuật toán |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Kiến trúc hệ thống, luồng xác thực, quyết định thiết kế |
+| [docs/STATUS.md](docs/STATUS.md) | Hiện trạng dự án: phần đã chạy, các nhánh đang làm, lỗi và sai lệch đã phát hiện |
+| [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) | Web ở chế độ cá nhân (tạm thời): chạy không cần backend, dữ liệu lưu trong trình duyệt, cách bật lại máy chủ |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Thiết lập môi trường dev, gỡ lỗi, quy ước code |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Triển khai production với Docker và Nginx |
 | [archive/legacy-v1/README.md](archive/legacy-v1/README.md) | Giải thích đầy đủ thuật toán chấm nét (arc-length, forward-only) |
