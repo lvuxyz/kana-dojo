@@ -115,7 +115,7 @@ Không có CSDL hay trang quản trị: sửa tệp nội dung rồi build lại
 
 ### Kana
 
-Nguồn là `docs/kana-data.json`, bản dùng thật là `web/src/data/kana-data.json` — hai tệp giống hệt nhau, nếu sửa phải đồng bộ cả hai.
+Chỉ có một bản: `web/src/data/kana-data.json` (bản sao ở `docs/` đã bị xoá để khỏi lệch nhau). Dữ liệu này sinh từ KanjiVG bằng script của bản v1 — xem [SPEC.md §1.1](SPEC.md#11-nguồn-gốc-dữ-liệu-nét) để biết cách lấy lại nếu cần tái sinh.
 Thứ tự trong `chars` là thứ tự dạy học, và mã ký tự là khoá của thẻ ôn nên **không đổi mã ký tự đã có**.
 
 ### Từ vựng

@@ -37,8 +37,9 @@ Nằm trong `web/src/data/`, đóng gói vào bundle lúc build. Muốn đổi n
 
 ### 1.1 Nguồn gốc dữ liệu nét
 
-`kana-data.json` được sinh một lần từ [KanjiVG](http://kanjivg.tagaini.net) (6.763 tệp SVG) bằng `archive/legacy-v1/build_data.py`: lọc 148 glyph kana,
-làm tròn toạ độ, gắn romaji và gợi ý đọc tiếng Việt. Tệp có cùng một bản ở `docs/kana-data.json` và `web/src/data/kana-data.json`.
+`web/src/data/kana-data.json` là bản duy nhất. Nó được sinh một lần từ [KanjiVG](http://kanjivg.tagaini.net) (6.763 tệp SVG) bằng `build_data.py` của bản v1: lọc 148 glyph kana,
+làm tròn toạ độ, gắn romaji và gợi ý đọc tiếng Việt. Script đó **không còn trong cây thư mục** (thư mục `archive/legacy-v1/` đã bị xoá) nhưng vẫn nằm trong lịch sử git:
+`git show ed8ff35:archive/legacy-v1/build_data.py > build_data.py`. Muốn tái sinh dữ liệu hay mở rộng (ví dụ thêm Kanji) thì lấy lại script này và đặt nó cùng bộ KanjiVG đã tải về.
 
 - **Chỉ lưu path `d` của từng nét**, không lưu điểm mẫu. Mỗi nét KanjiVG là *một path đơn tuyến — chính là đường tâm nét*, đúng thứ cần để vẽ hoạt ảnh và so khớp.
   Lúc mở một chữ, trình duyệt lấy 32 điểm cách đều theo độ dài cung bằng `getPointAtLength()` — gọn hơn và chính xác hơn dữ liệu "median" dựng sẵn.

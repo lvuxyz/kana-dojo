@@ -242,7 +242,7 @@ Dữ liệu 208 ký tự (57 KB, ~20 KB gzip) được bundle thẳng vào JS t�
 **Lý do:** dữ liệu này là tĩnh hoàn toàn, nhỏ, và cần ngay khi render trang. Bundle vào tránh một round-trip mạng và loại bỏ điểm thất bại cho nội dung tĩnh.
 Từ vựng, quiz và huy hiệu (`data/*.ts`) cũng vậy.
 
-Nguồn gốc dữ liệu nét (KanjiVG → `build_data.py` → `kana-data.json`), định dạng và cái bẫy `getPointAtLength` với ký tự ghép: xem [SPEC.md §1.1](SPEC.md#11-nguồn-gốc-dữ-liệu-nét).
+Nguồn gốc dữ liệu nét (KanjiVG → `build_data.py` của bản v1, nay chỉ còn trong lịch sử git → `kana-data.json`), định dạng và cái bẫy `getPointAtLength` với ký tự ghép: xem [SPEC.md §1.1](SPEC.md#11-nguồn-gốc-dữ-liệu-nét).
 
 ---
 
@@ -386,7 +386,7 @@ Không React, không I/O, không side effect → unit test hoàn toàn trong Nod
 
 ## Hướng mở rộng
 
-- **Kanji:** engine không biết mình đang vẽ kana. Thêm mã Unicode chữ Hán vào bước sinh dữ liệu (`build_data.py`) là chạy được với 6.763 chữ của KanjiVG.
+- **Kanji:** engine không biết mình đang vẽ kana. Thêm mã Unicode chữ Hán vào bước sinh dữ liệu là chạy được với 6.763 chữ của KanjiVG (script `build_data.py` cũ lấy lại từ lịch sử git — xem [SPEC.md §1.1](SPEC.md#11-nguồn-gốc-dữ-liệu-nét)).
 - **Nét bút lông:** thay phần vẽ mực bằng `perfect-freehand` để nét có độ dày biến thiên theo tốc độ.
 - **Âm thanh thu sẵn:** hiện dùng giọng `ja-JP` của hệ điều hành (`speechSynthesis`); muốn đồng nhất trên mọi máy thì thay bằng tệp audio thu sẵn.
 - **Lưu bền:** gọi `navigator.storage.persist()`, nhắc sao lưu định kỳ (xem [Dữ liệu nằm ở đâu và khi nào mất](#dữ-liệu-nằm-ở-đâu-và-khi-nào-mất)).

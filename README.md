@@ -11,13 +11,11 @@ kana-dojo/
 │   ├── SPEC.md            Đặc tả kỹ thuật — dữ liệu, FSRS, XP/streak/huy hiệu, chấm nét, nhập con trỏ, PWA
 │   ├── ARCHITECTURE.md    Kiến trúc, độ bền dữ liệu, PWA/offline, giao diện, hướng mobile, quyết định thiết kế
 │   ├── DEVELOPMENT.md     Môi trường phát triển, quy ước code, cách kiểm thử (kể cả PWA và cảm ứng)
-│   ├── DEPLOYMENT.md      Đưa site lên mạng: HTTPS, domain, Nginx, CI
-│   └── kana-data.json     208 ký tự · 148 glyph, trích từ KanjiVG (CC BY-SA 3.0)
+│   └── DEPLOYMENT.md      Đưa site lên mạng: HTTPS, domain, Nginx, CI
 ├── web/                   Next.js 15 (xuất bản tĩnh) · TypeScript · Tailwind CSS v4 (+ Dockerfile, nginx.conf, scripts/ dựng service worker)
 ├── docker-compose.yml     Một container Nginx phục vụ bản build tĩnh
 ├── .github/workflows/     CI: lint, typecheck, test, build, rồi smoke test qua Docker
-├── scripts/smoke-test.sh  Kiểm tra nhanh một bản triển khai đang chạy
-└── archive/legacy-v1/     Mã nguồn bản v1 offline một tệp — chỉ lưu trữ; còn dùng `build_data.py` (sinh kana-data.json từ KanjiVG)
+└── scripts/smoke-test.sh  Kiểm tra nhanh một bản triển khai đang chạy
 ```
 
 ---
