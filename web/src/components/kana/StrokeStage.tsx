@@ -2,6 +2,7 @@
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { KANA, VIEW_BOX, strokesOf, type KanaChar } from "@/lib/kana";
+import { createPointerGate, pointerKind } from "@/lib/pointer-gate";
 import {
   PASS_THRESHOLD, dirText, polyLen, posText, scoreStroke,
   type Pt, type StrokeErrorReason,
@@ -83,6 +84,8 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
   const misses = useRef(0);
   const live = useRef<Pt[]>([]);
   const drawing = useRef(false);
+  // Chỉ một con trỏ được viết cùng lúc: ngón thứ hai/lòng bàn tay không được phá nét đang dở.
+  const gate = useRef(createPointerGate());
   const startedAt = useRef(0);
   const raf = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -239,6 +242,7 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
     misses.current = 0;
     live.current = [];
     drawing.current = false;
+    gate.current.reset();
     startedAt.current = performance.now();
     setCompare(false);
     setPeeking(false);
@@ -379,17 +383,20 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
 
   const onDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (si.current >= strokes.current.length) return;
+    const verdict = gate.current.down({ id: e.pointerId, kind: pointerKind(e.pointerType), button: e.button });
+    if (verdict === "ignore") return;
     e.preventDefault();
     stopAnim();
     readColors();
     drawing.current = true;
     live.current = [toStage(e)];
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // Có thể ném lỗi nếu con trỏ đã rời trước khi handler chạy; nét vẫn viết được mà không cần bắt con trỏ.
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* con trỏ không còn hoạt động */ }
     repaint();
   };
 
   const onMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!drawing.current) return;
+    if (!drawing.current || !gate.current.move(e.pointerId)) return;
     e.preventDefault();
     const p = toStage(e);
     const last = live.current[live.current.length - 1];
@@ -400,12 +407,22 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
   };
 
   const onUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!drawing.current) return;
+    if (!gate.current.up(e.pointerId)) return;
     drawing.current = false;
     const p = live.current;
     live.current = [];
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* con trỏ đã rời */ }
     judge(p);
+  };
+
+  /** Hệ điều hành giành lại cử chỉ (cuộn, vuốt từ mép, cuộc gọi đến…) hoặc mất quyền bắt con trỏ: người học
+   *  KHÔNG chủ động nhấc tay, nên nét dở dang bị bỏ chứ không đem đi chấm. */
+  const onAbort = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!gate.current.cancel(e.pointerId)) return;
+    drawing.current = false;
+    live.current = [];
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* đã nhả */ }
+    repaint();
   };
 
   useImperativeHandle(ref, () => ({
@@ -472,7 +489,8 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
-        onPointerCancel={onUp}
+        onPointerCancel={onAbort}
+        onLostPointerCapture={onAbort}
       />
     </div>
   );
