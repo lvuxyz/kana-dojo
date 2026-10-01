@@ -25,6 +25,7 @@ Kana Dōjō là một **site tĩnh**: không máy chủ ứng dụng, không cơ
 ```
 
 Không có lời gọi API nào: trình duyệt chỉ tải tệp tĩnh (HTML/JS/CSS, bản prefetch các trang kế tiếp của Next, và font từ Google Fonts).
+Site còn là **PWA**: cài được ra màn hình chính và, nhờ service worker tải sẵn toàn bộ tệp, chạy được khi không có mạng (xem [PWA và offline](#pwa-và-offline)).
 
 **Vì sao bỏ máy chủ:** mọi thứ máy chủ từng làm hoặc là dữ liệu tĩnh (kana, từ vựng, quiz, huy hiệu), hoặc là tính toán thuần tuý trên
 tiến độ của *một* người (FSRS, XP, streak, chấm quiz). Chỉ có bảng xếp hạng thực sự cần dữ liệu chung giữa nhiều người — và đó là tính năng bị bỏ.
@@ -42,6 +43,8 @@ Kết quả: không có gì để vận hành, bảo mật, sao lưu hay trả t
 - `luyen-viet` dùng `useSearchParams` (để nhận `?c=あ`) nên được bọc `<Suspense>` — yêu cầu của xuất bản tĩnh.
 - Các trang nội dung công khai (`bang-chu-cai`, `luyen-viet`, `tu-vung`, `quiz`) có metadata + canonical và nằm trong `sitemap.xml`;
   ba trang chỉ hiện tiến độ cá nhân bị `noindex` và `Disallow` trong `robots.txt`.
+- `npm run build` = `next build` rồi `node scripts/build-sw.mjs`: bước sau sinh `out/sw.js` từ danh sách tệp thật của bản build. `app/manifest.ts` và `app/apple-icon.png`
+  được Next xuất thành `manifest.webmanifest` và `apple-icon.png` (route metadata cần `export const dynamic = "force-static"`).
 
 ---
 
@@ -88,6 +91,41 @@ Mỗi thao tác học **sao chép trạng thái, sửa bản sao, rồi trả `{
 Mọi phép tính "ngày" (mục tiêu XP, streak, hạn mức thẻ mới, hồi thẻ băng, "cú đêm") dùng **múi giờ của thiết bị** qua `Intl.DateTimeFormat`
 (`time.ts`). Người học ở Việt Nam kết thúc ngày lúc 00:00 giờ VN; người học ở nơi khác theo giờ của họ. Các hàm nhận một `Clock { now, zone }`
 nên test đặt được giờ và múi giờ giả.
+
+---
+
+## Dữ liệu nằm ở đâu và khi nào mất
+
+Tiến độ sống trong kho của **trình duyệt trên từng máy**, gắn với *origin* (giao thức + domain + cổng), không gắn với người dùng. Phần này ghi lại những gì đã nghiên cứu và đo được,
+để quyết định về lưu trữ và mobile dựa trên số liệu chứ không phải phỏng đoán.
+
+**Kích thước và chi phí** (đo trên kịch bản xấu nhất: học hết 576 thẻ có thể có + 5 năm hoạt động hằng ngày):
+
+| Đại lượng | Giá trị |
+|---|---|
+| Kích thước khối JSON | ≈ 290 KB — khoảng 11% mức 5 MiB mà tài liệu nêu cho `localStorage` (tính 2 byte/ký tự) |
+| Mỗi thẻ / mỗi ngày | ≈ 234 / 67 byte |
+| `JSON.stringify` / nạp + kiểm tra zod | ≈ 5 ms / ≈ 15 ms |
+| Một thao tác học đầy đủ (sao chép + FSRS + XP + huy hiệu) | ≈ 8 ms |
+
+→ `localStorage` đủ dùng cả ở kịch bản xấu nhất; **chưa cần IndexedDB** (nó không giúp chống mất dữ liệu, chỉ thêm chỗ chứa). Lưu ý: trình duyệt nhúng trong app phát triển cho phép tới ≈ 100 MB
+nên không đại diện — luôn thiết kế theo mốc 5 MiB.
+
+**Khi nào mất dữ liệu** (nguồn: MDN, WebKit, Capacitor — xem cuối tài liệu):
+
+| Tình huống | Chuyện gì xảy ra | Ứng dụng đang làm gì |
+|---|---|---|
+| Người dùng xoá dữ liệu trang web | Mất hết | Sao lưu/khôi phục bằng tệp JSON ở `/cai-dat` |
+| Cửa sổ riêng tư / ẩn danh | Ghi vẫn được nhưng xoá khi đóng — **không phát hiện được** (banner chỉ báo khi *ghi thất bại*) | Chưa có cảnh báo riêng |
+| **Safari (iPhone/Mac), tab thường** | Script-writable storage (`localStorage`, IndexedDB…) bị xoá sau **7 ngày không có click/chạm/gõ phím** trên site | Cài ra Màn hình chính — bản đã cài được miễn trừ |
+| Máy sắp hết dung lượng | Dữ liệu "best-effort" bị xoá theo LRU; dữ liệu đã xin lưu bền (`navigator.storage.persist()`) thì được tha | **Chưa gọi `persist()`.** Chrome/Safari tự quyết theo mức tương tác (đo thực tế: origin mới bị từ chối), Firefox hỏi người dùng |
+| Đổi domain, `http`↔`https`, `www`↔không `www`, đổi cổng | Mỗi origin có kho riêng → mở ra rỗng | Chỉ là quy ước triển khai: chốt một domain chính và redirect (xem [DEPLOYMENT.md](DEPLOYMENT.md)) |
+| iOS: bản đã cài vs Safari | **Kho tách biệt hoàn toàn** (localStorage, IndexedDB, service worker, cache) → bản đã cài mở ra rỗng | Thẻ cài đặt ở `/cai-dat` cảnh báo và hướng dẫn tải về → khôi phục |
+| Origin dùng chung (`<user>.github.io/<repo>`) | Mọi repo của cùng tài khoản chia sẻ một kho; một dự án khác có thể xoá `localStorage` | Khoá có tiền tố `kd.`; nên dùng domain riêng |
+
+`navigator.storage` (và vì thế `persist()`/`estimate()`) chỉ có ở **ngữ cảnh an toàn** (HTTPS hoặc `localhost`). Bản triển khai thật phải là HTTPS — vừa để cài PWA, vừa để xin lưu bền.
+
+**Việc có thể làm tiếp:** gọi `persist()` sau lần học đầu; hiện trạng "đã bảo vệ / chưa" và dung lượng đã dùng ở Cài đặt; nhắc sao lưu khi đã lâu chưa tải tệp (hữu ích nhất cho Safari 7 ngày).
 
 ---
 
@@ -138,6 +176,11 @@ nên test đặt được giờ và múi giờ giả.
               recordWritingAttempt({ character, avgScore,
                                      strokeErrors, durationMs })
 ```
+
+### Cổng con trỏ
+
+Mọi sự kiện con trỏ của canvas đi qua `lib/pointer-gate.ts` trước khi tới `judge`: tại mỗi thời điểm chỉ một con trỏ được viết. Ngón thứ hai/lòng bàn tay chạm giữa nét bị bỏ qua, bút thắng cảm ứng đang viết dở,
+và `pointercancel` **bỏ** nét dở thay vì chấm. Bảng quy tắc đầy đủ ở [SPEC.md §7](SPEC.md#7-nhập-liệu-bằng-con-trỏ). Công thức chấm điểm ở [SPEC.md §6](SPEC.md#6-chấm-điểm-nét-viết).
 
 ### Chuyển điểm → grade FSRS
 
@@ -199,6 +242,8 @@ Dữ liệu 208 ký tự (57 KB, ~20 KB gzip) được bundle thẳng vào JS t�
 **Lý do:** dữ liệu này là tĩnh hoàn toàn, nhỏ, và cần ngay khi render trang. Bundle vào tránh một round-trip mạng và loại bỏ điểm thất bại cho nội dung tĩnh.
 Từ vựng, quiz và huy hiệu (`data/*.ts`) cũng vậy.
 
+Nguồn gốc dữ liệu nét (KanjiVG → `build_data.py` → `kana-data.json`), định dạng và cái bẫy `getPointAtLength` với ký tự ghép: xem [SPEC.md §1.1](SPEC.md#11-nguồn-gốc-dữ-liệu-nét).
+
 ---
 
 ## Gamification
@@ -219,6 +264,71 @@ Level = floor(sqrt(xp_tổng / 100)) + 1
 
 **Streak freeze:** tối đa 2 lần dự trữ, hồi đầy mỗi Thứ Hai (theo giờ thiết bị). Tính lười khi đọc/ghi: so khoá tuần của lần hồi gần nhất với tuần hiện tại,
 nên không cần tác vụ nền.
+
+---
+
+## PWA và offline
+
+Site cài được ra màn hình chính và chạy offline. Chi tiết quy tắc (manifest, precache, vòng đời) ở [SPEC.md §8](SPEC.md#8-pwa-và-chế-độ-offline); đây là lý do thiết kế.
+
+**Precache toàn bộ thay vì cache theo yêu cầu.** Toàn site chỉ 73 tệp (≈ 2,4 MB chưa nén). Tải sẵn tất cả lúc cài service worker cho ba điều: (1) điều hướng phía client của Next tới một trang *chưa từng mở*
+vẫn có đủ chunk JS khi offline; (2) HTML và JS của một phiên luôn cùng một bản build, không bao giờ lẫn bản cũ với bản mới; (3) logic service worker đơn giản — "có trong cache thì trả, không thì đi mạng".
+
+**Không `skipWaiting()`.** Bản mới cài ở nền nhưng chỉ có hiệu lực khi mọi tab của bản cũ đã đóng. Nếu kích hoạt ngay, tab đang mở (HTML cũ) sẽ bị rút cache cũ giữa chừng và tải chunk của bản mới không khớp. Đổi lại,
+người để ứng dụng mở nhiều ngày sẽ chậm nhận bản mới.
+
+**Không liên quan tới tiến độ.** Cache chỉ chứa tệp tĩnh; tiến độ nằm trong `localStorage`. Xoá cache không mất dữ liệu học.
+
+**Giới hạn đã biết:** lần mở đầu tiên phải có mạng; font Google không được cache (offline dùng font hệ thống); iOS tách kho dữ liệu của bản đã cài khỏi Safari (xem bảng ở trên). Vòng đời service worker chưa được kiểm trong
+trình duyệt thật — môi trường phát triển (trình duyệt nhúng của app) không cho đăng ký service worker, kể cả một tệp một dòng; logic được kiểm bằng test Node, và smoke test trong CI kiểm mọi URL precache trả 200.
+
+---
+
+## Giao diện
+
+Ý tưởng hình ảnh lấy từ **giấy ô vuông tập viết Nhật (原稿用紙, genkō yōshi)**: học sinh viết *mực đen* trên *lưới in xanh*, thầy cô phê và đóng dấu bằng *mực đỏ* — nên người dùng đọc được ngữ nghĩa màu mà không cần chú giải.
+
+| Token (`globals.css`) | Giá trị sáng | Vai trò |
+|---|---|---|
+| `--paper` / `--paper-sunk` / `--surface` | `#faf8f5` / `#f2eee6` / `#ffffff` | Giấy, nền chìm, thẻ |
+| `--sumi` (`-2`, `-3`) | `#151a17` (`#3f4a42`, `#6b776e`) | Mực viết 墨 — nét người dùng viết, chữ, nút chính |
+| `--genko` (`-2`) | `#1b5e3b` (`#2d8254`) | Mực in lưới — khung ô, đường chữ thập/chéo, nhãn hàng, trạng thái đúng |
+| `--shu` (`-2`) | `#cf2f1d` (`#aa2011`) | Chu sa 朱 — nét đang tới lượt, lời phê khi sai, con dấu 済, thanh tiến độ |
+| `--gold` | `#b07d14` | Cấp độ, huy hiệu, chấm nhắc đến hạn ôn |
+| `--rule` / `--rule-firm` | `#e6e3da` / `#cfcbc0` | Đường kẻ |
+
+Mọi màu là CSS custom property ở `:root`, định nghĩa lại cho `@media (prefers-color-scheme: dark)` và `[data-theme="dark"]` nên cả ba trạng thái (sáng / tối / theo hệ thống) đều đúng. Lựa chọn của người dùng nằm ở
+`kd.theme`; một script nội tuyến trong `<head>` đặt `data-theme` trước khi vẽ khung hình đầu tiên để không chớp sáng.
+
+**Chữ:** `--font-sans` Plus Jakarta Sans → Zen Kaku Gothic New → Noto Sans JP (giao diện); `--font-mincho` Lora → Zen Old Mincho → Hiragino/Yu Mincho/Noto Serif JP (tiêu đề, chữ kana);
+`--font-japanese` Zen Old Mincho. Tải từ Google Fonts (`display=swap`, Google dùng `unicode-range` nên chỉ tải đúng phần chữ trang cần), có đủ fallback — font không tải được thì trang vẫn đúng bằng font hệ thống.
+
+**Nguyên tắc bố cục:**
+
+- **Bảng chữ đọc như bảng, không phải lưới thẻ.** Cột thẳng hàng giữa các hàng; や行 và わ行 giữ nguyên **ô trống** ở vị trí các âm không tồn tại — cấu trúc bảng tự nó truyền đạt thông tin.
+- **Trạng thái mã hoá bằng hình, không chỉ bằng số:** viền xanh = đang học, con dấu 済 đỏ = đã qua bước học, chấm vàng = đến hạn ôn, thanh nhỏ dưới ô = điểm tốt nhất. Nhìn lướt là biết còn chữ nào chưa động tới.
+- **Khu tập viết là modal:** desktop chia 2 cột (khung viết | bảng điều khiển), dưới `lg` xếp dọc toàn màn hình — ngón tay cần khung viết lớn nhất có thể. Trên điện thoại thanh điều hướng nằm dưới cùng (6 mục, có Cài đặt vì đó là nơi sao lưu).
+- Canvas nhân theo `devicePixelRatio` → nét sắc trên màn Retina; xử lý cảm ứng/bút xem [SPEC.md §7](SPEC.md#7-nhập-liệu-bằng-con-trỏ).
+
+---
+
+## Hướng mobile
+
+*Định hướng, chưa triển khai.* Đã làm: PWA (cài được, offline) và sửa đa điểm chạm — cả hai có ích cho mọi phương án phía sau.
+
+**Hợp đồng dùng chung giữa các nền tảng** là khối `ProgressState` v1 (SPEC §2): tệp sao lưu của web nhập thẳng được vào app mobile nếu app đọc/ghi đúng định dạng này — không cần cơ chế đồng bộ hay tài khoản.
+Quy tắc: mọi thay đổi định dạng tăng `STATE_VERSION` ở cả hai phía và có migrate; mỗi nền tảng phải qua cùng bộ fixture "đầu vào → đầu ra" sinh từ test của web.
+
+| Hướng | Tái dùng | Rủi ro chính |
+|---|---|---|
+| PWA (đã làm) | 100% | Chưa có mặt trên kho ứng dụng; iOS tách kho dữ liệu của bản đã cài |
+| Capacitor (bọc bản static) | ~100% | `localStorage`/IndexedDB trong WebView **có thể bị hệ điều hành thu hồi** — phải chuyển sang Preferences/SQLite; Apple 4.2.2 loại app chỉ là "web clipping" nên cần tính năng native thật |
+| Expo / React Native | Engine TS (≈ 1.100 dòng + ≈ 1.070 dòng test) dùng chung; UI viết lại (≈ 2.100 dòng) | Canvas viết nét và `getPointAtLength` ngoài DOM cần thư viện (`react-native-svg`, `svg-path-properties`) |
+| Flutter | Port engine sang Dart + UI viết lại | Hai bản engine dễ lệch — bắt buộc có fixture chung. `path_drawing` có `parseSvgPathData` đọc thẳng path của `kana-data.json` |
+
+Dữ kiện nền tảng: Android Auto Backup mặc định bật từ API 23, tối đa 25 MB, khôi phục khi cài lại (nên bản native bền hơn web); iOS dùng `UserDefaults` phải khai báo lý do trong Privacy Manifest, thiếu là bị từ chối;
+build iOS cần macOS + Xcode (không build được trên Windows); tài khoản Google Play cá nhân tạo sau 13/11/2023 phải chạy closed test với 12 tester liên tục 14 ngày trước khi lên production;
+mô hình không tài khoản khớp guideline 5.1.1(v) của Apple.
 
 ---
 
@@ -249,6 +359,42 @@ Lấy mẫu theo thời gian → người vẽ chậm có nhiều điểm ở đ
 
 Lấy `min()` sẽ chấp nhận nét vẽ ngược chiều — điều này sai về mặt sư phạm (học viên phải học đúng thứ tự nét theo quy tắc kanji). Chỉ so khớp chiều xuôi đảm bảo nét ngược chiều bị phạt đúng mức.
 
+### Một con trỏ mỗi lần viết
+
+Khung viết từng nhận mọi `pointerdown` như thể chỉ có một ngón: ngón/lòng bàn tay thứ hai ghi đè nét đang viết, điểm của hai con trỏ bị trộn, `pointercancel` bị chấm như một nét hoàn chỉnh. Cổng con trỏ là một máy trạng thái
+thuần (`pointer-gate.ts`) nên test được trong Node và dùng lại được cho mọi giao diện nhận con trỏ.
+
+### Chọn KanjiVG + tự chấm điểm, không dùng thư viện nhận dạng
+
+| Phương án | Đánh giá |
+|---|---|
+| **Hanzi-Writer** | Thư viện tốt, nhưng dữ liệu (Make Me A Hanzi) sinh từ **font chữ Hán**, không phủ Kana và thứ tự nét Trung ≠ Nhật ở nhiều chữ. Muốn dùng cho Kana phải tự sinh lại dữ liệu — tức là vẫn quay về KanjiVG |
+| **KanjiVG + tự render** ✅ | Nguồn thứ tự nét chuẩn cho tiếng Nhật, còn được bảo trì; mỗi nét là một path đơn tuyến = đường tâm nét; không phụ thuộc runtime. Đổi lại phải tự viết bộ chấm (`stroke-match.ts`, ~100 dòng) |
+| `svg-path-properties` | Chỉ cần khi tính độ dài / điểm trên path **ngoài DOM** (React Native, render phía server). Trên web `getTotalLength()` / `getPointAtLength()` của trình duyệt đã làm sẵn |
+| `perfect-freehand` | Không giải quyết nhận dạng, nhưng đáng thêm nếu muốn nét vẽ có độ dày biến thiên theo tốc độ/lực bút |
+| `$1` / `$P` | **Không nên dùng:** bất biến với phép xoay và tỉ lệ, trong khi tập viết thì vị trí và kích thước nét chính là thứ cần chấm |
+
+### Precache toàn bộ, không cache theo yêu cầu
+
+Xem [PWA và offline](#pwa-và-offline): site nhỏ, nên tải sẵn tất cả để HTML và JS luôn cùng một bản build và điều hướng offline không bao giờ thiếu chunk.
+
 ### FSRS là module thuần hàm
 
 Không React, không I/O, không side effect → unit test hoàn toàn trong Node (`fsrs.test.ts`).
+
+---
+
+## Hướng mở rộng
+
+- **Kanji:** engine không biết mình đang vẽ kana. Thêm mã Unicode chữ Hán vào bước sinh dữ liệu (`build_data.py`) là chạy được với 6.763 chữ của KanjiVG.
+- **Nét bút lông:** thay phần vẽ mực bằng `perfect-freehand` để nét có độ dày biến thiên theo tốc độ.
+- **Âm thanh thu sẵn:** hiện dùng giọng `ja-JP` của hệ điều hành (`speechSynthesis`); muốn đồng nhất trên mọi máy thì thay bằng tệp audio thu sẵn.
+- **Lưu bền:** gọi `navigator.storage.persist()`, nhắc sao lưu định kỳ (xem [Dữ liệu nằm ở đâu và khi nào mất](#dữ-liệu-nằm-ở-đâu-và-khi-nào-mất)).
+
+## Nguồn tham khảo
+
+- [MDN — Storage quotas and eviction criteria](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria)
+- [WebKit — Tracking Prevention (7-day cap, Home Screen web apps)](https://webkit.org/tracking-prevention/)
+- [Capacitor — Storage guide](https://capacitorjs.com/docs/guides/storage)
+- [Android — Auto Backup](https://developer.android.com/identity/data/autobackup)
+- [MDN — Making PWAs installable](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)

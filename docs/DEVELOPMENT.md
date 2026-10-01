@@ -32,9 +32,14 @@ hoặc bằng nút *Xoá toàn bộ tiến độ* ở `/cai-dat`.
 `next dev` khác bản xuất bản tĩnh ở vài điểm (không có prerender, không kiểm tra `generateStaticParams`), nên trước khi mở PR nên chạy thử:
 
 ```bash
-npm run build           # ghi site tĩnh vào out/
+npm run build           # next build + sinh out/sw.js (service worker) — ghi site tĩnh vào out/
 npx serve out           # máy chủ tệp tĩnh bất kỳ; serve hỗ trợ /luyen-viet → luyen-viet.html
 ```
+
+Service worker chỉ được đăng ký ở **bản production** (và chỉ trên HTTPS hoặc `localhost`). `npm run dev` thì ngược lại: nó tự **gỡ** mọi service worker còn sót lại từ lần bạn xem thử bản build
+trên cùng origin, nếu không cache cũ sẽ che mất mọi thay đổi bạn đang sửa. Nếu vẫn thấy bản cũ: DevTools → Application → Service Workers → *Unregister*, và Cache Storage → xoá các cache `kd-*`.
+
+> Dùng cổng khác khi `3001` đã bận: `npx next dev -p 3011`. Mỗi worktree/phiên làm việc có thể đang giữ cổng riêng của nó — `EADDRINUSE` nghĩa là server bạn thấy ở `localhost:3001` **không phải** bản bạn vừa sửa.
 
 Hoặc dựng đúng container production: `docker compose up -d --build --wait` ở thư mục gốc rồi `bash scripts/smoke-test.sh`.
 
@@ -69,6 +74,10 @@ Unit test đặt cạnh mã nguồn, tên `*.test.ts`, chạy trong môi trườ
 | `lib/vocabulary.test.ts` | Trang Từ vựng hiện đủ 70 từ N5 (không cắt ở 60), tìm không dấu, tìm theo cách đọc/romaji/nghĩa |
 | `lib/learning/quiz.test.ts` | Chấm quiz + tính toàn vẹn nội dung đóng gói (id, đáp án nằm trong options) |
 | `lib/learning/store.test.ts` | `localStorage` giả: lưu/nạp lại, dữ liệu hỏng, trình duyệt chặn ghi, đồng bộ tab, xuất/nhập/xoá |
+| `lib/pointer-gate.test.ts` | Cổng con trỏ: ngón thứ hai bị bỏ qua, bút thắng cảm ứng, `pointercancel` bỏ nét dở, chuột phải bị bỏ qua, `up` thất lạc không gây kẹt |
+| `lib/pwa.test.ts` | Nhận diện ngữ cảnh cài đặt: đã cài / iPhone-iPad-iPadOS / còn lại |
+| `scripts/build-sw.test.mjs` | Trình dựng service worker: ánh xạ tệp → URL (`encodeURI`, `[id]` → `%5Bid%5D`), loại `404.html`, mã phiên bản băm theo nội dung |
+| `scripts/sw.test.mjs` | **Mã thật** của `sw.template.js` chạy trong Node với Cache API và `fetch` giả: precache, install thất bại khi có URL không 200, dọn cache cũ, phục vụ từ cache (kể cả `?query`, dấu `/` cuối, RSC, `%5Bid%5D`), offline, không can thiệp POST/khác origin/`/sw.js`, cập nhật phiên bản |
 
 `next build` **không** chạy lint (`eslint.ignoreDuringBuilds`) vì lint đã có lệnh riêng; `next lint` đã bị khai tử từ Next 15.5.
 
@@ -93,6 +102,9 @@ const { state, result } = recordWriting(emptyState(), { character: "あ", avgSco
 - **Hiển thị theo `type`, không so khớp chuỗi tự do:** `ItemType`, `CardState`, `Grade` định nghĩa ở `lib/types.ts`.
 - **Xuất bản tĩnh:** trang động (`[id]`) phải có `generateStaticParams` + `dynamicParams = false`; `useSearchParams` phải nằm trong `<Suspense>`; `robots.ts`/`sitemap.ts` cần `export const dynamic = "force-static"`; không dùng route handler hay `rewrites()`.
 - **Trang cá nhân hoá** (`bang-dieu-khien`, `on-tap`, `cai-dat`) là client component và `noindex`. Trang nội dung công khai nên là server component có `metadata` + canonical.
+- **Nhận con trỏ qua cổng:** mọi thao tác viết bằng chuột/cảm ứng/bút phải đi qua `createPointerGate()` (`lib/pointer-gate.ts`), kiểm `pointerId` ở `move`/`up`, và coi `pointercancel`/`lostpointercapture` là *bỏ* nét chứ không phải *hoàn tất*. `setPointerCapture` luôn bọc `try/catch`.
+- **Service worker:** sửa `scripts/sw.template.js`, không bao giờ sửa `out/sw.js` (sinh lại sau mỗi build). URL precache phải đúng dạng trình duyệt yêu cầu (`encodeURI`), và **mọi URL trong danh sách phải trả 200** từ Nginx — nếu không `cache.addAll` làm hỏng cả lần cài đặt.
+  Thêm tệp không nên precache (ví dụ trang chỉ Nginx phục vụ nội bộ như `404.html`) thì thêm vào `EXCLUDED` ở `scripts/build-sw.mjs` kèm test.
 - **Naming:** component file = PascalCase, utility file = camelCase, route folder = tiếng Việt (theo codebase).
 
 ---
@@ -136,6 +148,23 @@ Thêm định nghĩa vào `web/src/data/badges.ts` **và** điều kiện trao v
 ### `useSearchParams() should be wrapped in a suspense boundary`
 
 **Nguyên nhân:** xuất bản tĩnh buộc phần dùng `useSearchParams` nằm trong `<Suspense>`. Xem `app/(app)/luyen-viet/page.tsx`.
+
+### Bản deploy mới không hiện / dev server hiện bản cũ
+
+**Nguyên nhân:** service worker còn sót phục vụ từ cache. Ở production bản mới chỉ có hiệu lực khi mọi tab của bản cũ đã đóng (cố ý — xem [ARCHITECTURE.md](ARCHITECTURE.md#pwa-và-offline)); ở dev, `ServiceWorkerRegister` tự gỡ service worker nhưng cần tải lại trang một lần. Gỡ tay: DevTools → Application → Service Workers → *Unregister*.
+
+### Smoke test báo "thiếu nội dung" dù trang đúng
+
+**Nguyên nhân:** dưới `set -o pipefail`, `printf "$body" | grep -q …` làm `grep` thoát ngay khi khớp, bên ghi nhận SIGPIPE (exit 141) và cả pipeline bị coi là lỗi — chỉ xảy ra khi nội dung lớn (trang chủ ≈ 94 KB) và không xảy ra trên Git Bash của Windows. Đọc nội dung vào biến rồi so khớp bằng `[[ … ]]`/`=~`;
+dùng `curl -g` khi URL có `[` `]` để curl không coi chúng là dải ký tự. Ghi chú nằm ở đầu `scripts/smoke-test.sh`.
+
+### Service worker không cài được (app không offline) dù build xanh
+
+**Nguyên nhân thường gặp:** có một URL trong precache không trả 200 (ví dụ `404.html` — Nginx chỉ phục vụ nội bộ) hoặc khoá cache sai dạng mã hoá (`[id]` thay vì `%5Bid%5D`). `scripts/smoke-test.sh` kiểm từng URL của precache; chạy nó trên bản triển khai thật.
+
+### Trình duyệt nhúng trong app (hoặc môi trường không cho đăng ký service worker)
+
+Báo `Failed to register a ServiceWorker … An unknown error occurred when fetching the script` ngay cả với tệp một dòng — giới hạn của môi trường chứ không phải của mã. Kiểm service worker bằng Chrome/Edge/Firefox thường trên `localhost` (xem "PWA và offline" bên dưới).
 
 ### `next@15.1.6` có lỗ hổng RCE
 
@@ -208,3 +237,27 @@ Mở DevTools → Application → Local Storage → khoá `kd.progress.v1` để
 
 Chặn dữ liệu trang web trong cài đặt trình duyệt (hoặc dùng cửa sổ riêng tư ở trình duyệt chặn `localStorage`): khung ứng dụng hiện cảnh báo vàng
 và vẫn học được trong phiên.
+
+### Đa điểm chạm và bút
+
+Trên thiết bị thật (hoặc DevTools → chế độ thiết bị, đặt loại con trỏ là cảm ứng):
+
+1. Mở `/luyen-viet?c=あ`, đặt một ngón viết nét 1 và **chạm thêm ngón thứ hai** vào ô giữa chừng: nét vẫn được chấm ("Đẹp! Sang nét số 2"), không bị ghi đè.
+2. Để lòng bàn tay chạm xuống rồi viết bằng bút: bút phải thắng.
+3. Kéo từ mép màn hình (cử chỉ hệ thống) giữa nét: nét dở bị bỏ, không có điểm và không có thông báo lỗi.
+
+Kiểm tự động không dựng được thiết bị thật; có thể bắn `PointerEvent` có `pointerId`/`pointerType` khác nhau vào `canvas` trong DevTools để tái hiện (xem test `lib/pointer-gate.test.ts` cho các tổ hợp cần phủ).
+
+### PWA và offline
+
+1. `npm run build && npx serve out` rồi mở địa chỉ `serve` in ra (thường là `http://localhost:3000`) bằng Chrome/Edge. DevTools → Application → **Manifest**: không có cảnh báo; **Service Workers**: trạng thái *activated and running*; **Cache Storage**: một cache `kd-<hex>` với đủ tệp (73 ở thời điểm viết).
+2. Tải lại một lần để trang được service worker kiểm soát, rồi *Network → Offline* (hoặc tắt hẳn server) và tải lại `/`, `/luyen-viet`, `/quiz/1`, `/bang-chu-cai/hiragana`: tất cả phải mở được. Viết thử một chữ khi offline — tiến độ vẫn lưu.
+3. Nút cài ở thanh địa chỉ Chrome (hoặc thẻ "Cài ra màn hình chính" ở `/cai-dat`) → ứng dụng mở không có thanh địa chỉ, bắt đầu ở `/bang-dieu-khien`.
+4. iPhone/iPad: Safari → Chia sẻ → *Thêm vào Màn hình chính*. **Mở lần đầu sẽ thấy tiến độ trống** (kho tách biệt với Safari) — dùng Tải tiến độ về / Khôi phục từ tệp để chuyển sang.
+5. Triển khai bản mới rồi tải lại: bản cũ vẫn chạy cho tới khi đóng hết tab, mở lại mới thấy bản mới.
+
+### Icon PWA
+
+`web/public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` và `web/src/app/apple-icon.png` (180×180) là ảnh tĩnh, vẽ lại đúng biểu tượng của `app/icon.svg` (chữ 仮 trắng trên nền `#C33C2B`):
+bản `any` bo góc 12,5%, bản `maskable` tràn nền với chữ nằm trong vùng an toàn giữa (≈ 50% cạnh), bản Apple nền đặc không bo góc (iOS tự bo; nền trong suốt sẽ thành đen). Đổi thương hiệu thì vẽ lại cả bốn tệp
+(ví dụ bằng `canvas.toBlob` trong trình duyệt) — `app/manifest.ts` và `scripts/smoke-test.sh` đã tham chiếu đúng các đường dẫn này.

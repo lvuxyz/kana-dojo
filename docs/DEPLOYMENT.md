@@ -49,6 +49,8 @@ Compose báo lỗi ngay (trước khi build) nếu thiếu `SITE_URL`.
 - `try_files $uri $uri.html $uri/ =404` — Next xuất `/luyen-viet` thành `luyen-viet.html`, `/quiz/1` thành `quiz/1.html`.
 - HTML: `Cache-Control: no-cache` (luôn hỏi lại, trả 304 nếu không đổi) để bản deploy mới có hiệu lực ngay.
 - `/_next/static/*`: cache 1 năm — tên tệp chứa mã băm nội dung nên an toàn.
+- `/sw.js`: **không** cache lâu (`no-cache`) — trình duyệt phải thấy bản mới ngay sau mỗi lần deploy thì mới cập nhật được cache offline. Nằm dưới `location /` nên mặc định đã đúng; khai báo riêng để ý đồ không bị vô tình sửa mất.
+- `/manifest.webmanifest`: `Content-Type: application/manifest+json` (đặt `default_type` phòng khi `mime.types` của bản Nginx chưa có đuôi này) và `no-cache`.
 - 404 dùng trang `404.html` của site (`app/not-found.tsx`).
 - Header an toàn: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`. **Không** đặt HSTS ở đây (container chỉ nói HTTP) — để Nginx/CDN phía trước đặt.
 
@@ -64,8 +66,9 @@ Compose báo lỗi ngay (trước khi build) nếu thiếu `SITE_URL`.
 | `docker` | Sau khi `web` xanh: `docker compose up --build --wait`, chạy `scripts/smoke-test.sh`, in log nếu lỗi |
 
 `scripts/smoke-test.sh` (chỉ cần `bash` và `curl`) kiểm tra: mọi trang chính trả 200 và có nội dung thật trong HTML; `robots.txt` và `sitemap.xml`;
+**PWA** — `manifest.webmanifest` hợp lệ, bốn icon tải được, `sw.js` được sinh đúng, và **mọi URL trong danh sách precache của `sw.js` đều trả 200** (chỉ cần một URL sai là service worker không cài được);
 đường dẫn lạ và `/quiz/999` trả **404** thật; các đường dẫn của bản cũ (`/dang-nhap`, `/api/v1/…`…) đã biến mất; và — nhắm vào `nginx.conf` —
-header `nosniff` cùng cache dài hạn cho tệp có mã băm. Dùng được cho bản triển khai thật sau mỗi lần deploy.
+`nosniff`, cache dài hạn cho tệp có mã băm, `sw.js` là `no-cache`, manifest đúng `Content-Type`. Dùng được cho bản triển khai thật sau mỗi lần deploy.
 
 ---
 
@@ -108,6 +111,21 @@ systemctl status certbot.timer        # tự gia hạn
 
 ---
 
+## PWA: HTTPS, domain và cập nhật
+
+Site cài được ra màn hình chính và chạy offline (xem [ARCHITECTURE.md](ARCHITECTURE.md#pwa-và-offline) và [SPEC.md §8](SPEC.md#8-pwa-và-chế-độ-offline)). Những điều ảnh hưởng tới cách triển khai:
+
+- **HTTPS là bắt buộc** (trừ `localhost`): trình duyệt chỉ đăng ký service worker, cho cài đặt và cung cấp `navigator.storage` trong ngữ cảnh an toàn. Trên `http://` thường site vẫn chạy bình thường nhưng không có offline hay cài đặt.
+- **Chốt một domain chính và redirect mọi biến thể về nó** (`http`→`https`, `www`↔không `www`). Tiến độ học của người dùng nằm trong `localStorage` gắn với *origin*; mỗi biến thể là một kho riêng, và **đổi domain nghĩa là mọi người mở ra với tiến độ trống**.
+  Nếu buộc phải đổi domain, hãy thông báo trước để người dùng *Tải tiến độ về máy*, và để domain cũ redirect (không xoá) đủ lâu.
+- **Đừng đặt site ở origin dùng chung** như `<user>.github.io/<repo>`: mọi repo của cùng tài khoản chia sẻ một `localStorage` và một phạm vi service worker. Dùng domain riêng. Nếu vẫn phải dùng đường dẫn con, cần `basePath` và sửa lại `start_url`, `scope`, các đường dẫn icon trong `app/manifest.ts` cùng `register("/sw.js")`.
+- **Không cache `sw.js` và `manifest.webmanifest` ở CDN/Nginx phía trước** (đặt `no-cache`/`max-age=0`). Nếu CDN giữ `sw.js` cũ, người dùng sẽ không nhận được bản mới.
+- **Cập nhật mềm:** sau mỗi lần deploy, trình duyệt thấy `sw.js` đổi byte và cài bản mới ở nền, nhưng bản mới chỉ có hiệu lực khi mọi tab của bản cũ đã đóng. Không có thông báo "có bản mới".
+- **iOS:** bản "Thêm vào Màn hình chính" có kho dữ liệu riêng, tách khỏi Safari — người dùng cài xong sẽ thấy tiến độ trống. Trang Cài đặt đã hướng dẫn cách tải về và khôi phục.
+- **Tiến độ không nằm ở máy chủ**: bạn không thể khôi phục hộ người dùng, và xoá cache offline không làm mất tiến độ.
+
+---
+
 ## Lên máy chủ tĩnh khác
 
 Không cần Docker hay Nginx. Build một lần rồi đặt `web/out/` ở bất kỳ đâu:
@@ -124,7 +142,7 @@ NEXT_PUBLIC_SITE_URL=https://kanadojo.app npm run build    # → web/out/
 | **S3 / GCS** | Bật website hosting; cần quy tắc ghi lại `/luyen-viet` → `/luyen-viet.html` (CloudFront Function hoặc tương đương) |
 | **Nginx / Apache tự quản** | Dùng `web/nginx.conf` làm mẫu (đổi `listen`/`root`) |
 
-Dù chọn nơi nào, nên: đặt `Cache-Control: no-cache` cho HTML, cache dài cho `/_next/static/`, trả mã 404 thật kèm `404.html`, và bật HTTPS.
+Dù chọn nơi nào, nên: đặt `Cache-Control: no-cache` cho HTML, `sw.js` và `manifest.webmanifest`; cache dài cho `/_next/static/`; trả mã 404 thật kèm `404.html`; phục vụ `manifest.webmanifest` với `application/manifest+json`; và bật HTTPS.
 
 ---
 
@@ -132,7 +150,8 @@ Dù chọn nơi nào, nên: đặt `Cache-Control: no-cache` cho HTML, cache dà
 
 ### Trước khi deploy
 
-- [ ] CI xanh trên commit sẽ deploy (web, docker smoke test)
+- [ ] CI xanh trên commit sẽ deploy (web, docker smoke test — gồm kiểm tra precache)
+- [ ] Domain production dùng **HTTPS** và là domain sẽ dùng lâu dài (đổi domain = người dùng mất tiến độ)
 - [ ] `SITE_URL` / `NEXT_PUBLIC_SITE_URL` đúng domain production, không có `/` cuối
 
 ### Sau khi deploy
@@ -140,6 +159,8 @@ Dù chọn nơi nào, nên: đặt `Cache-Control: no-cache` cho HTML, cache dà
 - [ ] `bash scripts/smoke-test.sh https://kanadojo.app` — tất cả ✓ (hai kiểm tra cuối chỉ áp dụng với `nginx.conf` của repo này)
 - [ ] `https://kanadojo.app/sitemap.xml` và `/robots.txt` trả URL đúng domain
 - [ ] Mở thử trên điện thoại: viết một chữ, tải lại trang, xác nhận tiến độ còn
+- [ ] DevTools → Application: manifest không cảnh báo, service worker *activated*, cache `kd-…` có đủ tệp; tải lại khi *Offline* vẫn mở được `/` và `/luyen-viet`
+- [ ] Mọi biến thể domain (`http`, `www`) redirect về domain chính; `SITE_URL` đúng domain đó
 - [ ] Phản hồi có `Strict-Transport-Security` (do lớp TLS đặt)
 
 ### Bảo mật
@@ -172,7 +193,8 @@ Hiện tại đang dùng Next.js 15.5.25. Vẫn còn 1 lỗ hổng `postcss` m�
 
 1. Đọc [Next.js 16 migration guide](https://nextjs.org/docs/upgrading)
 2. Chạy lại toàn bộ CI (có smoke test qua Docker)
-3. Kiểm tra lại các điểm đặc thù của xuất bản tĩnh: `generateStaticParams` + `dynamicParams = false`, `<Suspense>` quanh `useSearchParams`, `export const dynamic = "force-static"` ở `robots.ts`/`sitemap.ts`
+3. Kiểm tra lại các điểm đặc thù của xuất bản tĩnh: `generateStaticParams` + `dynamicParams = false`, `<Suspense>` quanh `useSearchParams`, `export const dynamic = "force-static"` ở `robots.ts`/`sitemap.ts`/`manifest.ts`
+4. Kiểm tra bố cục thư mục `out/` (tên tệp `.html`/`.txt` của từng route, vị trí `manifest.webmanifest`, `apple-icon.png`) vì `scripts/build-sw.mjs` suy ra danh sách precache từ đó; smoke test sẽ báo nếu có URL không trả 200
 
 ### Đổi định dạng tiến độ
 

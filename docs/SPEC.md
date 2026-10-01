@@ -13,7 +13,8 @@ Các thuật toán (§3–§4) **giữ nguyên** so với v1.
 | Giao diện | Next.js 15 App Router, React 19, TypeScript, Tailwind CSS v4 | `output: "export"` — xuất bản tĩnh |
 | Lưu trữ | `localStorage` (một khoá JSON) | không có máy chủ, không có CSDL |
 | Kiểm tra dữ liệu | zod 3 | validate khi nạp và khi nhập tệp |
-| Kiểm thử | Vitest | chạy trong Node, `localStorage` giả |
+| PWA | `app/manifest.ts`, service worker sinh lúc build (`web/scripts/`) | cài ra màn hình chính, chạy offline — xem §8 |
+| Kiểm thử | Vitest | chạy trong Node: `localStorage` giả, Cache API giả cho service worker |
 
 ---
 
@@ -33,6 +34,17 @@ Nằm trong `web/src/data/`, đóng gói vào bundle lúc build. Muốn đổi n
 - `Vocabulary.id` là số nguyên liên tục từ 1. Thẻ ôn tham chiếu tới nó (`VOCAB_MEANING:12`) nên **không được đánh số lại hay xoá** — chỉ thêm vào cuối.
 - Mã ký tự kana (`"あ"`, `"きゃ"`) là khoá của mọi thẻ kana, nên là duy nhất qua cả hai bảng chữ (Hiragana ≠ Katakana về mặt ký tự).
 - Thứ tự phần tử trong `kana-data.json → chars` là **thứ tự dạy học**: Hiragana (cơ bản → biến âm → ghép) rồi Katakana.
+
+### 1.1 Nguồn gốc dữ liệu nét
+
+`kana-data.json` được sinh một lần từ [KanjiVG](http://kanjivg.tagaini.net) (6.763 tệp SVG) bằng `archive/legacy-v1/build_data.py`: lọc 148 glyph kana,
+làm tròn toạ độ, gắn romaji và gợi ý đọc tiếng Việt. Tệp có cùng một bản ở `docs/kana-data.json` và `web/src/data/kana-data.json`.
+
+- **Chỉ lưu path `d` của từng nét**, không lưu điểm mẫu. Mỗi nét KanjiVG là *một path đơn tuyến — chính là đường tâm nét*, đúng thứ cần để vẽ hoạt ảnh và so khớp.
+  Lúc mở một chữ, trình duyệt lấy 32 điểm cách đều theo độ dài cung bằng `getPointAtLength()` — gọn hơn và chính xác hơn dữ liệu "median" dựng sẵn.
+- **Ký tự ghép** (きゃ) = 2 glyph: `viewBox` giãn thành `0 0 218 109`, glyph thứ hai nằm trong `translate(109, 0)`.
+  `getPointAtLength()` **bỏ qua transform của thẻ cha**, nên phải cộng `dx` thủ công — chỗ rất dễ sai.
+- Giấy phép: CC BY-SA 3.0 (share-alike, cho phép thương mại) — xem README.
 
 Giá trị hợp lệ (kiểm bằng test `quiz.test.ts`):
 
@@ -102,6 +114,7 @@ Tệp sai không bao giờ làm thay đổi tiến độ hiện có. Dữ liệu
 |---|---|
 | `kd.theme` | `"light"` \| `"dark"` — giao diện (không thuộc `ProgressState`) |
 | `kd.progress.corrupt` | bản sao khối tiến độ bị hỏng, để cứu hộ |
+| Cache Storage `kd-<phiên bản>` | tệp tĩnh cho chế độ offline (§8). Xoá lúc nào cũng được — không chứa tiến độ |
 
 ---
 
@@ -270,10 +283,102 @@ Giao diện chỉ cho nộp một lần mỗi lượt (kể cả khi hết giờ
 
 ---
 
-## 6. Quyền riêng tư và bảo mật
+## 6. Chấm điểm nét viết
+
+Cài trong `web/src/lib/stroke-match.ts`, thuần hàm, không chạm DOM. Mọi toạ độ tính trong hệ 109×109 của KanjiVG (1 đơn vị ≈ 0,92% cạnh ô).
+
+```
+U = lấy lại 24 điểm cách đều theo ĐỘ DÀI CUNG của nét người dùng
+T = lấy lại 24 điểm cách đều theo ĐỘ DÀI CUNG của nét mẫu
+
+fwd   = trung bình dist(U[i], T[i])          // sai lệch khi ghép xuôi
+rev   = trung bình dist(U[i], T[23 - i])     // khi ghép ngược — CHỈ để chẩn đoán
+ratio = độ dài nét vẽ / độ dài nét mẫu
+
+score = clamp( round( 100 − fwd·4,2 − |ln(clamp(ratio, 0,05, 20))|·15 ), 0, 100 )
+```
+
+- **Vì sao lấy mẫu theo độ dài cung:** hai người vẽ cùng một nét với tốc độ và số điểm khác nhau hoàn toàn. Chuẩn hoá theo độ dài cung đưa cả hai về cùng một
+  tham số hoá nên so từng cặp điểm là hợp lệ — rẻ hơn DTW rất nhiều mà kết quả tương đương cho nét đơn.
+- **Điểm luôn tính theo chiều xuôi, tuyệt đối không lấy `min(fwd, rev)`:** lấy min sẽ vô tình thưởng điểm cho nét vẽ ngược chiều.
+- **Không dùng nhận dạng cử chỉ kiểu `$1`/`$P`:** chúng bất biến với phép xoay và tỉ lệ, trong khi tập viết thì *vị trí trong ô và kích thước nét chính là thứ cần chấm*.
+- `fwd = 3` ≈ lệch 2,8% cạnh ô. Muốn siết hay nới độ khó, chỉnh hằng số 4,2 và hai ngưỡng.
+
+**Nguyên nhân lỗi (`reason`)**, xét theo thứ tự: `REVERSED` nếu `rev < fwd − 1,2` · `TOO_SHORT` nếu `ratio < 0,5` · `TOO_LONG` nếu `ratio > 1,9` · `OFF_PATH` nếu `fwd > 15`.
+
+**Ngưỡng chấp nhận một nét** (`PASS_THRESHOLD`): `TRACE` (có nét mờ) = **58**, `TEST` (tự viết) = **48**.
+
+**Quy trình của `StrokeStage`:**
+
+1. Bỏ điểm cách điểm trước dưới 0,6 đơn vị (lọc rung tay); nét dưới 3 điểm hoặc dài dưới 4 đơn vị là chạm nhầm — không chấm.
+2. Nét đạt → ghi mực, sang nét kế. Khi đủ nét: `avgScore` = trung bình điểm các nét đạt, `strokeErrors` = mọi lỗi đã ghi nhận → `recordWriting` (§5.3).
+3. Nét trượt → so tiếp với **các nét khác của cùng chữ**; nếu khớp một nét khác trên `max(55, score + 15)` thì báo *"Nét đó là nét số 6 — hãy viết nét số 2 trước"* và ghi `OFF_PATH`.
+   Viết sai thứ tự là lỗi phổ biến nhất của người mới, và biết mình sai ở đâu quan trọng hơn con điểm.
+4. Trượt 2 lần liên tiếp ở cùng một nét → tự phát lại hoạt ảnh nét đó.
+
+---
+
+## 7. Nhập liệu bằng con trỏ
+
+Khung viết dùng Pointer Events thống nhất chuột / cảm ứng / bút (Apple Pencil, Wacom), `touch-action: none` trên khung (`touch-none` của Tailwind) để không bị cuộn trang khi viết,
+`setPointerCapture` để nét không đứt khi tay vượt ra ngoài khung, canvas nhân theo `devicePixelRatio` (tối đa 3).
+
+**Cổng con trỏ** (`web/src/lib/pointer-gate.ts`) bảo đảm tại mỗi thời điểm chỉ MỘT con trỏ được viết. Nếu không, lòng bàn tay hoặc ngón thứ hai chạm giữa nét sẽ đặt lại danh sách điểm,
+trộn điểm của hai con trỏ vào một nét, và `pointercancel` bị coi như người học đã nhấc tay.
+
+| Sự kiện | Kết quả |
+|---|---|
+| `pointerdown` khi chưa có con trỏ nào | Bắt đầu nét mới (`start`) |
+| `pointerdown` thứ hai (ngón thứ hai, lòng bàn tay chạm sau) | **Bỏ qua** — nét đang viết giữ nguyên |
+| `pointerdown` của **bút** khi đang có nét **cảm ứng** dở | Bỏ nét cảm ứng, viết lại bằng bút (`restart`): lòng bàn tay thường chạm xuống trước bút |
+| `pointerdown` của chuột bằng nút phải/giữa | Bỏ qua |
+| `pointerdown` lại của chính con trỏ đang viết (sự kiện `up` đã thất lạc) | Viết lại (`restart`) thay vì kẹt |
+| `pointermove` / `pointerup` của con trỏ khác | Bỏ qua |
+| `pointerup` của con trỏ đang viết | Hoàn tất nét → chấm điểm (§6) |
+| `pointercancel` hoặc `lostpointercapture` của con trỏ đang viết | **Bỏ nét dở, KHÔNG chấm** (hệ điều hành giành lại cử chỉ — người học không chủ động nhấc tay) |
+| Đổi chữ / "Xoá làm lại" | `reset()` nhả cổng |
+
+`setPointerCapture` được bọc `try/catch`: nó ném lỗi khi con trỏ không còn hoạt động, và nét vẫn phải viết được.
+
+---
+
+## 8. PWA và chế độ offline
+
+**Cài đặt được.** `web/src/app/manifest.ts` sinh `/manifest.webmanifest`: `id "/"`, `start_url "/bang-dieu-khien"` (người đã cài là người quay lại học), `scope "/"`, `display "standalone"`,
+`lang "vi"`, icon 192 và 512 (`any`) cùng 512 `maskable` ở `web/public/icons/`, và ba `shortcuts` (Luyện viết, Ôn tập, Quiz). Icon cảm ứng iOS là `web/src/app/apple-icon.png` (180×180, nền đặc —
+iOS tự bo góc); `appleWebApp` trong metadata thêm meta `mobile-web-app-capable`, tiêu đề và kiểu thanh trạng thái cho Safari iOS (việc mở toàn màn hình trên các bản iOS cũ dựa vào meta này,
+chưa được kiểm trên thiết bị thật). Chrome/Edge cần HTTPS (hoặc `localhost`), manifest và icon 192/512; service worker không bắt buộc để cài được.
+
+**Service worker** (`web/scripts/sw.template.js`, sinh thành `out/sw.js` bởi `web/scripts/build-sw.mjs` ngay sau `next build`):
+
+| Hạng mục | Quy tắc |
+|---|---|
+| Precache | Mọi tệp trong `out/` **trừ** `sw.js`, `404.html`, `*.map`, `robots.txt`, `sitemap.xml`, `.gitkeep`. `404.html` bị loại vì Nginx chỉ phục vụ nó nội bộ (`internal`): tải trực tiếp trả 404 và làm hỏng cả lần cài đặt |
+| Dạng URL | `encodeURI` của đường dẫn tệp — đúng dạng Next ghi vào HTML. Chunk của `quiz/[id]` được yêu cầu là `quiz/%5Bid%5D/…`; khoá ghi `[id]` sẽ không bao giờ khớp |
+| Tên cache | `kd-<12 ký tự hex>` — băm từ **nội dung** mọi tệp precache (đổi nội dung là đổi phiên bản, kể cả khi tên tệp giữ nguyên) |
+| `install` | Tải sẵn mọi URL với `cache: "reload"` (bỏ qua cache HTTP). **Chỉ cần một URL không trả 200 là cả lần cài đặt thất bại** (app chỉ mất offline, không hỏng). **Không** gọi `skipWaiting()` |
+| `activate` | Xoá mọi cache `kd-*` khác bản hiện tại (không đụng cache không phải của mình), rồi `clients.claim()` |
+| `fetch` | Chỉ xử lý GET cùng origin, trừ `/sw.js`. Tra cache bằng `pathname` (bỏ dấu `/` cuối và query: `/luyen-viet?c=あ`, `…txt?_rsc=…` đều khớp) → trúng thì trả từ cache, không đi mạng |
+| Trượt cache | Đi mạng và giữ nguyên mã trạng thái (404 vẫn là 404). Mất mạng + là điều hướng trang → trả trang chủ; tài nguyên khác → để lỗi mạng nổi lên |
+| Cập nhật | Bản mới cài song song ở nền; chỉ activate khi mọi tab của bản cũ đã đóng, nên HTML và JS của một phiên luôn cùng một bản build |
+
+**Đăng ký.** `ServiceWorkerRegister` (trong root layout) chỉ đăng ký ở bản production; ở `next dev` nó **gỡ** mọi service worker còn sót từ lần xem thử bản build trên cùng origin.
+
+**Trải nghiệm cài đặt.** Thẻ "Cài ra màn hình chính" ở `/cai-dat` (`InstallCard`, nhận diện bằng `lib/pwa.ts`): đã cài → xác nhận; Chrome/Edge có `beforeinstallprompt` → nút cài; iPhone/iPad → hướng dẫn Chia sẻ → Thêm vào Màn hình chính;
+còn lại → chỉ dẫn qua menu trình duyệt.
+
+> **iOS: kho dữ liệu của bản đã cài tách biệt với Safari** (WebKit cố ý cô lập `localStorage`, IndexedDB, service worker, cache). Người dùng cài xong sẽ thấy tiến độ trống và phải
+> *Tải tiến độ về máy* ở Safari rồi *Khôi phục từ tệp* trong app. Đổi lại, bản đã cài được miễn quy tắc xoá dữ liệu sau 7 ngày không tương tác của Safari.
+
+**Kiểm chứng.** Logic của service worker được test bằng cách chạy mã mẫu thật trong Node với Cache API giả (`web/scripts/sw.test.mjs`); `scripts/smoke-test.sh` kiểm manifest, icon, và rằng *mọi* URL trong precache trả 200.
+Vòng đời service worker trong trình duyệt thật chưa được kiểm tự động.
+
+---
+
+## 9. Quyền riêng tư và bảo mật
 
 1. Không có tài khoản, không có máy chủ nhận dữ liệu: tiến độ không bao giờ được gửi đi đâu.
-2. Không có cookie, không có bộ theo dõi. Tài nguyên ngoài duy nhất là font từ Google Fonts.
+2. Không có cookie, không có bộ theo dõi. Tài nguyên ngoài duy nhất là font từ Google Fonts (service worker không chặn nó; offline thì dùng font hệ thống).
 3. Dữ liệu từ bên ngoài (tệp nhập) luôn đi qua zod trước khi vào trạng thái; dữ liệu trong `localStorage` cũng vậy khi nạp.
 4. Đáp án quiz có trong bundle — quiz là công cụ tự học, không phải bài thi.
 5. Header an toàn (`nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`) do `web/nginx.conf` đặt; HSTS để bên đầu cuối TLS đặt.
