@@ -88,9 +88,15 @@ Cả hai có `HEALTHCHECK` riêng; compose dùng chúng cho `depends_on: conditi
 | `web` | `npm ci` → `lint` → `typecheck` → `test` → `build` |
 | `docker` | Sau khi hai job trên xanh: tạo `.env` ngẫu nhiên, `docker compose up --build --wait`, chạy `scripts/smoke-test.sh`, in log nếu lỗi |
 
-`scripts/smoke-test.sh` đi đúng đường của trình duyệt: trang chủ → rewrite `/api/v1` → đăng ký qua BFF (kiểm tra refresh token
-không lộ ra JS, cookie `kd_rt` được đặt) → POST có header `Origin` (bắt lỗi CORS) → refresh bằng cookie. Dùng được cho
-bản triển khai thật sau mỗi lần deploy.
+`scripts/smoke-test.sh` có hai chế độ (biến `SMOKE_MODE`):
+
+- `server` — đi đúng đường của trình duyệt: trang chủ → rewrite `/api/v1` → đăng ký qua BFF (kiểm tra refresh token
+  không lộ ra JS, cookie `kd_rt` được đặt) → POST có header `Origin` (bắt lỗi CORS) → refresh bằng cookie. Dùng được cho
+  bản triển khai thật sau mỗi lần deploy.
+- `local` (**mặc định hiện nay**) — web ở chế độ cá nhân, không có backend ([LOCAL_MODE.md](LOCAL_MODE.md)): kiểm tra trang chủ, bảng
+  chữ cái dựng tĩnh, SEO, lối vào ứng dụng và việc không còn đường nào tới backend.
+
+Khi bật lại máy chủ, đặt `SMOKE_MODE: server` cho bước smoke test của job `docker` trong `.github/workflows/ci.yml`.
 
 ---
 

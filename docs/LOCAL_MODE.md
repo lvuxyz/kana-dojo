@@ -135,7 +135,8 @@ chúng không biết dữ liệu đến từ đâu. `components/app/GoogleButton
 5. Hai trang `(auth)`, trang `bang-xep-hang`: xoá đoạn `redirect`/thông báo ở đầu, bỏ tiền tố `// ` ở phần mã gốc.
 6. `Nav.tsx`, `ho-so/page.tsx`, `app/page.tsx`: bỏ comment các dòng `[máy chủ — đang tắt]`, xoá phần thay thế.
 7. Có thể xoá `lib/local/` và `data/{vocabulary,quizzes,badges}.json` (không bắt buộc). **Giữ** `lib/api-error.ts` và `data/kana-data.json`.
-8. Chạy `npm run lint && npm run typecheck && npm test && npm run build`, rồi `scripts/smoke-test.sh`.
+8. Chạy `npm run lint && npm run typecheck && npm test && npm run build`.
+9. `scripts/smoke-test.sh` mặc định ở chế độ `local`; dùng `SMOKE_MODE=server scripts/smoke-test.sh <url>` cho bản có máy chủ, và thêm `SMOKE_MODE: server` vào bước "Smoke test" của job `docker` trong `.github/workflows/ci.yml`.
 
 Dữ liệu trong `localStorage` **không tự chuyển lên máy chủ**: tài khoản mới ở bản có máy chủ bắt đầu từ số 0.
 
@@ -144,8 +145,9 @@ Dữ liệu trong `localStorage` **không tự chuyển lên máy chủ**: tài 
 ## 6. Ảnh hưởng tới CI và Docker
 
 - Job **`web`** của CI (`lint`, `typecheck`, `test`, `build`) vẫn xanh — đã chạy lại với thay đổi này.
-- Job **`docker`** sẽ **đỏ**: `scripts/smoke-test.sh` gọi `/api/v1/kana` qua rewrite và `/api/auth/register` qua BFF, cả hai đang tắt.
-  Cần đổi smoke test cho chế độ này, hoặc chỉ chạy job đó khi bật lại máy chủ.
+- Job **`docker`**: `scripts/smoke-test.sh` có hai chế độ qua biến `SMOKE_MODE`. Mặc định `local` kiểm tra web tự đứng được (trang chủ, bảng
+  Hiragana/Katakana dựng tĩnh, robots/sitemap, `/bang-dieu-khien` mở được, `/dang-nhap` và `/dang-ky` → 307 về dashboard, và **không còn** đường tới backend:
+  `/api/v1/*` → 404, `POST /api/auth/login` → 404/405). `SMOKE_MODE=server` giữ nguyên các bước gốc (rewrite → BFF → cookie → CORS). Workflow CI không phải đổi.
 - `docker-compose.yml` vẫn dựng cả `db` và `backend` (web `depends_on` backend). Chế độ cá nhân không cần chúng; nếu chỉ chạy web, dùng `npm run dev` hoặc bỏ phụ thuộc đó.
 - Healthcheck của image web (`/dang-nhap`) vẫn qua: `wget` theo redirect tới dashboard.
 
@@ -159,4 +161,5 @@ Dữ liệu trong `localStorage` **không tự chuyển lên máy chủ**: tài 
 | `npm run lint`, `npm run typecheck` | Sạch |
 | `npm run build` | Thành công, 23 trang/route |
 | Chạy thật trên trình duyệt (không có backend) | Dashboard, Ôn tập, Từ vựng, Quiz, Hồ sơ, Xếp hạng (thông báo), `/dang-nhap` → dashboard. Làm xong quiz gõ romaji: 7/8 = 88 điểm, +105 XP, streak 1, level 2, tải lại vẫn còn; **không có request nào tới `/api/`** |
-| Chưa kiểm | Vẽ nét trên canvas rồi nộp qua bộ xử lý cục bộ (luồng ghi bài viết chỉ được test ở mức hàm; phần canvas không đổi); Docker |
+| `scripts/smoke-test.sh` | Chạy trên bản build standalone (`node server.js`, như image Docker): chế độ `local` 10/10 bước; `SMOKE_MODE=server` đỏ đúng ở bước rewrite khi không có backend; `SMOKE_MODE` sai bị từ chối |
+| Chưa kiểm | Vẽ nét trên canvas rồi nộp qua bộ xử lý cục bộ (luồng ghi bài viết chỉ được test ở mức hàm; phần canvas không đổi); chạy job `docker` trên CI (`docker compose` dựng cả stack) |

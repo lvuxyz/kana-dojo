@@ -179,7 +179,7 @@ Giao diện sáng/tối (lưu `localStorage` khóa `kd.theme`), bố cục respo
 
 Integration test chạy cả ứng dụng trên PostgreSQL 16 thật qua Testcontainers (không có Docker thì tự bỏ qua). **Chưa có test** cho: streak và thẻ băng, bảng xếp hạng, heatmap, hạn mức gói FREE (429) và lọc từ vựng theo gói, đăng nhập Google, các huy hiệu ngoài `FIRST_STROKE`, và toàn bộ component React.
 
-CI (`.github/workflows/ci.yml`): job `backend` (`mvn verify`), job `web` (lint → typecheck → test → build), job `docker` (dựng cả Compose rồi chạy `scripts/smoke-test.sh`: trang chủ → rewrite → đăng ký qua BFF, refresh token không lộ ra JS, cookie `kd_rt` → POST có `Origin` → refresh bằng cookie). Smoke test **chưa kiểm tra đăng xuất**.
+CI (`.github/workflows/ci.yml`): job `backend` (`mvn verify`), job `web` (lint → typecheck → test → build), job `docker` (dựng cả Compose rồi chạy `scripts/smoke-test.sh`: trang chủ → rewrite → đăng ký qua BFF, refresh token không lộ ra JS, cookie `kd_rt` → POST có `Origin` → refresh bằng cookie). Smoke test (chế độ `server`) **chưa kiểm tra đăng xuất**; script có thêm chế độ `local` mặc định cho web không backend (xem [LOCAL_MODE.md §6](LOCAL_MODE.md)).
 
 ---
 
@@ -212,7 +212,7 @@ Chi tiết nghiên cứu và thiết kế nằm trong `docs/TYPING.md` **của n
 - `web/src/lib/session.ts`, `use-next-path.ts` (mới): đích quay lại sau đăng nhập, chặn open redirect (`//evil.com`, `/\evil.com`, ký tự điều khiển).
 - `/api/auth/refresh`: xoá cookie khi refresh trả 401, để middleware không cho phiên đã chết đi qua mãi.
 - **Backend `SecurityConfig`:** thêm `/api/v1/auth/logout` vào danh sách công khai (token tự xác thực chính nó). **Đây chính là bản sửa cho lỗi A ở §5.**
-- `smoke-test.sh` thêm hai bước: route cần đăng nhập trả 307, và refresh token cũ bị 401 sau khi đăng xuất.
+- `smoke-test.sh` thêm hai bước: route cần đăng nhập trả 307, và refresh token cũ bị 401 sau khi đăng xuất. **Lưu ý khi gộp:** PR #3 chia script thành `smoke_local`/`smoke_server`; hai bước này thuộc `smoke_server` (ở chế độ cá nhân, `/bang-dieu-khien` không còn bị chặn nên không trả 307).
 
 ### 4.3 Chặn giả mạo IP client (`claude/gracious-hertz-72d01e`, chưa commit)
 
