@@ -24,7 +24,7 @@ const FAQ = [
   },
   {
     q: "Ứng dụng có hỗ trợ bút cảm ứng (Apple Pencil, S-Pen) không?",
-    a: "Có, hoàn toàn mượt mà. Kana Dōjō được tối ưu hóa đặc biệt cho màn hình cảm ứng, nhận diện nét vẽ bằng bút stylus, ngón tay trên điện thoại/máy tính bảng cũng như chuột trên máy tính để bàn. Tiến độ học được đồng bộ theo thời gian thực.",
+    a: "Có, hoàn toàn mượt mà. Kana Dōjō được tối ưu hóa đặc biệt cho màn hình cảm ứng, nhận diện nét vẽ bằng bút stylus, ngón tay trên điện thoại/máy tính bảng cũng như chuột trên máy tính để bàn. Tiến độ được lưu ngay trong trình duyệt của bạn nên không cần đăng ký tài khoản.",
   },
 ];
 
@@ -59,7 +59,7 @@ const COMPARISON = [
   },
   {
     feature: "Chi phí & cài đặt",
-    kanadojo: "Miễn phí 100%, học ngay trên trình duyệt",
+    kanadojo: "Miễn phí 100%, không cần tài khoản, học ngay trên trình duyệt",
     duolingo: "Có quảng cáo / gói Super trả phí",
     anki: "Trả phí cao trên iOS",
     book: "Tốn chi phí mua nhiều tập vở",
@@ -67,7 +67,7 @@ const COMPARISON = [
 ];
 
 const METRIC_PILLS = [
-  { label: "100% Miễn phí trọn đời", icon: "✨" },
+  { label: "Miễn phí, không cần tài khoản", icon: "✨" },
   { label: "Chấm nét 24 điểm Arc-length", icon: "🎯" },
   { label: "Chuẩn 208 ký tự Hiragana & Katakana", icon: "📜" },
   { label: "Thuật toán FSRS-6 thế hệ mới", icon: "🧠" },
@@ -123,16 +123,28 @@ export default function Landing() {
               >
                 Luyện viết
               </Link>
+              <Link
+                href="/tu-vung"
+                className="rounded-xl px-3 py-1.5 text-xs font-semibold text-sumi-2 hover:bg-rule/40 hover:text-sumi transition-colors"
+              >
+                Từ vựng
+              </Link>
+              <Link
+                href="/quiz"
+                className="rounded-xl px-3 py-1.5 text-xs font-semibold text-sumi-2 hover:bg-rule/40 hover:text-sumi transition-colors"
+              >
+                Quiz
+              </Link>
             </div>
 
             <ThemeToggle />
 
-            <Link href="/dang-nhap">
+            <Link href="/bang-dieu-khien">
               <Button size="sm" variant="outline" className="hidden sm:inline-flex">
-                Đăng nhập
+                Tiến độ của tôi
               </Button>
             </Link>
-            <Link href="/dang-ky">
+            <Link href="/luyen-viet">
               <Button size="sm" variant="solid">
                 Bắt đầu học
               </Button>
@@ -191,7 +203,7 @@ export default function Landing() {
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap items-center gap-3.5 pt-1">
-              <Link href="/dang-ky">
+              <Link href="/luyen-viet">
                 <Button variant="solid" size="lg" className="group text-[15px] px-7 shadow-lg shadow-shu/25">
                   <span>Học miễn phí ngay</span>
                   <svg
@@ -347,7 +359,7 @@ export default function Landing() {
               </div>
 
               <div className="mt-7 flex items-center gap-2 border-t border-rule/70 pt-4 text-xs font-bold text-gold">
-                <span>Đồng bộ tiến độ học liên tục</span>
+                <span>Không cần tài khoản — tiến độ lưu ngay trên máy bạn</span>
                 <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
               </div>
             </div>
@@ -476,16 +488,16 @@ export default function Landing() {
               </h2>
 
               <p className="max-w-[48ch] text-base leading-relaxed text-white/90 sm:text-lg">
-                Không cần thẻ tín dụng, không quảng cáo làm phiền. Mở trình duyệt và cầm bút luyện nét cùng hàng ngàn học viên.
+                Không cần tài khoản, không thẻ tín dụng, không quảng cáo làm phiền. Mở trình duyệt và cầm bút luyện nét ngay bây giờ.
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-                <Link href="/dang-ky">
+                <Link href="/luyen-viet">
                   <Button
                     size="lg"
                     className="bg-white text-shu hover:bg-white/95 hover:scale-[1.02] shadow-xl font-bold text-base px-9 py-4 cursor-pointer"
                   >
-                    Tạo tài khoản miễn phí
+                    Vào luyện viết ngay
                   </Button>
                 </Link>
                 <Link href="/bang-chu-cai/hiragana">
@@ -516,11 +528,11 @@ export default function Landing() {
             <Link href="/luyen-viet" className="hover:text-sumi transition-colors">
               Studio luyện viết
             </Link>
-            <Link href="/dang-nhap" className="hover:text-sumi transition-colors">
-              Đăng nhập tài khoản
+            <Link href="/tu-vung" className="hover:text-sumi transition-colors">
+              Từ vựng JLPT
             </Link>
-            <Link href="/dang-ky" className="hover:text-sumi transition-colors">
-              Đăng ký mới
+            <Link href="/quiz" className="hover:text-sumi transition-colors">
+              Quiz
             </Link>
           </div>
           <div className="flex items-center gap-2 text-sumi-3">

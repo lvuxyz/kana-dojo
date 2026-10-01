@@ -1,80 +1,58 @@
-# Kana Dōjō — Hướng dẫn triển khai Production
+# Kana Dōjō — Hướng dẫn triển khai
 
-## Tổng quan kiến trúc production
+Kana Dōjō là **site tĩnh**: `next build` xuất ra thư mục `web/out/` gồm HTML/JS/CSS thuần. Không có tiến trình máy chủ, không cơ sở dữ liệu,
+không biến bí mật, không gì cần sao lưu phía máy chủ. Triển khai = đặt thư mục đó lên một máy chủ tệp tĩnh bất kỳ.
 
 ```
 Internet
    │  HTTPS
    ▼
-[Nginx]  TLS, security headers ──► localhost:3000
-   │
-   ▼
-┌─────────────── docker compose (mạng nội bộ) ───────────────┐
-│ [web  :3000]  Next.js standalone                            │
-│    │  /api/v1/*  → rewrite  ─┐                              │
-│    │  /api/auth/* → BFF fetch┤                              │
-│    ▼                         ▼                              │
-│ [backend :8080] Spring Boot (profile prod) ← không mở cổng  │
-│    │                                                        │
-│ [db :5432] PostgreSQL 16 (volume pgdata)   ← không mở cổng  │
-└─────────────────────────────────────────────────────────────┘
+[Nginx / CDN]  TLS, HSTS  ──►  [container web :8080]  Nginx phục vụ out/
 ```
 
-Trình duyệt chỉ nói chuyện với một origin (web). Next.js phục vụ giao diện, các BFF route handler `/api/auth/*`
-(giữ refresh token trong cookie httpOnly) và rewrite mọi `/api/v1/*` sang backend trong mạng nội bộ.
-
-> Rewrite chuyển tiếp nguyên header `Origin` của trình duyệt, nên `CORS_ORIGINS` của backend **vẫn phải** chứa domain công khai
-> (vd. `https://kanadojo.app`) dù trình duyệt không gọi thẳng backend. Thiếu → mọi request POST/PATCH trả 403.
-> `docker-compose.yml` tự đặt `CORS_ORIGINS = SITE_URL`.
+Đây chỉ là một ví dụ; mọi máy chủ tĩnh đều dùng được (xem [Lên máy chủ tĩnh khác](#lên-máy-chủ-tĩnh-khác)).
 
 ---
 
 ## Chạy bằng Docker Compose
 
-Repo có sẵn `docker-compose.yml`, `backend/Dockerfile`, `web/Dockerfile` và `.env.example`.
+Repo có sẵn `docker-compose.yml`, `web/Dockerfile`, `web/nginx.conf` và `.env.example`.
 
 ```bash
-cp .env.example .env        # điền SITE_URL, DB_PASSWORD, JWT_SECRET, GOOGLE_CLIENT_ID
+cp .env.example .env        # đặt SITE_URL (và WEB_PORT nếu cần)
 docker compose up -d --build --wait
 bash scripts/smoke-test.sh "$SITE_URL"   # hoặc http://localhost:3000 khi thử trên máy
 ```
 
-`--wait` chỉ trả về khi cả ba dịch vụ đã **healthy**: `db` (`pg_isready`) → `backend` (`/actuator/health` = UP,
-sau khi Flyway và `KanaSeeder` chạy xong) → `web` (trang đăng nhập trả 200). Lần đầu khởi động backend mất ~20–40 giây.
+`--wait` chỉ trả về khi container `web` đã **healthy** (`wget` trang chủ trả 200).
 
 ### Biến trong `.env`
 
 | Biến | Bắt buộc | Ý nghĩa |
 |---|---|---|
-| `SITE_URL` | ✓ | URL công khai (vd. `https://kanadojo.app`, không có `/` cuối). Dùng làm `CORS_ORIGINS` và **được nhúng vào bundle web lúc build** |
-| `DB_PASSWORD` | ✓ | Mật khẩu PostgreSQL |
-| `JWT_SECRET` | ✓ | Khoá ký JWT, base64 ≥ 256 bit: `openssl rand -base64 48` |
-| `GOOGLE_CLIENT_ID` | ✓ | Profile `prod` bắt buộc (`ProdSecretsValidator`). Chưa dùng Google thì đặt tạm chuỗi bất kỳ — nút Google sẽ không hoạt động |
-| `DB_USER` | | Mặc định `kanadojo` |
+| `SITE_URL` | ✓ | URL công khai (vd. `https://kanadojo.app`, không có `/` cuối). **Được nhúng vào trang lúc build** (canonical, sitemap, Open Graph) |
 | `WEB_PORT` | | Cổng web mở ra máy chủ, mặc định `3000` |
-| `SRS_NEW_CARDS_PER_DAY` | | Mặc định `10` |
 
-Compose báo lỗi ngay (trước khi build) nếu thiếu biến bắt buộc.
+Compose báo lỗi ngay (trước khi build) nếu thiếu `SITE_URL`.
 
-### Giá trị nào chốt lúc build, giá trị nào đọc lúc chạy
-
-| Giá trị | Khi nào | Hệ quả |
-|---|---|---|
-| `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | build (build-arg) | Nhúng vào JS gửi cho trình duyệt |
-| `BACKEND_URL` cho rewrite `/api/v1/*` | **build** (build-arg) | Next ghi đích rewrite vào `routes-manifest` lúc build; đặt `BACKEND_URL` lúc chạy **không** đổi được đích này |
-| `BACKEND_URL` cho BFF `/api/auth/*` | chạy | Route handler đọc `process.env` mỗi request |
-| Mọi biến của backend | chạy | Đổi `.env` rồi `docker compose up -d` là đủ |
-
-→ Đổi `SITE_URL` hoặc `GOOGLE_CLIENT_ID` thì phải `docker compose up -d --build` để build lại web.
+> Đổi `SITE_URL` thì phải `docker compose up -d --build` để build lại — giá trị này là hằng số trong HTML đã sinh, không đọc lúc chạy.
 
 ### Image
 
-| Image | Nền | Ghi chú |
+| Tầng | Nền | Ghi chú |
 |---|---|---|
-| `backend` | `maven:3.9-eclipse-temurin-17` → `eclipse-temurin:17-jre-alpine` | Chạy user `app` (không root), `SPRING_PROFILES_ACTIVE=prod`, `JAVA_OPTS=-XX:MaxRAMPercentage=75`. Test **không** chạy khi build image (đã chạy ở CI) |
-| `web` | `node:22-alpine` (deps → build → runner) | `output: "standalone"`, chạy `node server.js` bằng user `nextjs`. `.env*` bị `.dockerignore` loại nên không lọt vào image |
+| deps → build | `node:22-alpine` | `npm ci` theo lockfile rồi `npm run build` → `out/`. `.env*` bị `.dockerignore` loại nên không lọt vào image |
+| runner | `nginxinc/nginx-unprivileged:1.27-alpine` | Chỉ chứa `out/` và `nginx.conf`. Không có Node. Chạy bằng user không phải root, lắng nghe cổng 8080; compose đặt `read_only` + `tmpfs /tmp` |
 
-Cả hai có `HEALTHCHECK` riêng; compose dùng chúng cho `depends_on: condition: service_healthy`.
+### `web/nginx.conf` làm gì
+
+- `try_files $uri $uri.html $uri/ =404` — Next xuất `/luyen-viet` thành `luyen-viet.html`, `/quiz/1` thành `quiz/1.html`.
+- HTML: `Cache-Control: no-cache` (luôn hỏi lại, trả 304 nếu không đổi) để bản deploy mới có hiệu lực ngay.
+- `/_next/static/*`: cache 1 năm — tên tệp chứa mã băm nội dung nên an toàn.
+- `/sw.js`: **không** cache lâu (`no-cache`) — trình duyệt phải thấy bản mới ngay sau mỗi lần deploy thì mới cập nhật được cache offline. Nằm dưới `location /` nên mặc định đã đúng; khai báo riêng để ý đồ không bị vô tình sửa mất.
+- `/manifest.webmanifest`: `Content-Type: application/manifest+json` (đặt `default_type` phòng khi `mime.types` của bản Nginx chưa có đuôi này) và `no-cache`.
+- 404 dùng trang `404.html` của site (`app/not-found.tsx`).
+- Header an toàn: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`. **Không** đặt HSTS ở đây (container chỉ nói HTTP) — để Nginx/CDN phía trước đặt.
 
 ---
 
@@ -84,38 +62,17 @@ Cả hai có `HEALTHCHECK` riêng; compose dùng chúng cho `depends_on: conditi
 
 | Job | Làm gì |
 |---|---|
-| `backend` | `mvn -B verify` — 11 unit + integration test trên PostgreSQL 16 thật (runner có Docker nên Testcontainers luôn chạy) |
 | `web` | `npm ci` → `lint` → `typecheck` → `test` → `build` |
-| `docker` | Sau khi hai job trên xanh: tạo `.env` ngẫu nhiên, `docker compose up --build --wait`, chạy `scripts/smoke-test.sh`, in log nếu lỗi |
+| `docker` | Sau khi `web` xanh: `docker compose up --build --wait`, chạy `scripts/smoke-test.sh`, in log nếu lỗi |
 
-`scripts/smoke-test.sh` đi đúng đường của trình duyệt: trang chủ → rewrite `/api/v1` → đăng ký qua BFF (kiểm tra refresh token
-không lộ ra JS, cookie `kd_rt` được đặt) → POST có header `Origin` (bắt lỗi CORS) → refresh bằng cookie. Dùng được cho
-bản triển khai thật sau mỗi lần deploy.
-
----
-
-## Biến môi trường backend (tham chiếu)
-
-Khi không dùng compose (chạy JAR trực tiếp, Kubernetes…):
-
-| Biến | Bắt buộc ở prod | Mặc định | Mô tả |
-|---|---|---|---|
-| `DB_URL` | ✓ | | `jdbc:postgresql://<host>:5432/kanadojo` |
-| `DB_USER` / `DB_PASSWORD` | ✓ | | Tài khoản PostgreSQL (lần migrate đầu cần quyền tạo extension `citext`) |
-| `JWT_SECRET` | ✓ | | ≥ 32 byte |
-| `CORS_ORIGINS` | ✓ | | Gồm domain công khai của frontend |
-| `GOOGLE_CLIENT_ID` | ✓ | | Google OAuth client ID |
-| `SERVER_PORT` | | `8080` | Cổng HTTP (healthcheck của image đọc cùng biến này) |
-| `DB_POOL_SIZE` | | `20` | Pool Hikari |
-| `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | | `15m` / `30d` | Kiểu Duration (`15m`, `900s`); số trần không đơn vị bị hiểu là **mili giây** |
-| `SRS_NEW_CARDS_PER_DAY` | | `10` | Số thẻ mới tối đa mỗi ngày |
-| `SPRING_PROFILES_ACTIVE` | | *(image đặt sẵn `prod`)* | `prod` kích hoạt `application-prod.yml` |
-
-Frontend (khi build ngoài Docker): `BACKEND_URL` (cả lúc build lẫn lúc chạy), `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (lúc build).
+`scripts/smoke-test.sh` (chỉ cần `bash` và `curl`) kiểm tra: mọi trang chính trả 200 và có nội dung thật trong HTML; `robots.txt` và `sitemap.xml`;
+**PWA** — `manifest.webmanifest` hợp lệ, bốn icon tải được, `sw.js` được sinh đúng, và **mọi URL trong danh sách precache của `sw.js` đều trả 200** (chỉ cần một URL sai là service worker không cài được);
+đường dẫn lạ và `/quiz/999` trả **404** thật; các đường dẫn của bản cũ (`/dang-nhap`, `/api/v1/…`…) đã biến mất; và — nhắm vào `nginx.conf` —
+`nosniff`, cache dài hạn cho tệp có mã băm, `sw.js` là `no-cache`, manifest đúng `Content-Type`. Dùng được cho bản triển khai thật sau mỗi lần deploy.
 
 ---
 
-## Cấu hình Nginx
+## Nginx + TLS phía trước (ví dụ)
 
 ```nginx
 # /etc/nginx/sites-available/kanadojo
@@ -132,49 +89,60 @@ server {
     ssl_certificate     /etc/letsencrypt/live/kanadojo.app/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/kanadojo.app/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
 
-    # Security headers
+    # HSTS chỉ đặt ở đây — nơi kết thúc TLS
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Frame-Options DENY always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header Referrer-Policy strict-origin-when-cross-origin always;
 
-    # Mọi thứ đi vào web (cổng WEB_PORT của compose); web tự rewrite /api/v1 sang backend nội bộ.
     location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_pass http://127.0.0.1:3000;       # WEB_PORT của compose
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Static assets — cache lâu
-    location /_next/static/ {
-        proxy_pass http://localhost:3000;
-        add_header Cache-Control "public, max-age=31536000, immutable";
     }
 }
 ```
 
----
-
-## SSL với Let's Encrypt
+Cấp chứng chỉ Let's Encrypt:
 
 ```bash
-# Cài Certbot
 apt install certbot python3-certbot-nginx
-
-# Cấp chứng chỉ
 certbot --nginx -d kanadojo.app -d www.kanadojo.app
-
-# Tự động gia hạn (đã có sẵn sau khi cài Certbot)
-systemctl status certbot.timer
+systemctl status certbot.timer        # tự gia hạn
 ```
+
+---
+
+## PWA: HTTPS, domain và cập nhật
+
+Site cài được ra màn hình chính và chạy offline (xem [ARCHITECTURE.md](ARCHITECTURE.md#pwa-và-offline) và [SPEC.md §8](SPEC.md#8-pwa-và-chế-độ-offline)). Những điều ảnh hưởng tới cách triển khai:
+
+- **HTTPS là bắt buộc** (trừ `localhost`): trình duyệt chỉ đăng ký service worker, cho cài đặt và cung cấp `navigator.storage` trong ngữ cảnh an toàn. Trên `http://` thường site vẫn chạy bình thường nhưng không có offline hay cài đặt.
+- **Chốt một domain chính và redirect mọi biến thể về nó** (`http`→`https`, `www`↔không `www`). Tiến độ học của người dùng nằm trong `localStorage` gắn với *origin*; mỗi biến thể là một kho riêng, và **đổi domain nghĩa là mọi người mở ra với tiến độ trống**.
+  Nếu buộc phải đổi domain, hãy thông báo trước để người dùng *Tải tiến độ về máy*, và để domain cũ redirect (không xoá) đủ lâu.
+- **Đừng đặt site ở origin dùng chung** như `<user>.github.io/<repo>`: mọi repo của cùng tài khoản chia sẻ một `localStorage` và một phạm vi service worker. Dùng domain riêng. Nếu vẫn phải dùng đường dẫn con, cần `basePath` và sửa lại `start_url`, `scope`, các đường dẫn icon trong `app/manifest.ts` cùng `register("/sw.js")`.
+- **Không cache `sw.js` và `manifest.webmanifest` ở CDN/Nginx phía trước** (đặt `no-cache`/`max-age=0`). Nếu CDN giữ `sw.js` cũ, người dùng sẽ không nhận được bản mới.
+- **Cập nhật mềm:** sau mỗi lần deploy, trình duyệt thấy `sw.js` đổi byte và cài bản mới ở nền, nhưng bản mới chỉ có hiệu lực khi mọi tab của bản cũ đã đóng. Không có thông báo "có bản mới".
+- **iOS:** bản "Thêm vào Màn hình chính" có kho dữ liệu riêng, tách khỏi Safari — người dùng cài xong sẽ thấy tiến độ trống. Trang Cài đặt đã hướng dẫn cách tải về và khôi phục.
+- **Tiến độ không nằm ở máy chủ**: bạn không thể khôi phục hộ người dùng, và xoá cache offline không làm mất tiến độ.
+
+---
+
+## Lên máy chủ tĩnh khác
+
+Không cần Docker hay Nginx. Build một lần rồi đặt `web/out/` ở bất kỳ đâu:
+
+```bash
+cd web
+NEXT_PUBLIC_SITE_URL=https://kanadojo.app npm run build    # → web/out/
+```
+
+| Nơi đặt | Ghi chú |
+|---|---|
+| **Netlify / Vercel / Cloudflare Pages** | Build command `npm run build`, thư mục xuất bản `out`, thư mục gốc `web`. Đặt `NEXT_PUBLIC_SITE_URL` trong biến môi trường của dự án. Các nơi này thường tự phục vụ `/luyen-viet` từ `luyen-viet.html` — vẫn nên chạy `smoke-test.sh` sau lần deploy đầu |
+| **GitHub Pages** | Dùng được. Nếu site nằm ở `https://<user>.github.io/<repo>/` (có tiền tố đường dẫn) thì cần thêm `basePath` vào `next.config.mjs`; với domain riêng thì không cần |
+| **S3 / GCS** | Bật website hosting; cần quy tắc ghi lại `/luyen-viet` → `/luyen-viet.html` (CloudFront Function hoặc tương đương) |
+| **Nginx / Apache tự quản** | Dùng `web/nginx.conf` làm mẫu (đổi `listen`/`root`) |
+
+Dù chọn nơi nào, nên: đặt `Cache-Control: no-cache` cho HTML, `sw.js` và `manifest.webmanifest`; cache dài cho `/_next/static/`; trả mã 404 thật kèm `404.html`; phục vụ `manifest.webmanifest` với `application/manifest+json`; và bật HTTPS.
 
 ---
 
@@ -182,58 +150,38 @@ systemctl status certbot.timer
 
 ### Trước khi deploy
 
-- [ ] CI xanh trên commit sẽ deploy (backend, web, docker smoke test)
-- [ ] `.env` có `JWT_SECRET` mới (`openssl rand -base64 48`) — không dùng lại secret từ dev
-- [ ] `SITE_URL` đúng domain production, không có `/` cuối
-- [ ] `GOOGLE_CLIENT_ID` hợp lệ và domain đã thêm vào Google Cloud Console
-- [ ] Backup DB nếu đang nâng cấp từ phiên bản cũ (xem bên dưới)
+- [ ] CI xanh trên commit sẽ deploy (web, docker smoke test — gồm kiểm tra precache)
+- [ ] Domain production dùng **HTTPS** và là domain sẽ dùng lâu dài (đổi domain = người dùng mất tiến độ)
+- [ ] `SITE_URL` / `NEXT_PUBLIC_SITE_URL` đúng domain production, không có `/` cuối
 
 ### Sau khi deploy
 
-- [ ] `bash scripts/smoke-test.sh https://kanadojo.app` — tất cả ✓
-- [ ] `docker compose ps` — ba dịch vụ đều `healthy`
-- [ ] `docker compose logs backend` không có ERROR
-- [ ] `/swagger-ui.html` và `/v3/api-docs` trả 404 (profile `prod` đã tắt springdoc)
-- [ ] `Set-Cookie: kd_rt=…` có `HttpOnly; Secure; SameSite=Lax; Path=/`
+- [ ] `bash scripts/smoke-test.sh https://kanadojo.app` — tất cả ✓ (hai kiểm tra cuối chỉ áp dụng với `nginx.conf` của repo này)
+- [ ] `https://kanadojo.app/sitemap.xml` và `/robots.txt` trả URL đúng domain
+- [ ] Mở thử trên điện thoại: viết một chữ, tải lại trang, xác nhận tiến độ còn
+- [ ] DevTools → Application: manifest không cảnh báo, service worker *activated*, cache `kd-…` có đủ tệp; tải lại khi *Offline* vẫn mở được `/` và `/luyen-viet`
+- [ ] Mọi biến thể domain (`http`, `www`) redirect về domain chính; `SITE_URL` đúng domain đó
+- [ ] Phản hồi có `Strict-Transport-Security` (do lớp TLS đặt)
 
-### Bảo mật production
+### Bảo mật
 
-- [ ] Chỉ cổng web (`WEB_PORT`) mở ra máy chủ, và chỉ Nginx truy cập nó; backend và CSDL không có `ports:` trong compose
-- [ ] `/actuator` chỉ mở `health` (không chi tiết); các endpoint actuator khác trả 404
-- [ ] Rate limit Bucket4j 10 req/phút/IP trên `/auth/login` và `/auth/register` — **lưu ý:** hiện backend thấy IP của container web
-  cho các request qua BFF, nên giới hạn đang áp chung cho mọi người dùng; xem mục "Việc còn tồn đọng" trong README
-- [ ] Swagger UI đã tắt ở `application-prod.yml`; nếu muốn bật lại thì đặt sau Basic Auth
+- [ ] Chỉ cổng web (`WEB_PORT`) mở ra máy chủ, và chỉ lớp TLS phía trước truy cập nó
+- [ ] Không có bí mật nào để lộ: site không có biến môi trường lúc chạy. `NEXT_PUBLIC_SITE_URL` là công khai theo thiết kế
+- [ ] Nếu cần Content-Security-Policy: Next chèn script inline (dữ liệu hydrate, script chọn giao diện) nên CSP chặt cần nonce hoặc hash — chưa cấu hình sẵn
 
 ---
 
-## Monitoring & Logs
+## Vận hành
 
-### Health
-
-`GET /actuator/health` → `{"status":"UP"}` (không lộ chi tiết thành phần). Chỉ truy cập được trong mạng compose; muốn
-load balancer bên ngoài dùng thì mở qua Nginx một location riêng.
-
-### Xem logs
+Không có gì để theo dõi phía máy chủ ngoài việc container sống:
 
 ```bash
-docker compose logs -f backend
-docker compose logs -f web
-
-# Lọc lỗi
-docker compose logs backend 2>&1 | grep -i error
+docker compose ps                  # healthy?
+docker compose logs -f web         # log truy cập Nginx
 ```
 
-### Backup PostgreSQL
-
-```bash
-# Backup
-docker compose exec -T db pg_dump -U kanadojo kanadojo > backup_$(date +%Y%m%d).sql
-
-# Khôi phục (vào CSDL rỗng)
-docker compose exec -T db psql -U kanadojo kanadojo < backup_20260901.sql
-```
-
-Dữ liệu nằm trong volume `kana-dojo_pgdata`; `docker compose down` giữ volume, `down -v` **xoá** nó.
+Không có CSDL để sao lưu. **Tiến độ của người học nằm trong trình duyệt của họ**, không phải ở máy chủ — vì vậy bạn không thể khôi phục hộ họ.
+Hướng dẫn người dùng dùng *Cài đặt → Tải tiến độ về máy*.
 
 ---
 
@@ -245,17 +193,9 @@ Hiện tại đang dùng Next.js 15.5.25. Vẫn còn 1 lỗ hổng `postcss` m�
 
 1. Đọc [Next.js 16 migration guide](https://nextjs.org/docs/upgrading)
 2. Chạy lại toàn bộ CI (có smoke test qua Docker)
-3. Chú ý thay đổi App Router API nếu có
+3. Kiểm tra lại các điểm đặc thù của xuất bản tĩnh: `generateStaticParams` + `dynamicParams = false`, `<Suspense>` quanh `useSearchParams`, `export const dynamic = "force-static"` ở `robots.ts`/`sitemap.ts`/`manifest.ts`
+4. Kiểm tra bố cục thư mục `out/` (tên tệp `.html`/`.txt` của từng route, vị trí `manifest.webmanifest`, `apple-icon.png`) vì `scripts/build-sw.mjs` suy ra danh sách precache từ đó; smoke test sẽ báo nếu có URL không trả 200
 
-### Nâng Spring Boot lên 3.3+
+### Đổi định dạng tiến độ
 
-Flyway 10 (đi kèm Spring Boot 3.3+) có module `flyway-database-postgresql` riêng — cần thêm lại vào `pom.xml` nếu nâng:
-```xml
-<dependency>
-    <groupId>org.flywaydb</groupId>
-    <artifactId>flyway-database-postgresql</artifactId>
-</dependency>
-```
-
-`pom.xml` đang ghim `testcontainers.version` 1.21.4 vì bản đi kèm Spring Boot 3.2 quá cũ cho Docker Engine 29+.
-Khi nâng Spring Boot, kiểm tra bản Testcontainers mới đi kèm; chỉ bỏ dòng ghim nếu bản đó không cũ hơn 1.21.4.
+Tăng `STATE_VERSION` trong `web/src/lib/learning/state.ts` và thêm bước migrate trong `parseState` để dữ liệu của người dùng hiện có (và tệp sao lưu cũ) vẫn nạp được.

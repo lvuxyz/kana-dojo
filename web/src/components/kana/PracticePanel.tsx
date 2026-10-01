@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { useQuery } from "@tanstack/react-query";
 import { StrokeStage, type AttemptResult, type StrokeFeedback, type StrokeStageHandle } from "./StrokeStage";
 import { Button, Seg } from "@/components/ui";
+import { BADGES } from "@/data/badges";
 import type { KanaChar } from "@/lib/kana";
-import { get } from "@/lib/api";
-import type { BadgeDto, PracticeMode, WritingResultDto } from "@/lib/types";
+import type { PracticeMode, WritingResult } from "@/lib/types";
 
 interface Props {
   char: KanaChar;
@@ -15,7 +14,7 @@ interface Props {
   total: number;
   mode: PracticeMode;
   onModeChange: (m: PracticeMode) => void;
-  onSubmit: (r: AttemptResult) => Promise<WritingResultDto | null>;
+  onSubmit: (r: AttemptResult) => WritingResult;
   onNext: () => void;
   onPrev: () => void;
   onClose: () => void;
@@ -29,15 +28,9 @@ export function PracticePanel({
   const [note, setNote] = useState("Viết nét số 1 theo hướng mũi tên của nét mẫu.");
   const [tone, setTone] = useState<"" | "good" | "bad">("");
   const [score, setScore] = useState<number | null>(null);
-  const [result, setResult] = useState<WritingResultDto | null>(null);
-  // Backend chỉ trả mã huy hiệu; tên hiển thị lấy từ danh mục (dùng chung cache với dashboard).
-  const badgeCatalog = useQuery({
-    queryKey: ["badges"],
-    queryFn: () => get<BadgeDto[]>("/badges"),
-    enabled: (result?.newBadges.length ?? 0) > 0,
-  });
-  const badgeName = (code: string) => badgeCatalog.data?.find((b) => b.code === code)?.nameVi ?? code;
-  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<WritingResult | null>(null);
+  // Kết quả chỉ mang mã huy hiệu; tên hiển thị tra từ danh mục.
+  const badgeName = (code: string) => BADGES.find((b) => b.code === code)?.nameVi ?? code;
 
   useEffect(() => {
     setDone(0); setNote("Viết nét số 1 theo hướng mũi tên của nét mẫu.");
@@ -64,15 +57,9 @@ export function PracticePanel({
     setScore(f.score);
   };
 
-  const handleComplete = async (r: AttemptResult) => {
-    setSaving(true);
+  const handleComplete = (r: AttemptResult) => {
     setScore(r.avgScore);
-    try {
-      const res = await onSubmit(r);
-      setResult(res);
-    } finally {
-      setSaving(false);
-    }
+    setResult(onSubmit(r));
   };
 
   useEffect(() => {
@@ -203,9 +190,7 @@ export function PracticePanel({
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="label-xs">{done >= strokeTotal ? "Điểm trung bình cả chữ" : "Nét vừa hoàn thành"}</span>
                 <span className="text-xs font-medium text-sumi-2">
-                  {saving
-                    ? "Đang ghi nhận điểm…"
-                    : score == null
+                  {score == null
                     ? "Viết nét đầu tiên để chấm điểm"
                     : score >= 80
                     ? "Nét vẽ rất chuẩn xác!"
@@ -223,7 +208,9 @@ export function PracticePanel({
                 </div>
                 <div className="text-[13px] font-semibold text-sumi-2">
                   +{result.xpEarned} XP
-                  {result.card && <> · Lịch ôn: sau <b className="tnum text-genko">{result.card.intervalDays}</b> ngày</>}
+                  {result.card.intervalDays > 0
+                    ? <> · Lịch ôn: sau <b className="tnum text-genko">{result.card.intervalDays}</b> ngày</>
+                    : <> · Gặp lại trong ít phút</>}
                 </div>
                 {result.newBadges.length > 0 && (
                   <div className="text-xs font-bold text-gold">

@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { KanaGrid, type CellState } from "@/components/kana/KanaGrid";
 import { PracticePanel } from "@/components/kana/PracticePanel";
-import type { AttemptResult } from "@/components/kana/StrokeStage";
-import { Card, Chip, Seg, Stat } from "@/components/ui";
-import { get, post } from "@/lib/api";
+import { Card, Chip, Seg, Spinner, Stat } from "@/components/ui";
 import { charsOf, type KanaGroup, type Script } from "@/lib/kana";
-import type { KanaCharacterDto, KanaProgressDto, PracticeMode, WritingResultDto } from "@/lib/types";
+import { findKana } from "@/lib/learning/cards";
+import { useKanaProgress } from "@/lib/learning/hooks";
+import { recordWritingAttempt } from "@/lib/learning/store";
+import type { PracticeMode } from "@/lib/types";
 
 const GROUPS: { value: KanaGroup | "all"; label: string; count: number }[] = [
   { value: "all", label: "Tất cả", count: 104 },
@@ -18,69 +19,44 @@ const GROUPS: { value: KanaGroup | "all"; label: string; count: number }[] = [
 ];
 
 export default function WritingPage() {
-  const qc = useQueryClient();
-  const [script, setScript] = useState<Script>("h");
+  // useSearchParams buộc phần dưới phải nằm trong Suspense khi xuất bản tĩnh.
+  return (
+    <Suspense fallback={<Spinner label="Đang mở phòng luyện viết" />}>
+      <WritingRoom />
+    </Suspense>
+  );
+}
+
+function WritingRoom() {
+  // Từ bảng chữ cái công khai, bấm một ký tự sẽ tới đây với ?c=あ để mở thẳng khung tập viết của ký tự đó.
+  const target = findKana(useSearchParams().get("c") ?? "");
+
+  const [script, setScript] = useState<Script>(target?.s ?? "h");
   const [group, setGroup] = useState<KanaGroup | "all">("all");
   const [mode, setMode] = useState<PracticeMode>("TRACE");
-  const [openAt, setOpenAt] = useState<number | null>(null);
+  const [openAt, setOpenAt] = useState<number | null>(
+    target ? charsOf(target.s, "all").findIndex((c) => c.c === target.c) : null,
+  );
 
-  const apiScript = script === "h" ? "HIRAGANA" : "KATAKANA";
-
-  const catalog = useQuery({
-    queryKey: ["kana", apiScript],
-    queryFn: () => get<KanaCharacterDto[]>(`/kana?script=${apiScript}`),
-  });
-
-  const progress = useQuery({
-    queryKey: ["progress", "kana", apiScript],
-    queryFn: () => get<KanaProgressDto[]>(`/progress/kana?script=${apiScript}`),
-  });
-
-  /** Chữ → id của backend. Nếu API chưa sẵn sàng thì map rỗng, lưới vẫn hiện
-   *  đầy đủ từ dữ liệu đóng gói sẵn — chỉ mất phần lưu tiến độ. */
-  const idOf = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const k of catalog.data ?? []) m.set(k.character, k.id);
-    return m;
-  }, [catalog.data]);
+  const { progress, ready } = useKanaProgress(script);
 
   const states = useMemo(() => {
     const m = new Map<string, CellState>();
     const now = Date.now();
-    for (const p of progress.data ?? []) {
-      m.set(p.character, {
-        level: p.level,
-        bestScore: p.bestScore,
-        due: !!p.dueAt && new Date(p.dueAt).getTime() <= now,
-      });
+    for (const p of progress) {
+      if (p.level === 0) continue;
+      m.set(p.character, { level: p.level, bestScore: p.bestScore, due: p.dueAt !== null && p.dueAt <= now });
     }
     return m;
-  }, [progress.data]);
+  }, [progress]);
 
   const list = charsOf(script, group);
-
-  const submit = useMutation({
-    mutationFn: async (input: { character: string; r: AttemptResult }) => {
-      const id = idOf.get(input.character);
-      if (!id) return null;
-      return post<WritingResultDto>("/writing/attempts", {
-        kanaCharacterId: id,
-        mode,
-        strokeScores: input.r.strokeScores,
-        strokeErrors: input.r.strokeErrors,
-        avgScore: input.r.avgScore,
-        durationMs: input.r.durationMs,
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["progress"] });
-      qc.invalidateQueries({ queryKey: ["stats"] });
-    },
-  });
 
   const learned = states.size;
   const mastered = [...states.values()].filter((s) => s.level === 2).length;
   const due = [...states.values()].filter((s) => s.due).length;
+
+  if (!ready) return <Spinner label="Đang mở phòng luyện viết" />;
 
   return (
     <div className="flex flex-col gap-6" style={{ ["--cell" as string]: "116px" }}>
@@ -107,21 +83,15 @@ export default function WritingPage() {
       {/* Thẻ thống kê 3 chỉ số */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card variant="interactive" className="p-5">
-          <Stat label="Đã rèn luyện" value={learned} sub={`trên tổng số ${list.length} ký tự`} tone="genko" />
+          <Stat label="Đã rèn luyện" value={learned} sub={`trên tổng số ${charsOf(script, "all").length} ký tự`} tone="genko" />
         </Card>
         <Card variant="interactive" className="p-5">
-          <Stat label="Đã tinh thông" value={mastered} sub="Đạt từ 80đ ở chế độ Tự viết" tone="shu" />
+          <Stat label="Đã thuộc" value={mastered} sub="Đã qua bước học, vào lịch ôn FSRS" tone="shu" />
         </Card>
         <Card variant="interactive" className="p-5">
           <Stat label="Đến hạn cần ôn" value={due} sub={due > 0 ? "Ưu tiên ôn tập hôm nay" : "Không còn thẻ tồn đọng"} tone="gold" />
         </Card>
       </div>
-
-      {(catalog.isError || progress.isError) && (
-        <p className="rounded-2xl border border-shu/30 bg-shu-tint/90 px-4.5 py-3 text-xs font-semibold text-shu-2 shadow-xs">
-          Chưa kết nối được máy chủ nên tiến độ chưa được đồng bộ từ tài khoản. Bạn vẫn có thể tập viết và chấm điểm hoàn toàn bình thường trên máy!
-        </p>
-      )}
 
       {/* Bộ lọc nhóm chữ */}
       <div className="flex flex-wrap items-center gap-2">
@@ -151,7 +121,14 @@ export default function WritingPage() {
           total={list.length}
           mode={mode}
           onModeChange={setMode}
-          onSubmit={(r) => submit.mutateAsync({ character: list[openAt].c, r })}
+          onSubmit={(r) =>
+            recordWritingAttempt({
+              character: list[openAt].c,
+              avgScore: r.avgScore,
+              strokeErrors: r.strokeErrors,
+              durationMs: r.durationMs,
+            })
+          }
           onNext={() => setOpenAt((i) => ((i ?? 0) + 1) % list.length)}
           onPrev={() => setOpenAt((i) => ((i ?? 0) - 1 + list.length) % list.length)}
           onClose={() => setOpenAt(null)}

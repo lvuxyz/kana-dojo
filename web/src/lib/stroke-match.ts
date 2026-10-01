@@ -111,14 +111,3 @@ export function posText(p: Pt, viewBox: number): string {
   const h = x < viewBox * 0.38 ? " bên trái" : x > viewBox * 0.63 ? " bên phải" : "";
   return v + h;
 }
-
-/** Điểm viết → grade của FSRS.
- *  Đây là điểm khác biệt của sản phẩm: Anki và WaniKani bắt người học TỰ chấm
- *  "tôi có nhớ không" — dữ liệu nhiễu. Ở đây grade được ĐO từ độ chính xác nét.
- *  Ngưỡng phải khớp tuyệt đối với FsrsEngine.gradeFromScore bên backend. */
-export function gradeFromScore(score: number, anyStrokeFailed: boolean): 1 | 2 | 3 | 4 {
-  if (anyStrokeFailed || score < 48) return 1;
-  if (score < 70) return 2;
-  if (score < 88) return 3;
-  return 4;
-}

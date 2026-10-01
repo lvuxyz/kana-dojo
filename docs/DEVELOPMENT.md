@@ -4,188 +4,53 @@
 
 | Công cụ | Phiên bản tối thiểu | Ghi chú |
 |---|---|---|
-| Java | 17 | Kiểm tra: `java -version` |
-| Maven | 3.9 | Kiểm tra: `mvn -version` |
-| Node.js | 20 LTS | Kiểm tra: `node -v` |
-| npm | 10 | Đi kèm Node.js 20 |
-| Docker | 24 | Để chạy PostgreSQL |
-| PostgreSQL | 16 | Qua Docker hoặc cài thẳng |
+| Node.js | 20 LTS (khuyến nghị 22) | Kiểm tra: `node -v` |
+| npm | 10 | Đi kèm Node.js |
+| Docker | 24 | *Tuỳ chọn* — chỉ để thử container giống production |
+
+Không cần Java, Maven, PostgreSQL hay bất kỳ dịch vụ nào chạy nền.
 
 ---
 
 ## Thiết lập lần đầu
 
-### 1. Clone và chuẩn bị
+```bash
+git clone <repo> kana-dojo
+cd kana-dojo/web
+cp .env.example .env.local      # Windows: copy .env.example .env.local
+npm ci
+npm run dev                     # http://localhost:3001
+```
+
+`.env.local` chỉ có một biến, `NEXT_PUBLIC_SITE_URL` — dùng cho canonical/sitemap/Open Graph. Mặc định `http://localhost:3001` là đủ khi phát triển.
+
+`npm run dev` có hot reload. Tiến độ học trong lúc dev nằm trong `localStorage` của `localhost:3001`; xoá bằng DevTools → Application → Local Storage
+hoặc bằng nút *Xoá toàn bộ tiến độ* ở `/cai-dat`.
+
+### Xem bản build thật
+
+`next dev` khác bản xuất bản tĩnh ở vài điểm (không có prerender, không kiểm tra `generateStaticParams`), nên trước khi mở PR nên chạy thử:
 
 ```bash
-git clone <repo-url> kana-dojo
-cd kana-dojo
+npm run build           # next build + sinh out/sw.js (service worker) — ghi site tĩnh vào out/
+npx serve out           # máy chủ tệp tĩnh bất kỳ; serve hỗ trợ /luyen-viet → luyen-viet.html
 ```
 
-### 2. Khởi động PostgreSQL
+Service worker chỉ được đăng ký ở **bản production** (và chỉ trên HTTPS hoặc `localhost`). `npm run dev` thì ngược lại: nó tự **gỡ** mọi service worker còn sót lại từ lần bạn xem thử bản build
+trên cùng origin, nếu không cache cũ sẽ che mất mọi thay đổi bạn đang sửa. Nếu vẫn thấy bản cũ: DevTools → Application → Service Workers → *Unregister*, và Cache Storage → xoá các cache `kd-*`.
 
-```bash
-docker run -d --name kanadojo-db \
-  -p 5432:5432 \
-  -e POSTGRES_DB=kanadojo \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  --restart unless-stopped \
-  postgres:16
-```
+> Dùng cổng khác khi `3001` đã bận: `npx next dev -p 3011`. Mỗi worktree/phiên làm việc có thể đang giữ cổng riêng của nó — `EADDRINUSE` nghĩa là server bạn thấy ở `localhost:3001` **không phải** bản bạn vừa sửa.
 
-Kiểm tra container đang chạy:
-```bash
-docker ps --filter name=kanadojo-db
-```
-
-### 3. Cấu hình và chạy backend
-
-Ở profile dev, **mọi biến đều có giá trị mặc định** (DB `postgres/postgres` trên `localhost:5432`, khoá JWT dev,
-CORS cho `localhost:3000` và `localhost:3001`) — với Postgres chạy như bước 2 thì chỉ cần `mvn spring-boot:run`.
-Các lệnh dưới đây chỉ cần khi muốn ghi đè.
-
-```bash
-cd backend
-```
-
-**Windows (PowerShell):**
-```powershell
-$env:DB_URL       = "jdbc:postgresql://localhost:5432/kanadojo"
-$env:DB_USER      = "postgres"
-$env:DB_PASSWORD  = "postgres"
-$env:JWT_SECRET   = (& openssl rand -base64 48)
-$env:CORS_ORIGINS = "http://localhost:3001"
-
-mvn spring-boot:run
-```
-
-**Windows (CMD):**
-```cmd
-set DB_URL=jdbc:postgresql://localhost:5432/kanadojo
-set DB_USER=postgres
-set DB_PASSWORD=postgres
-set JWT_SECRET=<chuỗi base64 — xem bên dưới>
-set CORS_ORIGINS=http://localhost:3001
-
-mvn spring-boot:run
-```
-
-**macOS / Linux:**
-```bash
-export DB_URL=jdbc:postgresql://localhost:5432/kanadojo
-export DB_USER=postgres
-export DB_PASSWORD=postgres
-export JWT_SECRET=$(openssl rand -base64 48)
-export CORS_ORIGINS=http://localhost:3001
-
-mvn spring-boot:run
-```
-
-Backend sẵn sàng khi log hiện:
-```
-Started KanaDojoApplication in X.XXX seconds
-```
-
-**Kiểm tra:**
-```bash
-curl "http://localhost:8080/api/v1/kana?script=HIRAGANA"
-curl http://localhost:8080/actuator/health        # {"status":"UP"}
-```
-
-### 4. Cấu hình và chạy frontend
-
-```bash
-cd web
-cp .env.example .env.local    # macOS/Linux
-copy .env.example .env.local  # Windows
-
-npm install
-npm run dev          # chạy ở cổng 3001 (xem "scripts" trong package.json)
-```
-
-Mở <http://localhost:3001>.
-
-> **Cổng frontend:** dev dùng **3001** (`npm run dev`, `start-services.ps1`). Production (`next start`, Docker) dùng 3000.
-> `CORS_ORIGINS` phải chứa đúng origin đang mở trình duyệt — xem mục *Sự cố đã gặp* bên dưới.
-
-### Cách nhanh trên Windows: `start-services.bat`
-
-`start-services.ps1` (và bản `.bat` bọc ngoài) bật lần lượt PostgreSQL → backend → frontend, bỏ qua dịch vụ nào đã chạy;
-`stop-services.*` tắt chúng. Script giả định:
-
-- PostgreSQL 16 bản portable ở `.tools\pgsql` (thư mục `.tools/` bị `.gitignore`, mỗi máy tự chuẩn bị) với cluster đã khởi tạo ở `.tools\pgsql\data`:
-  ```powershell
-  .tools\pgsql\bin\initdb.exe -D .tools\pgsql\data -U postgres -A trust -E UTF8
-  .tools\pgsql\bin\pg_ctl.exe -D .tools\pgsql\data start
-  .tools\pgsql\bin\psql.exe -U postgres -c "CREATE DATABASE kanadojo"
-  ```
-- JAR backend đã build sẵn: `mvn clean package -DskipTests` (script **không** tự build).
-- Java: script tìm JDK 21 ở vài đường dẫn quen thuộc rồi mới dùng `java` trong `PATH`; JDK 17 trở lên đều chạy được.
-
----
-
-## Cấu trúc `.env.local` đầy đủ
-
-```bash
-# URL backend — server-side only, KHÔNG expose ra trình duyệt
-BACKEND_URL=http://localhost:8080
-
-# URL công khai của site — dùng cho Open Graph, sitemap, v.v.
-NEXT_PUBLIC_SITE_URL=http://localhost:3001
-
-# Google OAuth (tùy chọn — bỏ trống nếu không cần đăng nhập Google)
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=
-```
+Hoặc dựng đúng container production: `docker compose up -d --build --wait` ở thư mục gốc rồi `bash scripts/smoke-test.sh`.
 
 ---
 
 ## Chạy kiểm thử
 
-### Backend
-
-```bash
-cd backend
-
-# Chạy tất cả test (unit + integration)
-mvn test
-
-# Chỉ một lớp / một nhóm
-mvn test -Dtest=FsrsEngineTest
-mvn test -Dtest='com.japanese.learning.it.*'
-
-# Build + test + đóng gói
-mvn package
-```
-
-**35 test**, chia hai loại:
-
-| Loại | Lớp | Cần gì |
-|---|---|---|
-| Unit | `srs/FsrsEngineTest` (11) — công thức FSRS-6, bước học, ngưỡng điểm nét → grade | Chỉ JDK |
-| Integration | `it/AuthFlowTest` (6) — đăng ký, refresh xoay vòng, tái sử dụng token thu hồi cả họ, đăng xuất, 401/409 | Docker |
-| | `it/WritingAttemptFlowTest` (5) — `POST /writing/attempts` ghi đủ 5 bước, XP lần đầu/lần sau, nét hỏng, 404, validation | Docker |
-| | `it/WritingAttemptAtomicityTest` (1) — lỗi ở bước cuối rollback cả 4 bước trước | Docker |
-| | `it/QuizFlowTest` (5) — quiz seed V3, đề không lộ đáp án, chấm điểm, nộp một lần | Docker |
-| | `it/ReviewQueueFlowTest` (5) — hình dạng JSON hàng đợi, thẻ từ vựng, hạn mức thẻ mới, chấm thẻ | Docker |
-| | `it/HealthEndpointTest` (2) — `/actuator/health` công khai, không lộ chi tiết; actuator khác bị đóng | Docker |
-
-Integration test chạy **cả ứng dụng** trên PostgreSQL 16 thật do Testcontainers dựng (`postgres:16-alpine`, Flyway áp V1–V3,
-`KanaSeeder` nạp kana), gọi API qua MockMvc. Lớp nền `it/IntegrationTest` giữ một container và một Spring context cho cả lượt chạy;
-mỗi test tự đăng ký người dùng riêng nên không cần dọn dữ liệu. Không dùng H2: CSDL này không có kiểu `citext` mà `V1__init.sql` cần.
-
-- **Không có Docker** (hoặc Docker Desktop chưa bật): các lớp `it/*` bị bỏ qua (Maven báo 0 test cho chúng), `mvn test` vẫn xanh với 11 unit test.
-- Lần chạy đầu tải image `postgres:16-alpine` (~100 MB); các lần sau khởi động container trong vài giây.
-- Testcontainers được ghim 1.21.x trong `pom.xml` vì bản 1.19 đi kèm Spring Boot 3.2 dùng Docker API quá cũ cho Docker Engine 29+.
-- CI chạy `mvn -B verify` trên runner có Docker, nên ở pull request các integration test **luôn** chạy.
-
-### Frontend
-
 ```bash
 cd web
 
-# Unit test (Vitest)
-npm test              # chạy một lần
+npm test              # Vitest, chạy một lần
 npm run test:watch    # chạy lại khi sửa file
 
 # Lint (ESLint 9, cấu hình eslint.config.mjs = next/core-web-vitals + next/typescript)
@@ -194,162 +59,112 @@ npm run lint
 # Kiểm tra kiểu TypeScript
 npm run typecheck
 
-# Build production (phát hiện lỗi build)
+# Build production (xuất bản tĩnh — phát hiện lỗi prerender)
 npm run build
 ```
 
-- Unit test đặt cạnh mã nguồn, tên `*.test.ts`. Hiện có `src/lib/stroke-match.test.ts` (22 test): lấy mẫu theo độ dài cung,
-  bất biến với tốc độ vẽ, phạt nét ngược chiều, chẩn đoán `TOO_SHORT`/`TOO_LONG`/`OFF_PATH`, và các mốc
-  `gradeFromScore` — phải khớp tuyệt đối `FsrsEngine.gradeFromScore` bên backend.
-- `next build` **không** chạy lint (`eslint.ignoreDuringBuilds`) vì lint đã có lệnh riêng; `next lint` đã bị khai tử từ Next 15.5.
+Unit test đặt cạnh mã nguồn, tên `*.test.ts`, chạy trong môi trường Node (không jsdom):
 
----
+| Tệp | Kiểm tra gì |
+|---|---|
+| `lib/stroke-match.test.ts` | Lấy mẫu theo độ dài cung, bất biến với tốc độ vẽ, phạt nét ngược chiều, chẩn đoán `TOO_SHORT`/`TOO_LONG`/`OFF_PATH` |
+| `lib/fsrs.test.ts` | FSRS-6: thẻ mới theo từng grade, khoảng cách tăng dần, quên → RELEARNING, `D` luôn trong [1, 10] qua 5000 lượt ngẫu nhiên có seed, mốc 48/70/88 |
+| `lib/learning/activity.test.ts` | Ngày theo múi giờ, XP/level, mục tiêu ngày, streak (liên tiếp / thẻ băng / đứt), hồi thẻ băng Thứ Hai, heatmap |
+| `lib/learning/reviews.test.ts` | Hàng đợi (hạn mức 10 thẻ mới/ngày theo ngày địa phương), chấm thẻ, luyện viết (đạt lần đầu, nét hỏng, kẹp điểm), huy hiệu, tiến độ |
+| `lib/vocabulary.test.ts` | Trang Từ vựng hiện đủ 70 từ N5 (không cắt ở 60), tìm không dấu, tìm theo cách đọc/romaji/nghĩa |
+| `lib/learning/quiz.test.ts` | Chấm quiz + tính toàn vẹn nội dung đóng gói (id, đáp án nằm trong options) |
+| `lib/learning/store.test.ts` | `localStorage` giả: lưu/nạp lại, dữ liệu hỏng, trình duyệt chặn ghi, đồng bộ tab, xuất/nhập/xoá |
+| `lib/pointer-gate.test.ts` | Cổng con trỏ: ngón thứ hai bị bỏ qua, bút thắng cảm ứng, `pointercancel` bỏ nét dở, chuột phải bị bỏ qua, `up` thất lạc không gây kẹt |
+| `lib/pwa.test.ts` | Nhận diện ngữ cảnh cài đặt: đã cài / iPhone-iPad-iPadOS / còn lại |
+| `scripts/build-sw.test.mjs` | Trình dựng service worker: ánh xạ tệp → URL (`encodeURI`, `[id]` → `%5Bid%5D`), loại `404.html`, mã phiên bản băm theo nội dung |
+| `scripts/sw.test.mjs` | **Mã thật** của `sw.template.js` chạy trong Node với Cache API và `fetch` giả: precache, install thất bại khi có URL không 200, dọn cache cũ, phục vụ từ cache (kể cả `?query`, dấu `/` cuối, RSC, `%5Bid%5D`), offline, không can thiệp POST/khác origin/`/sw.js`, cập nhật phiên bản |
 
-## Swagger UI
+`next build` **không** chạy lint (`eslint.ignoreDuringBuilds`) vì lint đã có lệnh riêng; `next lint` đã bị khai tử từ Next 15.5.
 
-Khi backend đang chạy, truy cập: <http://localhost:8080/swagger-ui.html>
+### Kiểm thử logic học: đặt giờ giả
 
-Để test các endpoint yêu cầu xác thực:
-1. Gọi `POST /api/v1/auth/login` để lấy `accessToken`
-2. Nhấn **Authorize** (biểu tượng ổ khóa) → nhập `Bearer <accessToken>`
+Các hàm trong `lib/learning` nhận một `Clock { now: number; zone: string }` thay vì gọi `Date.now()`. Test dùng giờ cố định và múi giờ tường minh:
 
----
-
-## Cấu trúc package backend
-
-```
-com.japanese.learning/
-├── KanaDojoApplication.java       Điểm vào Spring Boot
-│
-├── common/
-│   ├── ApiException.java          RuntimeException có HTTP status và error code
-│   ├── ErrorTypes.java            Hằng số error code (AUTH_*, CONTENT_*, SRS_*, …)
-│   ├── GlobalExceptionHandler.java  @RestControllerAdvice → RFC 7807 Problem Details
-│   ├── QuotaExceededException.java  429 khi vượt hạn mức gói
-│   ├── PageResponse.java          {content, page, size, totalElements, totalPages}
-│   └── LocalDay.java              Quy đổi "hôm nay" theo múi giờ người dùng
-│
-├── config/
-│   ├── AppProperties.java         @ConfigurationProperties — tất cả config nghiệp vụ
-│   ├── SecurityConfig.java        Cấu hình Spring Security, CORS, endpoints public
-│   ├── WebConfig.java             Cấu hình Web MVC
-│   ├── OpenApiConfig.java         springdoc, BearerAuth scheme
-│   ├── SchedulingConfig.java      @EnableScheduling
-│   └── ProdSecretsValidator.java  Fail-fast nếu thiếu secret trên production
-│
-├── domain/
-│   ├── entity/                    22 JPA entity (+ BaseEntity) — một entity cho mỗi bảng
-│   ├── enums/                     CardState, ItemType, KanaGroup, Script, BadgeTier, …
-│   └── StrokeError.java           @Embeddable — lưu lỗi từng nét trong writing_attempts
-│
-├── repository/                    Spring Data JPA repositories (interface extends JpaRepository)
-│
-├── security/
-│   ├── JwtService.java            Phát và xác thực JWT bằng JJWT 0.12.5
-│   ├── JwtAuthenticationFilter.java  OncePerRequestFilter — trích và xác thực Bearer token
-│   ├── GoogleTokenVerifier.java   Xác thực Google ID token qua google-api-client
-│   ├── RefreshTokenService.java   Tạo, xoay vòng, thu hồi refresh token
-│   ├── TokenHasher.java           SHA-256 cho refresh token
-│   ├── AuthRateLimitFilter.java   Bucket4j 10 req/phút/IP cho login & register
-│   ├── ClientIpResolver.java      Lấy IP thật sau proxy
-│   └── ProblemDetail*Handler/EntryPoint  401/403 theo RFC 7807
-│
-├── seed/
-│   └── KanaSeeder.java            ApplicationRunner — nạp kana-data.json, idempotent
-│
-├── service/                       Business logic
-│   ├── AuthService.java           Đăng ký, đăng nhập, Google OAuth, refresh
-│   ├── ReviewService.java         Lấy thẻ đến hạn, ghi kết quả ôn tập
-│   ├── WritingService.java        Ghi lượt tập viết (transaction 5 bước)
-│   ├── BadgeService.java          Kiểm tra và phát huy hiệu
-│   ├── GamificationService.java   Cộng XP, cập nhật streak, tính level
-│   └── …                          CurrentUserService, DeckService, EntitlementService, KanaService,
-│                                  LeaderboardService, ProgressService, QuizService, VocabularyService
-│
-├── srs/
-│   └── FsrsEngine.java            FSRS-6 — toàn bộ là static method, không có @Component
-│
-└── web/
-    ├── controller/                12 @RestController với @RequestMapping("/api/v1/…")
-    └── dto/                       Request/Response DTO (record hoặc class với Lombok)
+```ts
+const at = (iso: string): Clock => ({ now: Date.parse(iso), zone: "Asia/Ho_Chi_Minh" });
+const { state, result } = recordWriting(emptyState(), { character: "あ", avgScore: 95, strokeErrors: [], durationMs: 4000 }, at("2026-09-07T03:00:00Z"));
 ```
 
 ---
 
 ## Quy ước code
 
-### Backend
-
-- **DTO:** dùng Java `record` cho immutable response; Lombok `@Data` / `@Builder` cho request có validation
-- **Validation:** `@Valid` + Bean Validation annotations trên request DTO; không validate trong service layer
-- **Exception:** ném `ApiException(ErrorTypes.XXX, status)` từ service → `GlobalExceptionHandler` bắt và format RFC 7807
-- **Không userId từ body:** `userId` luôn lấy từ `SecurityContextHolder` (principal) — không tin dữ liệu do client gửi
-- **Transaction:** `@Transactional` trên service method, không trên controller
-- **Test:** test `FsrsEngine` không cần Spring context (`@ExtendWith(MockitoExtension.class)` hoặc plain JUnit)
-
-### Frontend
-
-- **Type-safe API:** tất cả response shape định nghĩa trong `lib/types.ts`, khớp với SPEC.md
-- **Server state:** TanStack Query cho tất cả data fetch — không dùng `useState` + `useEffect` để fetch
-- **Auth state:** lấy từ `useAuth()` hook (AuthContext), không từ localStorage
-- **Route protection:** middleware Next.js hoặc kiểm tra trong layout của `(app)` route group
-- **Form validation:** Zod schema + React controlled component; không để validation logic rải rác
-- **Naming:** component file = PascalCase, utility file = camelCase, route folder = tiếng Việt (theo codebase)
+- **Logic trong hàm thuần:** mọi thứ trong `lib/` (trừ `store.ts` và `hooks.ts`) không chạm DOM, `localStorage` hay `Date.now()`. Thêm luật mới → thêm vào hàm thuần + test, rồi mới nối vào giao diện.
+- **Thao tác học trả `{ state, result }`:** sao chép trạng thái (`structuredClone`), sửa bản sao, trả về. Không sửa trạng thái đầu vào. Lỗi (ký tự lạ, thẻ không tồn tại) ném **trước** khi sao chép để trạng thái cũ nguyên vẹn.
+- **Chỉ `store.ts` đụng `localStorage`.** Component đọc qua hook trong `lib/learning/hooks.ts` và ghi qua hàm hành động của `store.ts`.
+- **Chống thao tác đúp bằng `ref`, không bằng state:** hai click trong cùng một tick (chạm đúp, hoặc hết giờ trùng lúc bấm nộp) đều thấy state cũ vì React chưa render lại giữa chúng. Xem `locked` ở `on-tap/page.tsx` và `submitted` ở `QuizRunner.tsx`.
+- **Hydration:** trang đọc tiến độ phải kiểm tra `ready` (từ `useProgress`/`useStats`/…) trước khi hiện số — phía máy chủ chỉ có trạng thái rỗng. Đặt mọi hook *trước* lệnh `return` sớm.
+- **Hiển thị theo `type`, không so khớp chuỗi tự do:** `ItemType`, `CardState`, `Grade` định nghĩa ở `lib/types.ts`.
+- **Xuất bản tĩnh:** trang động (`[id]`) phải có `generateStaticParams` + `dynamicParams = false`; `useSearchParams` phải nằm trong `<Suspense>`; `robots.ts`/`sitemap.ts` cần `export const dynamic = "force-static"`; không dùng route handler hay `rewrites()`.
+- **Trang cá nhân hoá** (`bang-dieu-khien`, `on-tap`, `cai-dat`) là client component và `noindex`. Trang nội dung công khai nên là server component có `metadata` + canonical.
+- **Nhận con trỏ qua cổng:** mọi thao tác viết bằng chuột/cảm ứng/bút phải đi qua `createPointerGate()` (`lib/pointer-gate.ts`), kiểm `pointerId` ở `move`/`up`, và coi `pointercancel`/`lostpointercapture` là *bỏ* nét chứ không phải *hoàn tất*. `setPointerCapture` luôn bọc `try/catch`.
+- **Service worker:** sửa `scripts/sw.template.js`, không bao giờ sửa `out/sw.js` (sinh lại sau mỗi build). URL precache phải đúng dạng trình duyệt yêu cầu (`encodeURI`), và **mọi URL trong danh sách phải trả 200** từ Nginx — nếu không `cache.addAll` làm hỏng cả lần cài đặt.
+  Thêm tệp không nên precache (ví dụ trang chỉ Nginx phục vụ nội bộ như `404.html`) thì thêm vào `EXCLUDED` ở `scripts/build-sw.mjs` kèm test.
+- **Naming:** component file = PascalCase, utility file = camelCase, route folder = tiếng Việt (theo codebase).
 
 ---
 
-## Migration cơ sở dữ liệu
+## Thêm kana / từ vựng / quiz / huy hiệu
 
-Flyway tự động chạy khi backend khởi động:
-
-```
-src/main/resources/db/migration/
-├── V1__init.sql           Toàn bộ lược đồ 22 bảng
-├── V2__seed_reference.sql plan_features + badges (dữ liệu seed tham chiếu)
-└── V3__seed_content.sql   80 từ vựng (N5, N4), 1 bộ thẻ hệ thống, 4 quiz mẫu
-```
-
-**Thêm migration mới:**
-1. Tạo file `V4__<mô_tả>.sql` trong thư mục trên (số phiên bản kế tiếp)
-2. Đặt tên theo quy ước Flyway: `V{số}__{mô_tả_dấu_gạch_dưới}.sql`
-3. Không bao giờ sửa file migration đã commit — tạo file mới để sửa
-
-**Xem trạng thái migration:**
-```bash
-mvn flyway:info -Dflyway.url=jdbc:postgresql://localhost:5432/kanadojo \
-  -Dflyway.user=postgres -Dflyway.password=postgres
-```
-
----
-
-## Thêm kana / từ vựng / quiz
+Không có CSDL hay trang quản trị: sửa tệp nội dung rồi build lại.
 
 ### Kana
 
-Dữ liệu kana được nạp từ `src/main/resources/data/kana-data.json` qua `KanaSeeder`. Bản frontend (`web/src/data/kana-data.json`) là bản sao để bundle vào JS.
-Ba file hiện giống hệt nhau.
+Chỉ có một bản: `web/src/data/kana-data.json` (bản sao ở `docs/` đã bị xoá để khỏi lệch nhau). Dữ liệu này sinh từ KanjiVG bằng script của bản v1 — xem [SPEC.md §1.1](SPEC.md#11-nguồn-gốc-dữ-liệu-nét) để biết cách lấy lại nếu cần tái sinh.
+Thứ tự trong `chars` là thứ tự dạy học, và mã ký tự là khoá của thẻ ôn nên **không đổi mã ký tự đã có**.
 
-Nếu cập nhật dữ liệu:
-1. Sửa `docs/kana-data.json` (nguồn sự thật)
-2. Copy vào `backend/src/main/resources/data/kana-data.json`
-3. Copy vào `web/src/data/kana-data.json`
-4. **`KanaSeeder` chỉ nạp khi bảng còn rỗng** (`kana_glyphs`, `kana_characters` kiểm tra riêng) — nó *không* upsert.
-   Với CSDL đã có dữ liệu, phải cập nhật bằng một migration mới (hoặc ở dev: xoá DB rồi khởi động lại).
+### Từ vựng
 
-### Từ vựng và quiz
+Thêm phần tử vào **cuối** `web/src/data/vocabulary.ts` với `id` kế tiếp. Không xoá, không đánh lại số: thẻ ôn đã lưu trong trình duyệt người dùng tham chiếu tới `id`
+(thẻ trỏ tới từ không còn tồn tại sẽ bị bỏ qua khỏi hàng đợi nhưng vẫn nằm trong tiến độ).
+`jlptLevel` mới sẽ tự có chip lọc ở trang Từ vựng.
 
-Chưa có trang quản trị. Thêm nội dung bằng migration mới (`V4__…sql`) theo mẫu `V3__seed_content.sql`;
-quy ước giá trị `quiz_type` / `question_type` / `part_of_speech` xem [SPEC.md §2.5](SPEC.md).
+### Quiz
+
+Thêm vào `web/src/data/quizzes.ts`. Giữ `id` quiz và `id` câu hỏi duy nhất; câu trắc nghiệm phải có `correctAnswer` nằm trong `options`; câu gõ để `options: []`.
+`quiz.test.ts` kiểm các bất biến này. Trang `/quiz/[id]` và `sitemap.xml` tự cập nhật theo danh sách.
+
+### Huy hiệu
+
+Thêm định nghĩa vào `web/src/data/badges.ts` **và** điều kiện trao vào `evaluateBadges` (`lib/learning/badges.ts`) kèm test.
 
 ---
 
 ## Sự cố đã gặp và cách xử lý
 
-### `flyway-database-postgresql` không tìm thấy version
+### Trang hiện khung chờ mãi / số nháy từ 0 sang giá trị thật
 
-**Vấn đề:** `pom.xml` ban đầu khai báo `flyway-database-postgresql` nhưng không có `<version>`. Module này chỉ tồn tại từ Flyway 10, còn Spring Boot 3.2.5 quản lý Flyway 9.22.3.
+**Nguyên nhân:** quên kiểm tra `ready` — phía máy chủ và lúc hydrate chỉ có `SERVER_STATE` (rỗng). Xem [ARCHITECTURE.md](ARCHITECTURE.md#react).
 
-**Xử lý:** Xóa dependency `flyway-database-postgresql` — Flyway 9 hỗ trợ PostgreSQL trực tiếp qua `flyway-core`.
+### `next build` lỗi `Page "…" is missing "generateStaticParams()"`
+
+**Nguyên nhân:** trang động trong chế độ xuất bản tĩnh. Thêm `generateStaticParams` (và `dynamicParams = false`) vào **server** component của route; nếu trang là client component, tách một `page.tsx` server mỏng như `app/(app)/quiz/[id]/page.tsx`.
+
+### `useSearchParams() should be wrapped in a suspense boundary`
+
+**Nguyên nhân:** xuất bản tĩnh buộc phần dùng `useSearchParams` nằm trong `<Suspense>`. Xem `app/(app)/luyen-viet/page.tsx`.
+
+### Bản deploy mới không hiện / dev server hiện bản cũ
+
+**Nguyên nhân:** service worker còn sót phục vụ từ cache. Ở production bản mới chỉ có hiệu lực khi mọi tab của bản cũ đã đóng (cố ý — xem [ARCHITECTURE.md](ARCHITECTURE.md#pwa-và-offline)); ở dev, `ServiceWorkerRegister` tự gỡ service worker nhưng cần tải lại trang một lần. Gỡ tay: DevTools → Application → Service Workers → *Unregister*.
+
+### Smoke test báo "thiếu nội dung" dù trang đúng
+
+**Nguyên nhân:** dưới `set -o pipefail`, `printf "$body" | grep -q …` làm `grep` thoát ngay khi khớp, bên ghi nhận SIGPIPE (exit 141) và cả pipeline bị coi là lỗi — chỉ xảy ra khi nội dung lớn (trang chủ ≈ 94 KB) và không xảy ra trên Git Bash của Windows. Đọc nội dung vào biến rồi so khớp bằng `[[ … ]]`/`=~`;
+dùng `curl -g` khi URL có `[` `]` để curl không coi chúng là dải ký tự. Ghi chú nằm ở đầu `scripts/smoke-test.sh`.
+
+### Service worker không cài được (app không offline) dù build xanh
+
+**Nguyên nhân thường gặp:** có một URL trong precache không trả 200 (ví dụ `404.html` — Nginx chỉ phục vụ nội bộ) hoặc khoá cache sai dạng mã hoá (`[id]` thay vì `%5Bid%5D`). `scripts/smoke-test.sh` kiểm từng URL của precache; chạy nó trên bản triển khai thật.
+
+### Trình duyệt nhúng trong app (hoặc môi trường không cho đăng ký service worker)
+
+Báo `Failed to register a ServiceWorker … An unknown error occurred when fetching the script` ngay cả với tệp một dòng — giới hạn của môi trường chứ không phải của mã. Kiểm service worker bằng Chrome/Edge/Firefox thường trên `localhost` (xem "PWA và offline" bên dưới).
 
 ### `next@15.1.6` có lỗ hổng RCE
 
@@ -359,29 +174,6 @@ quy ước giá trị `quiz_type` / `question_type` / `part_of_speech` xem [SPEC
 
 **Còn tồn tại:** 1 lỗ hổng `postcss` mức **high** (đọc file `.map` tùy ý). Chỉ hết khi nâng lên Next.js 16 — là breaking change, cần đánh giá riêng.
 
-### Thao tác ghi (POST/PATCH) bị 403 dù đã đăng nhập
-
-**Vấn đề:** Đọc dữ liệu bình thường nhưng bắt đầu quiz, nộp bài viết, chấm thẻ… đều trả 403.
-
-**Nguyên nhân:** rewrite `/api/v1/*` trong `next.config.mjs` chuyển tiếp nguyên header `Origin`. Trình duyệt luôn gửi `Origin`
-cho request POST/PATCH, và Spring từ chối nếu origin đó không nằm trong `CORS_ORIGINS`. Tài liệu cũ hướng dẫn đặt
-`CORS_ORIGINS=http://localhost:3000` trong khi `npm run dev` chạy ở cổng 3001 → dính đúng lỗi này.
-
-**Xử lý:** không đặt `CORS_ORIGINS` ở dev (mặc định đã gồm 3000 và 3001), hoặc đặt đúng origin đang dùng.
-
-### Trang Ôn tập / Quiz trống hoặc lỗi dù backend có dữ liệu
-
-**Vấn đề (đã sửa):** frontend đọc `/reviews/queue` và `/quizzes` như mảng, trong khi backend trả object (`{content, …}`).
-Khi thêm endpoint mới, khai báo kiểu trong `web/src/lib/types.ts` đúng theo DTO `record` ở `backend/.../web/dto/*.java`.
-
-### Dùng lại refresh token cũ không thu hồi được cả họ token
-
-**Vấn đề (đã sửa, phát hiện nhờ `AuthFlowTest`):** khi phát hiện token đã bị thay thế được trình lại, `RefreshTokenService.rotate`
-gọi `revokeFamily` rồi ném 401. Exception đó rollback transaction bao ngoài (`AuthService.refresh`) — kéo theo cả lệnh thu hồi,
-nên token mới nhất (có thể nằm trong tay kẻ trộm) vẫn dùng được.
-
-**Xử lý:** lệnh thu hồi chạy trong transaction riêng (`REQUIRES_NEW`) nên được commit trước khi 401 được ném ra.
-
 ### `npm install` báo `Cannot read properties of null (reading 'edgesOut')`
 
 **Vấn đề:** lỗi của npm 10 khi giải peer dependency nhóm `@emnapi` / `@napi-rs` (đi kèm Tailwind oxide, Vite).
@@ -389,29 +181,15 @@ nên token mới nhất (có thể nằm trong tay kẻ trộm) vẫn dùng đư
 **Xử lý:** `npm ci` (cài theo lockfile) không bị ảnh hưởng. Khi cần *thêm/nâng* gói, chạy lệnh đó bằng npm 11:
 `npx -y npm@11 install -D <gói>` — lockfile vẫn là v3, npm 10 đọc bình thường.
 
-### Backend không nhận biến môi trường trên Windows CMD
-
-**Vấn đề:** `set VAR=value` chỉ có tác dụng trong session CMD hiện tại; Maven spawn process con mới không kế thừa.
-
-**Xử lý:** Đặt biến trong cùng một lệnh, hoặc dùng PowerShell `$env:VAR = "value"` và chạy `mvn` ngay sau.
-
 ---
 
 ## IDE Setup
 
-### IntelliJ IDEA
-
-1. **Import:** File → Open → chọn thư mục `backend/` (Maven project)
-2. **SDK:** File → Project Structure → Project SDK → Java 17
-3. **Lombok:** Cài plugin Lombok (`Settings → Plugins → Marketplace`)
-4. **Annotation Processing:** `Settings → Build → Compiler → Annotation Processors` → Enable
-
-### VS Code (Frontend)
+### VS Code
 
 Extensions được khuyến nghị:
 - ESLint
 - Tailwind CSS IntelliSense
-- TypeScript Vue Plugin (nếu cần)
 - Prettier (tùy chọn)
 
 `.vscode/settings.json` được đề xuất:
@@ -427,27 +205,59 @@ Extensions được khuyến nghị:
 
 ## Kiểm thử tính năng trong trình duyệt
 
+Mở DevTools → Application → Local Storage → khoá `kd.progress.v1` để xem trạng thái thật sau mỗi thao tác.
+
+### Tập viết
+
+1. Vào `/luyen-viet` (hoặc bấm một chữ ở `/bang-chu-cai/hiragana` — sẽ mở thẳng chữ đó nhờ `?c=`)
+2. Chọn script, nhóm, chế độ (Đồ theo nét / Tự viết)
+3. Click vào ký tự → khung tập viết mở ra; vẽ từng nét theo hướng dẫn
+4. Quan sát điểm từng nét, phản hồi lỗi (REVERSED, TOO_SHORT, …), và khi đủ nét: XP, lịch ôn kế tiếp, huy hiệu
+5. Tải lại trang: tiến độ còn nguyên; `/bang-dieu-khien` hiện XP và ô huy hiệu đã sáng
+
+### Ôn tập SRS
+
+1. Vào `/on-tap`: người mới nhận tối đa 10 thẻ mới mỗi ngày (kana theo thứ tự dạy học)
+2. Để thấy thẻ *đến hạn*: sửa `dueAt` của một thẻ trong Local Storage về quá khứ rồi tải lại, hoặc đổi giờ máy
+3. Thẻ viết mở khung tập viết không có nét mờ; thẻ khác lật đáp án rồi tự chấm 4 mức
+
 ### Quiz
 
 1. Vào `/quiz` → chọn một trong 4 bài mẫu → **Bắt đầu làm bài**
 2. Trắc nghiệm: bấm đáp án hoặc phím `1`–`4`; tự luận: gõ romaji. `Enter` sang câu kế / nộp ở câu cuối
-3. Hết giờ bài tự nộp; màn kết quả hiện đáp án đúng và giải thích cho từng câu
+3. Hết giờ bài tự nộp (chỉ một lần); màn kết quả hiện đáp án đúng và giải thích cho từng câu
 
-### Tập viết
+### Sao lưu
 
-1. Đăng ký tài khoản tại `/dang-ky`
-2. Vào `/luyen-viet`
-3. Chọn script (Hiragana/Katakana), nhóm, chế độ (Trace/Test)
-4. Click vào ký tự → màn hình tập viết mở ra
-5. Vẽ nét theo hướng dẫn
-6. Quan sát điểm và phản hồi lỗi (REVERSED, TOO_SHORT, v.v.)
+1. `/cai-dat` → *Tải tiến độ về máy* → mở tệp JSON, xem thử cấu trúc
+2. *Xoá toàn bộ tiến độ* rồi *Khôi phục từ tệp…* — tiến độ trở lại đúng như cũ
+3. Thử nhập một tệp không phải JSON hoặc JSON sai định dạng: có thông báo lỗi và tiến độ hiện tại không đổi
 
-### Ôn tập SRS
+### Trình duyệt chặn lưu trữ
 
-1. Sau khi tập viết một số ký tự, vào `/on-tap`
-2. Thẻ đến hạn xuất hiện — ôn tập và quan sát lịch ôn tiếp theo
+Chặn dữ liệu trang web trong cài đặt trình duyệt (hoặc dùng cửa sổ riêng tư ở trình duyệt chặn `localStorage`): khung ứng dụng hiện cảnh báo vàng
+và vẫn học được trong phiên.
 
-### Bảng xếp hạng
+### Đa điểm chạm và bút
 
-- Snapshot hàng tuần chạy thứ Hai 00:05 VN time
-- Trong dev: có thể gọi thẳng `LeaderboardService.snapshotWeekly()` qua Swagger hoặc kiểm tra `scheduled_tasks` log
+Trên thiết bị thật (hoặc DevTools → chế độ thiết bị, đặt loại con trỏ là cảm ứng):
+
+1. Mở `/luyen-viet?c=あ`, đặt một ngón viết nét 1 và **chạm thêm ngón thứ hai** vào ô giữa chừng: nét vẫn được chấm ("Đẹp! Sang nét số 2"), không bị ghi đè.
+2. Để lòng bàn tay chạm xuống rồi viết bằng bút: bút phải thắng.
+3. Kéo từ mép màn hình (cử chỉ hệ thống) giữa nét: nét dở bị bỏ, không có điểm và không có thông báo lỗi.
+
+Kiểm tự động không dựng được thiết bị thật; có thể bắn `PointerEvent` có `pointerId`/`pointerType` khác nhau vào `canvas` trong DevTools để tái hiện (xem test `lib/pointer-gate.test.ts` cho các tổ hợp cần phủ).
+
+### PWA và offline
+
+1. `npm run build && npx serve out` rồi mở địa chỉ `serve` in ra (thường là `http://localhost:3000`) bằng Chrome/Edge. DevTools → Application → **Manifest**: không có cảnh báo; **Service Workers**: trạng thái *activated and running*; **Cache Storage**: một cache `kd-<hex>` với đủ tệp (73 ở thời điểm viết).
+2. Tải lại một lần để trang được service worker kiểm soát, rồi *Network → Offline* (hoặc tắt hẳn server) và tải lại `/`, `/luyen-viet`, `/quiz/1`, `/bang-chu-cai/hiragana`: tất cả phải mở được. Viết thử một chữ khi offline — tiến độ vẫn lưu.
+3. Nút cài ở thanh địa chỉ Chrome (hoặc thẻ "Cài ra màn hình chính" ở `/cai-dat`) → ứng dụng mở không có thanh địa chỉ, bắt đầu ở `/bang-dieu-khien`.
+4. iPhone/iPad: Safari → Chia sẻ → *Thêm vào Màn hình chính*. **Mở lần đầu sẽ thấy tiến độ trống** (kho tách biệt với Safari) — dùng Tải tiến độ về / Khôi phục từ tệp để chuyển sang.
+5. Triển khai bản mới rồi tải lại: bản cũ vẫn chạy cho tới khi đóng hết tab, mở lại mới thấy bản mới.
+
+### Icon PWA
+
+`web/public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` và `web/src/app/apple-icon.png` (180×180) là ảnh tĩnh, vẽ lại đúng biểu tượng của `app/icon.svg` (chữ 仮 trắng trên nền `#C33C2B`):
+bản `any` bo góc 12,5%, bản `maskable` tràn nền với chữ nằm trong vùng an toàn giữa (≈ 50% cạnh), bản Apple nền đặc không bo góc (iOS tự bo; nền trong suốt sẽ thành đen). Đổi thương hiệu thì vẽ lại cả bốn tệp
+(ví dụ bằng `canvas.toBlob` trong trình duyệt) — `app/manifest.ts` và `scripts/smoke-test.sh` đã tham chiếu đúng các đường dẫn này.
