@@ -8,6 +8,7 @@ const ICONS: Record<string, React.ReactNode> = {
   home: <><path d="M4 10.5 12 4l8 6.5" /><path d="M6 10v9h12v-9" /></>,
   review: <><path d="M4 12a8 8 0 1 1 2.6 5.9" /><path d="M4 20v-5h5" /></>,
   brush: <><path d="M6 18c2.5 0 3-1.5 3-3 0-1.4-1-2.4-2.4-2.4C5 12.6 4 13.9 4 15.6 4 17.6 5.4 19 7.6 19c4.6 0 8.4-5 8.4-9.6" /><path d="M14 4.5 19.5 10" /></>,
+  keyboard: <><rect x="3" y="6.5" width="18" height="11" rx="2.2" /><path d="M7 10.5h.01M10.5 10.5h.01M14 10.5h.01M17.5 10.5h.01M8 14h8" /></>,
   book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5Z" /><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5" /></>,
   quiz: <><circle cx="12" cy="12" r="8.5" /><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.7-.9 1.3v.4" /><path d="M12 16.6h.01" /></>,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8" /></>,
@@ -17,6 +18,7 @@ export const NAV = [
   { href: "/bang-dieu-khien", label: "Tổng quan", icon: "home" },
   { href: "/on-tap", label: "Ôn tập", icon: "review" },
   { href: "/luyen-viet", label: "Luyện viết", icon: "brush" },
+  { href: "/luyen-go", label: "Luyện gõ", icon: "keyboard" },
   { href: "/tu-vung", label: "Từ vựng", icon: "book" },
   { href: "/quiz", label: "Quiz", icon: "quiz" },
   { href: "/cai-dat", label: "Cài đặt", icon: "settings" },
@@ -85,7 +87,7 @@ export function BottomNav() {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={clsx(
-              "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all duration-150",
+              "relative flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium whitespace-nowrap transition-all duration-150",
               active ? "text-shu font-bold" : "text-sumi-3 hover:text-sumi",
             )}
           >

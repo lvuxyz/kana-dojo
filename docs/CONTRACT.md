@@ -42,7 +42,7 @@ Hình dạng đầy đủ ở [SPEC.md §2](SPEC.md#2-mô-hình-dữ-liệu-ti�
 - Đọc = parse JSON → kiểm phiên bản → kiểm schema đầy đủ (kiểu, khoảng giá trị: `dailyGoalXp` 10–500, `streakFreezes` 0–2, `difficulty` 0–10, điểm 0–100, `recent` ≤ 10 phần tử…). **Sai bất kỳ điều gì thì từ chối cả tệp** và không đụng tới tiến độ hiện có.
 - Thông báo lỗi cho người dùng giữ cùng ba loại với web: không phải JSON · không đúng định dạng · phiên bản mới hơn.
 - Dữ liệu hỏng đang lưu trên máy được **giữ lại** (web: `kd.progress.corrupt`; mobile: tệp `progress.corrupt-<thời điểm>.json`) trước khi bắt đầu từ rỗng.
-- **Không** đưa vào tệp: giao diện sáng/tối (`kd.theme`), cache offline, kỷ lục phòng luyện gõ của web (`kd.typing.*` — lưu riêng, xem `docs/TYPING.md` §3.4 nếu có), bất cứ thứ gì thuộc riêng một nền tảng. Danh sách quy tắc từng trường: [MOBILE_FLUTTER.md phụ lục D](MOBILE_FLUTTER.md#phụ-lục-d-kiểm-tra-tệp-nhập).
+- **Không** đưa vào tệp: giao diện sáng/tối (`kd.theme`), cache offline, kỷ lục phòng luyện gõ của web (`kd.typing.*` — lưu riêng, xem [TYPING.md §3.4](TYPING.md#34-quyết-định-khi-gộp-vào-site-không-tài-khoản)), bất cứ thứ gì thuộc riêng một nền tảng. Danh sách quy tắc từng trường: [MOBILE_FLUTTER.md phụ lục D](MOBILE_FLUTTER.md#phụ-lục-d-kiểm-tra-tệp-nhập).
 - Thẻ trỏ tới mục không còn trong nội dung (từ vựng bị gỡ, app cũ gặp tệp của web mới) **bị bỏ qua khỏi hàng đợi và bộ đếm nhưng vẫn nằm trong tệp** — để xuất lại không làm mất dữ liệu của người dùng. Hành vi này đã có test ở web (`reviews.test.ts`).
 
 **Thay đổi định dạng:** tăng `STATE_VERSION` **ở cả hai phía cùng lúc**, thêm hàm migrate (`vN → vN+1`) cùng test với một tệp mẫu thật của phiên bản cũ, và cập nhật fixture. Web nạp được tệp cũ hơn thì mobile cũng phải nạp được.

@@ -91,6 +91,8 @@
 
 Chi tiết nội dung ✅: 208 ký tự = 2 bảng chữ × (46 cơ bản + 25 biến âm + 33 âm ghép); **66 ký tự ghép gồm 2 glyph** (きゃ…) với `viewBox` giãn thành 218×109; ký tự nhiều nét nhất có 9 nét; tập chữ Nhật dùng trong toàn bộ nội dung là **310 glyph khác nhau** (gồm **160 chữ Hán** trong từ vựng và quiz).
 
+**Các số liệu ở bảng trên ghi theo commit `368c04b`** (trước khi có phòng luyện gõ). Sau PR #6, web có thêm ≈ 830 dòng engine (`lib/typing/`, 211 test trong 5 tệp), ≈ 1.500 dòng giao diện (`components/typing/`), 192 dòng trang và layout `/luyen-go`, và kho câu mẫu 11 KB — tổng cộng 16 tệp test, 320 test, 22 route, `sw.js` precache 77 tệp. Phòng luyện gõ **nằm ngoài phạm vi v1 của mobile** (mục 10.3) nên các bảng ở đây và phần ước lượng không đổi.
+
 **Không mang sang** (chỉ có ý nghĩa với web): service worker và manifest PWA, `InstallCard`, script chọn giao diện trong `<head>`, `nginx.conf` / Docker, `sitemap` / `robots`, các trang SEO `/bang-chu-cai/*`, trang giới thiệu `/` (thay bằng onboarding, mục 7.3).
 
 ---
@@ -639,7 +641,7 @@ Web đã bỏ nhật ký ôn ("Không còn lưu nhật ký từng lần ôn", SP
 
 - **Mẹo nhớ bằng tiếng Việt và các cặp dễ nhầm** (シ/ツ, ソ/ン, ヌ/メ, ぬ/め, ね/れ/わ…): web đã có `explanationVi` cho cả 38 câu quiz ✅ → dùng làm hạt giống; **sinh quiz động từ các cặp dễ nhầm** thay vì 4 bài cố định.
 - **Bài giải thích biến âm và âm ghép** (hiện chỉ có trong bảng).
-- **Phòng luyện gõ:** web có `/luyen-go` (bản gộp tương thích site tĩnh ở nhánh `claude/typing-room-unified`, thiết kế trong `docs/TYPING.md` của nhánh đó; thay cho PR #2). Bộ máy riêng ở `lib/typing/`, kỷ lục lưu riêng ngoài `ProgressState`. Bản mobile có thể port bộ máy gõ (thuần hàm) nhưng **điện thoại không có bàn phím vật lý**: chỉ chế độ IME/flick dùng được ❓ (đúng như web ghi cho màn cảm ứng) — cần quyết định riêng, sau v1.
+- **Phòng luyện gõ:** web có `/luyen-go` (PR #6, thay PR #2; thiết kế: [TYPING.md](TYPING.md)). Bộ máy riêng ở `lib/typing/` (≈ 830 dòng thuần hàm, 211 test), giao diện ≈ 1.500 dòng, kỷ lục lưu riêng ngoài `ProgressState` (`kd.typing.history.v1`, [TYPING.md §3.4](TYPING.md#34-quyết-định-khi-gộp-vào-site-không-tài-khoản)). Bản mobile có thể port bộ máy gõ nhưng **điện thoại không có bàn phím vật lý**: chỉ chế độ IME/flick dùng được ❓ (đúng như web ghi cho màn cảm ứng) — cần quyết định riêng, sau v1.
 - **Chữ Hán.** Engine không biết mình đang vẽ kana (ARCHITECTURE: *Hướng mở rộng*); KanjiVG có 6.763 tệp, mỗi nét là đường tâm đơn tuyến (SPEC §1.1). **Bắt đầu từ 160 chữ Hán đã có trong từ vựng và quiz** ✅. Ước lượng dung lượng 📐: kana = 59 KB / 433 nét ≈ 136 B/nét, nên 500 chữ × ≈ 11 nét ≈ 0,75 MB thô (số nét trung bình ≈ 10–12 là suy đoán ❓). Cần: bộ sinh dữ liệu (script cũ vẫn trong git: `git show ed8ff35:archive/legacy-v1/build_data.py`), ngưỡng chấm riêng cho nét dài/ngắn và ô nhỏ hơn, giấy phép CC BY-SA 3.0 như kana.
 - **Mở rộng từ vựng.** Hiện 80 từ (70 N5 + 10 N4). Nguồn: JMdict (CC BY-SA 4.0, bắt buộc ghi công 📘) — nhưng kho này chủ yếu có nghĩa bằng ngôn ngữ châu Âu nên `meaningVi` phải biên soạn và duyệt tay ❓. Câu ví dụ: Tatoeba (CC BY 2.0 FR, ghi tên tác giả từng câu 📘). Danh sách cấp JLPT phổ biến là phi chính thức → ghi rõ nguồn. Giữ bất biến `id` chỉ thêm cuối.
 - **Trò chơi hoá:** nhiệm vụ ngày/tuần; **thẻ chia sẻ thành tích** (dựng ảnh bằng `RepaintBoundary` + share sheet); thêm huy hiệu; *không* có bảng xếp hạng (cần máy chủ — web đã bỏ vì lý do này).
@@ -809,7 +811,7 @@ Sau v1, theo ưu tiên ở mục 9–10: **P1** âm thu sẵn, widget, bút, nh�
 | 8 | Chữ Hán: khi nào, bắt đầu từ 160 chữ đã có? | Sau v1 (P2); cần thiết kế riêng cho ô nhỏ và nét dài |
 | 9 | Sửa trước ở web: màu đạt AA, tự lưu phông (mục 7.4, 8.3) | Tách PR riêng, làm trước hoặc song song M2 |
 | 10 | Kiếm tiền (nếu có) | Xem lại giấy phép share-alike (8.5) và nhãn quyền riêng tư (11.4) trước |
-| 11 | PR #2–#4 của web (còn mở, dựa trên bản có backend) | #3, #4 đã bị #5 thay thế → đóng; #2 (phòng luyện gõ) được thay bằng nhánh `claude/typing-room-unified` đã tương thích site tĩnh → đóng khi nhánh đó merge |
+| 11 | PR #2–#4 của web (còn mở, dựa trên bản có backend) | #2 (phòng luyện gõ) đã được gộp qua PR #6 và tự đóng; #3, #4 đã bị #5 thay thế → nên đóng |
 | 12 | Mẫu điểm nét: mỗi nền tảng tự lấy mẫu (A) hay bảng chung `kana-samples.json` (B) | **B** — `PathMetric` lệch web tới 0,456 đơn vị (mục 5.6); B cho điểm giống hệt và test chấm nét được trong Node |
 | 13 | Chiều nội dung: JSON làm bản gốc (web nhập JSON) hay sinh JSON từ `.ts` | Bắt đầu bằng **sinh từ `.ts`** (không đụng web; import được bằng `node` trần ✅); lật sang JSON gốc khi nội dung lớn lên ([CONTRACT.md §3.1](CONTRACT.md#31-tệp-nội-dung) đề xuất lật ngay) |
 

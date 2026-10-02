@@ -6,6 +6,7 @@ import { Button, Card, Field, Spinner, Stat } from "@/components/ui";
 import { useStats } from "@/lib/learning/hooks";
 import { MAX_DAILY_GOAL_XP, MIN_DAILY_GOAL_XP } from "@/lib/learning/state";
 import { exportProgress, importProgress, resetProgress, setDailyGoal } from "@/lib/learning/store";
+import { clearHistory } from "@/lib/typing/history";
 import { dayKey, systemClock } from "@/lib/learning/time";
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -58,8 +59,9 @@ export default function SettingsPage() {
   };
 
   const reset = () => {
-    if (!window.confirm("Xoá toàn bộ tiến độ, chuỗi ngày và huy hiệu trên trình duyệt này? Không thể hoàn tác.")) return;
+    if (!window.confirm("Xoá toàn bộ tiến độ, chuỗi ngày, huy hiệu và kỷ lục luyện gõ trên trình duyệt này? Không thể hoàn tác.")) return;
     resetProgress();
+    clearHistory(); // kỷ lục luyện gõ lưu riêng (lib/typing/history.ts) nhưng cũng là tiến độ của người học
     setGoal(null);
     setNotice({ tone: "ok", text: "Đã xoá toàn bộ tiến độ." });
   };
@@ -107,7 +109,7 @@ export default function SettingsPage() {
       <Card className="flex flex-col gap-4 px-5 py-4">
         <span className="label-xs">Sao lưu & khôi phục tiến độ</span>
         <p className="text-[12.5px] leading-relaxed text-sumi-3">
-          Tệp sao lưu là một tệp JSON thường. Dùng nó để chuyển tiến độ sang máy khác hoặc phòng khi lỡ xoá dữ liệu trình duyệt.
+          Tệp sao lưu là một tệp JSON thường. Dùng nó để chuyển tiến độ sang máy khác hoặc phòng khi lỡ xoá dữ liệu trình duyệt. Kỷ lục luyện gõ lưu riêng trên máy này và chưa nằm trong tệp sao lưu.
         </p>
 
         <div className="flex flex-wrap gap-2.5">

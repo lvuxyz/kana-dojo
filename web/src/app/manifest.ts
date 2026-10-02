@@ -26,6 +26,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Luyện viết", url: "/luyen-viet" },
+      { name: "Luyện gõ", url: "/luyen-go" },
       { name: "Ôn tập", url: "/on-tap" },
       { name: "Quiz", url: "/quiz" },
     ],
