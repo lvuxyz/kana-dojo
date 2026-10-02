@@ -192,6 +192,8 @@ kèm một bản làm dở `claude/typing-sessions-backend`). Khi gộp vào sit
 | Xoá | *Xoá toàn bộ tiến độ* xoá cả kỷ lục luyện gõ | Một nút, một lời hứa |
 | Điều hướng | Mục "Luyện gõ" đứng cạnh "Luyện viết"; không đưa lại "Xếp hạng", "Hồ sơ" | Hai mục đó thuộc bản có tài khoản |
 
+**Đã chốt 2026-10-02:** giữ nguyên hai điểm *XP, streak* và *Sao lưu* ở bảng trên. Xem lại khi bắt đầu làm bản mobile hoặc khi thêm nhật ký ôn (`STATE_VERSION` 2), lúc đó đổi định dạng tệp một lần.
+
 **Lấy lại mã đã gỡ** (đều nằm trong lịch sử của `master` sau khi gộp):
 
 ```bash
@@ -223,7 +225,7 @@ nên cần chốt cùng lúc với mobile.
 
 ## 4. Hướng phát triển
 
-- **Cộng XP/streak** từ luyện gõ và/hoặc **đưa kỷ lục vào tệp sao lưu** — hai quyết định sản phẩm, xem §3.4.
+- **Xem lại** việc cộng XP/streak và đưa kỷ lục vào tệp sao lưu khi bắt đầu làm bản mobile hoặc thêm nhật ký ôn (đã chốt giữ nguyên ngày 2026-10-02, §3.4).
 - **Nội dung từ vựng JLPT** lấy thẳng từ `/vocabulary` (đã có nghĩa tiếng Việt và câu ví dụ).
 - Huy hiệu luyện gõ (đạt 黒帯, 100 lượt…) và bảng xếp hạng riêng theo chế độ.
 - Bảng romaji tuỳ chỉnh (AZIK) — chỉ cần thêm một bảng ứng viên.

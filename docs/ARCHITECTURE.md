@@ -273,7 +273,7 @@ Trang `/luyen-go` (chi tiết: [TYPING.md](TYPING.md)) gộp thêm vào sau khi 
 
 - **Bộ máy thuần hàm** ở `lib/typing/` (`romaji`, `kana-layout`, `engine`, `ime`, `phrases`, `score`, `history`) — không React, test trong Node như `lib/learning`.
 - **Lưu riêng** ở `kd.typing.history.v1` (kỷ lục, 10 lượt gần nhất, chữ hay sai), cùng quy ước với `kd.progress.v1`: tiền tố `kd.`, dữ liệu hỏng được giữ lại ở `.corrupt`, bị chặn lưu trữ thì vẫn chơi được trong bộ nhớ. Một trình duyệt là một kỷ lục (không có tài khoản).
-- **Không đi qua `ProgressState`**: không cộng XP/streak và chưa nằm trong tệp sao lưu, nên hợp đồng tệp sao lưu giữa web và mobile (SPEC §2) không đổi. "Xoá toàn bộ tiến độ" vẫn xoá nó. Hai quyết định mở (đưa vào sao lưu, cộng XP) ở TYPING.md §3.4.
+- **Không đi qua `ProgressState`**: không cộng XP/streak và chưa nằm trong tệp sao lưu, nên hợp đồng tệp sao lưu giữa web và mobile (SPEC §2) không đổi. "Xoá toàn bộ tiến độ" vẫn xoá nó. Hai việc này đã chốt ngày 2026-10-02 là **giữ nguyên** (chưa cộng XP, chưa đưa vào sao lưu); cách đổi và lúc nên xem lại ở TYPING.md §3.4.
 
 ---
 
