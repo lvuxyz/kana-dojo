@@ -41,7 +41,7 @@ Kết quả: không có gì để vận hành, bảo mật, sao lưu hay trả t
   trình duyệt đọc `localStorage`.
 - `bang-chu-cai/[script]` và `quiz/[id]` dùng `generateStaticParams` + `dynamicParams = false`: id lạ trả 404 thay vì cố dựng lúc chạy.
 - `luyen-viet` dùng `useSearchParams` (để nhận `?c=あ`) nên được bọc `<Suspense>` — yêu cầu của xuất bản tĩnh.
-- Các trang nội dung công khai (`bang-chu-cai`, `luyen-viet`, `tu-vung`, `quiz`) có metadata + canonical và nằm trong `sitemap.xml`;
+- Các trang nội dung công khai (`bang-chu-cai`, `luyen-viet`, `luyen-go`, `tu-vung`, `quiz`) có metadata + canonical và nằm trong `sitemap.xml`;
   ba trang chỉ hiện tiến độ cá nhân bị `noindex` và `Disallow` trong `robots.txt`.
 - `npm run build` = `next build` rồi `node scripts/build-sw.mjs`: bước sau sinh `out/sw.js` từ danh sách tệp thật của bản build. `app/manifest.ts` và `app/apple-icon.png`
   được Next xuất thành `manifest.webmanifest` và `apple-icon.png` (route metadata cần `export const dynamic = "force-static"`).
@@ -267,11 +267,21 @@ nên không cần tác vụ nền.
 
 ---
 
+## Phòng luyện gõ
+
+Trang `/luyen-go` (chi tiết: [TYPING.md](TYPING.md)) gộp thêm vào sau khi site đã tĩnh, theo cùng nguyên tắc:
+
+- **Bộ máy thuần hàm** ở `lib/typing/` (`romaji`, `kana-layout`, `engine`, `ime`, `phrases`, `score`, `history`) — không React, test trong Node như `lib/learning`.
+- **Lưu riêng** ở `kd.typing.history.v1` (kỷ lục, 10 lượt gần nhất, chữ hay sai), cùng quy ước với `kd.progress.v1`: tiền tố `kd.`, dữ liệu hỏng được giữ lại ở `.corrupt`, bị chặn lưu trữ thì vẫn chơi được trong bộ nhớ. Một trình duyệt là một kỷ lục (không có tài khoản).
+- **Không đi qua `ProgressState`**: không cộng XP/streak và chưa nằm trong tệp sao lưu, nên hợp đồng tệp sao lưu giữa web và mobile (SPEC §2) không đổi. "Xoá toàn bộ tiến độ" vẫn xoá nó. Hai quyết định mở (đưa vào sao lưu, cộng XP) ở TYPING.md §3.4.
+
+---
+
 ## PWA và offline
 
 Site cài được ra màn hình chính và chạy offline. Chi tiết quy tắc (manifest, precache, vòng đời) ở [SPEC.md §8](SPEC.md#8-pwa-và-chế-độ-offline); đây là lý do thiết kế.
 
-**Precache toàn bộ thay vì cache theo yêu cầu.** Toàn site chỉ 73 tệp (≈ 2,4 MB chưa nén). Tải sẵn tất cả lúc cài service worker cho ba điều: (1) điều hướng phía client của Next tới một trang *chưa từng mở*
+**Precache toàn bộ thay vì cache theo yêu cầu.** Toàn site chỉ 77 tệp (≈ 2,5 MB chưa nén). Tải sẵn tất cả lúc cài service worker cho ba điều: (1) điều hướng phía client của Next tới một trang *chưa từng mở*
 vẫn có đủ chunk JS khi offline; (2) HTML và JS của một phiên luôn cùng một bản build, không bao giờ lẫn bản cũ với bản mới; (3) logic service worker đơn giản — "có trong cache thì trả, không thì đi mạng".
 
 **Không `skipWaiting()`.** Bản mới cài ở nền nhưng chỉ có hiệu lực khi mọi tab của bản cũ đã đóng. Nếu kích hoạt ngay, tab đang mở (HTML cũ) sẽ bị rút cache cũ giữa chừng và tải chunk của bản mới không khớp. Đổi lại,

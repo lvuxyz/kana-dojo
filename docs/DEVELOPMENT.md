@@ -75,6 +75,10 @@ Unit test đặt cạnh mã nguồn, tên `*.test.ts`, chạy trong môi trườ
 | `lib/learning/quiz.test.ts` | Chấm quiz + tính toàn vẹn nội dung đóng gói (id, đáp án nằm trong options) |
 | `lib/learning/store.test.ts` | `localStorage` giả: lưu/nạp lại, dữ liệu hỏng, trình duyệt chặn ghi, đồng bộ tab, xuất/nhập/xoá |
 | `lib/pointer-gate.test.ts` | Cổng con trỏ: ngón thứ hai bị bỏ qua, bút thắng cảm ứng, `pointercancel` bỏ nét dở, chuột phải bị bỏ qua, `up` thất lạc không gây kẹt |
+| `lib/typing/engine.test.ts` | Mọi biến thể romaji (`shi/si/ci`, `nn`/`n'`/`xn`, `っ` gấp đôi, âm ghép, katakana mở rộng), kana JIS, phím "lẽ ra phải bấm" và gợi ý theo cách người học đang gõ |
+| `lib/typing/phrases.test.ts` | Phân tích `{kanji|cách đọc}`; **từng câu trong kho** gõ trọn bằng cả romaji lẫn kana JIS; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được; "Chữ hay sai" |
+| `lib/typing/ime.test.ts` · `score.test.ts` | Chuẩn hoá chữ IME và quy đổi số phím; KPM, độ chính xác, điểm, sinh tử, thang đai |
+| `lib/typing/history.test.ts` | Kỷ lục theo tổ hợp, chữ yếu giảm dần; `localStorage` giả: khoá cố định, dữ liệu hỏng giữ ở `.corrupt`, bị chặn/đầy bộ nhớ không ném lỗi, xoá |
 | `lib/pwa.test.ts` | Nhận diện ngữ cảnh cài đặt: đã cài / iPhone-iPad-iPadOS / còn lại |
 | `scripts/build-sw.test.mjs` | Trình dựng service worker: ánh xạ tệp → URL (`encodeURI`, `[id]` → `%5Bid%5D`), loại `404.html`, mã phiên bản băm theo nội dung |
 | `scripts/sw.test.mjs` | **Mã thật** của `sw.template.js` chạy trong Node với Cache API và `fetch` giả: precache, install thất bại khi có URL không 200, dọn cache cũ, phục vụ từ cache (kể cả `?query`, dấu `/` cuối, RSC, `%5Bid%5D`), offline, không can thiệp POST/khác origin/`/sw.js`, cập nhật phiên bản |
@@ -220,6 +224,13 @@ Mở DevTools → Application → Local Storage → khoá `kd.progress.v1` để
 1. Vào `/on-tap`: người mới nhận tối đa 10 thẻ mới mỗi ngày (kana theo thứ tự dạy học)
 2. Để thấy thẻ *đến hạn*: sửa `dueAt` của một thẻ trong Local Storage về quá khứ rồi tải lại, hoặc đổi giờ máy
 3. Thẻ viết mở khung tập viết không có nét mờ; thẻ khác lật đáp án rồi tự chấm 4 mức
+
+### Luyện gõ
+
+1. Vào `/luyen-go`, giữ mặc định (Hiragana · Romaji · Bài mẫu) và *Bắt đầu gõ*. Đồng hồ chỉ chạy từ phím đầu tiên
+2. Gõ theo chữ Nhật hiện trên màn (không có romaji mẫu). Phím sai bị từ chối và được đếm vào *Gõ sai*; ん trước `y` hoặc ở cuối câu cần `nn`
+3. Hết bài: màn kết quả hiện điểm, đai, kỷ lục và *Chữ hay sai*. Tải lại `/luyen-go`: kỷ lục còn nguyên (Local Storage → `kd.typing.history.v1`)
+4. `/cai-dat` → *Xoá toàn bộ tiến độ*: kỷ lục luyện gõ cũng mất. Lưu ý công cụ tự động hoá nhập liệu chỉ phát `input`, không phát `keydown` thật thì trang không nhận phím — phải nhấn phím thật (hoặc action `key` của trình duyệt nhúng)
 
 ### Quiz
 

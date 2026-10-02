@@ -4,9 +4,9 @@ Trang `/luyen-go`: người học gõ tiếng Nhật theo câu mẫu, được b
 (e-typing, 寿司打). Tài liệu này ghi lại phần nghiên cứu (người Nhật gõ chữ thế nào, các kiểu bài luyện phổ biến),
 các quyết định thiết kế và lý do.
 
-> **Phạm vi hiện tại:** web hướng tới người dùng cá nhân với dữ liệu trên máy — phòng luyện gõ chạy **hoàn toàn trên
-> trình duyệt**: chấm điểm tại chỗ, kỷ lục, lịch sử và chữ hay sai lưu ở `localStorage`, không cộng XP/streak. Mã đồng bộ lên
-> máy chủ đã viết sẵn và được giữ lại dưới dạng comment — xem §3.4.
+> **Phạm vi:** phòng luyện gõ chạy **hoàn toàn trên trình duyệt**, như phần còn lại của site (không tài khoản, không máy chủ):
+> chấm điểm tại chỗ; kỷ lục, lịch sử và chữ hay sai lưu ở `localStorage`; **không cộng XP/streak**. Các quyết định khi gộp vào
+> site tĩnh (và vì sao) ở §3.4.
 
 ---
 
@@ -107,9 +107,12 @@ khoảng 150–250; người gõ thi đấu vượt 400.
 
 - Kỷ lục cá nhân tách theo tổ hợp **cách nhập × nội dung × chế độ**: điểm cao nhất, tốc độ cao nhất, độ chính xác cao
   nhất và số lượt. Màn chọn bài hiện kỷ lục của tổ hợp đang chọn và 5 lượt gần nhất.
-- Lưu ở `localStorage` qua `web/src/lib/typing/history.ts`, khoá `kd.typing.history.v1:<id tài khoản>` — tách theo
-  tài khoản để máy dùng chung (máy ở nhà, phòng máy) thì mỗi người một kỷ lục. Giữ 10 lượt gần nhất và tối đa 40 chữ yếu.
-  Dữ liệu hỏng hoặc trình duyệt chặn lưu trữ (ẩn danh) thì vẫn chơi được, chỉ không nhớ kỷ lục.
+- Lưu ở `localStorage` qua `web/src/lib/typing/history.ts`, khoá `kd.typing.history.v1` (cùng tiền tố `kd.` với
+  `kd.progress.v1`; không có tài khoản nên một trình duyệt là một kỷ lục). Giữ 10 lượt gần nhất và tối đa 40 chữ yếu.
+  Dữ liệu hỏng được giữ lại ở `kd.typing.history.corrupt` rồi bắt đầu lại (như tiến độ chính); trình duyệt chặn lưu trữ
+  (ẩn danh) hoặc đầy bộ nhớ thì vẫn chơi được, chỉ không nhớ kỷ lục.
+- Kỷ lục luyện gõ **lưu riêng**, chưa nằm trong tệp sao lưu tiến độ ([SPEC §2.1](SPEC.md#21-tệp-sao-lưu)) — trang Cài đặt nói
+  rõ điều này. Nút *Xoá toàn bộ tiến độ* có xoá cả kỷ lục luyện gõ.
 - Lượt chưa gõ đúng phím nào không được ghi. Lựa chọn lần trước (nội dung, cách nhập, chế độ…) cũng được nhớ trên máy.
 
 ---
@@ -173,43 +176,38 @@ Câu mẫu đóng gói sẵn ở frontend: nội dung cố định, không cần
 Thêm câu mới chỉ cần sửa file này — test `phrases.test.ts` tự kiểm tra mọi câu **gõ trọn được bằng cả romaji lẫn kana JIS**
 và đúng loại chữ của nhóm.
 
-### 3.4 Mã đồng bộ máy chủ (đang tắt)
+### 3.4 Quyết định khi gộp vào site không tài khoản
 
-Hướng sản phẩm hiện tại là **web cho người dùng cá nhân, dữ liệu nằm trên máy người dùng**, nên phòng luyện gõ không gọi
-máy chủ. Phần đồng bộ lên tài khoản đã được viết, kiểm thử (5 + 7 test backend, chạy cả luồng thật từ trình duyệt tới
-PostgreSQL) rồi **giữ lại dưới dạng comment** — không biên dịch, không đăng ký endpoint, Flyway không tạo bảng.
+Phòng luyện gõ được viết lúc site còn có backend và tài khoản (nhánh `claude/japanese-text-input-feature-df8fd6`, PR #2,
+kèm một bản làm dở `claude/typing-sessions-backend`). Khi gộp vào site tĩnh hiện tại, các điểm sau được chốt:
 
-| Phần | File | Vai trò |
+| Chủ đề | Quyết định | Lý do |
 |---|---|---|
-| Bảng | `backend/src/main/resources/db/disabled/V4__typing_sessions.sql` | `typing_sessions` — nằm **ngoài** `db/migration` nên Flyway không chạy |
-| Domain | `backend/…/domain/entity/TypingSession.java`, `domain/enums/Typing{InputMethod,ContentType,Mode}.java` | Entity và enum (có cả `WEAK` — bài chữ hay sai) |
-| Truy vấn | `backend/…/repository/TypingSessionRepository.java` | Kỷ lục theo tổ hợp, 10 lượt gần nhất, tổng thời gian |
-| Chấm điểm | `backend/…/typing/TypingScoring.java` | KPM, chính xác, điểm (khớp từng bit với `score.ts`), XP `min(50, 5 + phím đúng / 10)` |
-| Nghiệp vụ | `backend/…/service/TypingService.java` | Một giao dịch: tính lại điểm → so kỷ lục → cộng XP/streak vào `daily_activity` → lưu |
-| API | `backend/…/web/controller/TypingController.java`, `web/dto/TypingDtos.java` | `POST /api/v1/typing/sessions`, `GET /api/v1/typing/stats` |
-| Test | `backend/src/test/…/typing/TypingScoringTest.java`, `it/TypingFlowTest.java` | Công thức; luồng thật: server tự chấm, XP, kỷ lục, mọi loại nội dung, từ chối tốc độ > 1 500 phím/phút |
-| Client | `web/src/lib/typing/server-sync.ts` + 2 dòng đánh dấu `[đồng bộ máy chủ — đang tắt]` trong `web/src/app/(app)/luyen-go/page.tsx` | Gửi số đo thô sau mỗi lượt (không gửi lượt luyện lại câu có lỗi) |
+| Lưu trữ | `kd.typing.history.v1` (+ `.corrupt`), `kd.typing.config` cho lựa chọn lần trước | Cùng quy ước `kd.` với `kd.progress.v1` / `kd.theme` (SPEC §2.2) |
+| Tài khoản | Không. Bỏ hậu tố id tài khoản khỏi khoá | Site không có tài khoản (SPEC §0) |
+| Máy chủ | Bỏ hết mã backend và đồng bộ (Java, bảng `typing_sessions`, `server-sync.ts`) | Backend đã gỡ khỏi `master`; mã còn nguyên trong lịch sử git (bên dưới) |
+| XP, streak | **Không cộng** | Chuỗi ngày được quảng bá là "đạt mục tiêu bằng nét viết thực thụ"; cộng XP từ luyện gõ là đổi nghĩa của nó và đổi engine (xem dưới) |
+| Bàn phím ảo | Không có | Nguyên tắc "chỉ tiếng Nhật" (§1.3). Bản làm dở có `VirtualKeyboard.tsx`, đã bỏ |
+| Sao lưu | Chưa nằm trong tệp sao lưu | Giữ nguyên hợp đồng `ProgressState` v1 giữa web và mobile (SPEC §2) |
+| Xoá | *Xoá toàn bộ tiến độ* xoá cả kỷ lục luyện gõ | Một nút, một lời hứa |
+| Điều hướng | Mục "Luyện gõ" đứng cạnh "Luyện viết"; không đưa lại "Xếp hạng", "Hồ sơ" | Hai mục đó thuộc bản có tài khoản |
 
-Mỗi file Java/SQL mở đầu bằng 4 dòng ghi chú, phần còn lại là mã gốc có tiền tố `// ` (SQL: `-- `). Bật lại:
+**Lấy lại mã đã gỡ** (đều nằm trong lịch sử của `master` sau khi gộp):
 
 ```bash
-# 1. Backend: bỏ 4 dòng ghi chú đầu và tiền tố comment
-cd backend
-for f in $(grep -rl "^// ĐANG TẮT — đồng bộ luyện gõ" src); do sed -i '1,4d; s#^// \{0,1\}##' "$f"; done
-
-# 2. Migration: bỏ comment rồi đưa vào thư mục Flyway, đổi V4 thành số phiên bản kế tiếp còn trống
-sed -i '1,4d; s#^-- \{0,1\}##' src/main/resources/db/disabled/V4__typing_sessions.sql
-git mv src/main/resources/db/disabled/V4__typing_sessions.sql src/main/resources/db/migration/V4__typing_sessions.sql
-
-# 3. Frontend: bỏ comment client đồng bộ và hai dòng đánh dấu trong trang luyện gõ
-cd ../web
-sed -i '1,4d; /^export {};$/d; s#^// \{0,1\}##' src/lib/typing/server-sync.ts
-sed -i 's#^\( *\)// \[đồng bộ máy chủ — đang tắt\] import#\1import#; s#^\( *\)// if (shouldUpload#\1if (shouldUpload#' "src/app/(app)/luyen-go/page.tsx"
+git show 0d9b50b --stat                                  # bản giữ mã đồng bộ máy chủ dưới dạng comment (Java, SQL, server-sync.ts)
+git show 0d9b50b:web/src/lib/typing/server-sync.ts       # client đồng bộ
+git show b73497c:web/src/components/typing/VirtualKeyboard.tsx   # bàn phím ảo của bản làm dở
 ```
 
-Sau đó chạy `mvn test` và `npm test`, rồi bổ sung bảng và API vào `docs/SPEC.md` (§2 và §5). Muốn hiện XP và kỷ lục từ
-máy chủ ở màn kết quả thì dùng `uploadSession()` (trả `TypingResultDto` gồm `xpEarned`, `personalBest`, `newBest`) và
-`fetchTypingStats()` thay cho `history.ts`.
+**Nếu sau này muốn cộng XP/streak:** quy tắc của mã cũ là `min(50, 5 + phím đúng / 10)`, dưới 20 phím đúng thì 0 (tỉ lệ với công
+sức nên chia nhỏ lượt gõ không cày được XP), không tính lượt luyện lại câu có lỗi. Làm ở phía client: thêm `typingDelta` và một
+thao tác `recordTyping` ở `lib/learning/` gọi `recordActivity` như `quiz.ts` — không đổi schema. Phải đồng thời sửa lời ở trang
+Tổng quan về chuỗi ngày, SPEC §4.1, và thêm fixture (mobile phải làm đúng như web — xem MOBILE_FLUTTER.md, mục 5.6).
+
+**Nếu muốn đưa kỷ lục vào tệp sao lưu:** thêm phần `typing` tuỳ chọn vào `ProgressState` (bản cũ bỏ khoá lạ nên không hỏng,
+nhưng xuất rồi nhập qua bản cũ sẽ mất phần này) hoặc tăng `STATE_VERSION` lên 2 kèm migrate. Cả hai đều chạm hợp đồng web ↔ mobile
+nên cần chốt cùng lúc với mobile.
 
 ### 3.5 Kiểm thử
 
@@ -219,15 +217,13 @@ máy chủ ở màn kết quả thì dùng `uploadSession()` (trả `TypingResul
 | Web — `phrases.test.ts` | Phân tích furigana; **từng câu trong kho** gõ trọn bằng romaji và kana; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được; lọc đúng nhóm kana; "Chữ hay sai" chỉ rút từ danh sách yếu, đúng tỉ lệ; câu cố định gõ lần lượt |
 | Web — `ime.test.ts` | Chuẩn hoá chữ IME (NFKC, bỏ dấu câu), so khớp chữ đã chốt, quy đổi số phím; cụm kanji chỉ tính khi đổi đúng trọn cụm |
 | Web — `score.test.ts` | KPM, độ chính xác, điểm, sinh tử, thang đai |
-| Backend — `TypingScoringTest`, `it/TypingFlowTest` | Đang tắt cùng mã đồng bộ (§3.4); chạy lại được ngay sau khi bật |
-| Web — `history.test.ts` | Kỷ lục theo tổ hợp, chỉ đổi khi điểm cao hơn, giới hạn số lượt gần đây, dữ liệu hỏng thì bắt đầu lại; chữ yếu cộng dồn, giảm dần và bỏ kanji; khoá theo tài khoản |
+| Web — `history.test.ts` | Kỷ lục theo tổ hợp, chỉ đổi khi điểm cao hơn, giới hạn số lượt gần đây, dữ liệu hỏng thì bắt đầu lại; chữ yếu cộng dồn, giảm dần và bỏ kanji; khoá cố định `kd.typing.history.v1`, dữ liệu hỏng giữ lại ở `.corrupt`, trình duyệt chặn hoặc đầy bộ nhớ thì không ném lỗi |
 
 ---
 
 ## 4. Hướng phát triển
 
-- **Đồng bộ lên tài khoản** khi cần (mã đã có, đang tắt — §3.4): server **tự tính lại điểm** từ số phím, chặn tốc độ
-  phi thực tế, cộng XP vào `daily_activity`. Còn thiếu: đồng bộ danh sách chữ hay sai để luyện được trên nhiều máy.
+- **Cộng XP/streak** từ luyện gõ và/hoặc **đưa kỷ lục vào tệp sao lưu** — hai quyết định sản phẩm, xem §3.4.
 - **Nội dung từ vựng JLPT** lấy thẳng từ `/vocabulary` (đã có nghĩa tiếng Việt và câu ví dụ).
 - Huy hiệu luyện gõ (đạt 黒帯, 100 lượt…) và bảng xếp hạng riêng theo chế độ.
 - Bảng romaji tuỳ chỉnh (AZIK) — chỉ cần thêm một bảng ứng viên.
