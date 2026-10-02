@@ -2,6 +2,7 @@
 
 > **Trạng thái: đề xuất, chưa triển khai.** Viết ngày 2026-10-02 dựa trên mã nguồn web ở commit `368c04b`, các phép chạy thử trong repo này và tài liệu chính thức của nền tảng.
 > Tài liệu này đi sâu hơn mục "Hướng mobile" trong [ARCHITECTURE.md](ARCHITECTURE.md#hướng-mobile) (mục đó vẫn đúng, chỉ ngắn).
+> Hợp đồng chuẩn giữa web và mobile (tệp tiến độ, nội dung, hành vi engine, khác biệt JS/Dart đã đo): [CONTRACT.md](CONTRACT.md). Tài liệu này dẫn tới đó thay vì lặp lại.
 
 **Cách đọc độ tin cậy.** Mỗi khẳng định quan trọng mang một nhãn:
 
@@ -39,14 +40,14 @@
 
 1. **Engine học port được gần như nguyên văn.** Phần logic của web là 1.316 dòng TypeScript thuần hàm ✅. Spike: bản port Dart cho kết quả **trùng web trên 29.773 bước FSRS (500 thẻ) và 1.500 nét viết** — 0 sai khác ở trạng thái thẻ, lịch ôn (`dueAt`), điểm nét và lý do lỗi ✅. Rủi ro thật nằm ở khung viết nét trên màn hình cảm ứng (cử chỉ hệ thống, lòng bàn tay, bút), ở vận hành (build iOS, cửa hàng ứng dụng) và ở việc giữ hai bản engine không lệch nhau theo thời gian.
 2. **Port tay, đừng dùng gói `fsrs` của Dart.** Gói 2.0.1 mặc định bộ tham số khác `W` của web (W[0] = 0,2172 so với 0,212; W[3] = 16,1507 so với 8,2956…) và bật *fuzzing* ngẫu nhiên sẵn 📘. Dùng nó thì lịch ôn của mobile lệch web ngay từ thẻ đầu tiên và không tái lập được.
-3. **Bốn bẫy port đã lộ ra khi chạy thử** ✅ (mục 5.3): `Math.round` khác `round()`; `List.sort` của Dart không ổn định (đảo thứ tự ở 200/200 lần chạy từ 100 phần tử, trong khi test nhỏ vẫn qua); `pow`/`exp` lệch ở bit cuối; JSON số nguyên với số thực.
-4. **Không cần thư viện SVG.** Dữ liệu nét chỉ dùng hai lệnh `M` và `c` (433 `M`, 1.175 `c`) ✅; bộ phân tích 30 dòng cho kết quả bit-by-bit giống web trên cả 433 nét thật ✅. `path_drawing` mà ARCHITECTURE.md gợi ý đã không cập nhật từ 2022-08 và khai báo `sdk <3.0.0` 📘 — nên sửa gợi ý đó (đã sửa kèm tài liệu này).
+3. **Năm bẫy port đã lộ ra khi chạy thử** ✅ (mục 5.3): `Math.round` khác `round()`; `List.sort` của Dart không ổn định (đảo thứ tự ở 200/200 lần chạy từ 100 phần tử, trong khi test nhỏ vẫn qua); `pow`/`exp` lệch ở bit cuối; JSON số nguyên với số thực; `trim()` coi U+0085 là khoảng trắng còn JS thì không. Thêm một sai lệch **hình học**: `PathMetric` của Flutter lệch trình duyệt tới **0,456 đơn vị** (độ dài tới 1,23%) — đã tái lập độc lập và đo tác động: điểm lệch tối đa 1, lật ngưỡng chấm ≈ 0,05% số nét. Nên dùng chung một bảng mẫu nét (mục 5.6) để hai nền tảng cho điểm giống hệt.
+4. **Không cần thư viện SVG.** Dữ liệu nét chỉ dùng hai lệnh `M` và `c` (433 `M`, 1.175 `c`) ✅; bộ phân tích 30 dòng cho kết quả bit-by-bit giống web trên cả 433 nét thật ✅. `path_drawing` mà ARCHITECTURE.md từng gợi ý vẫn đọc được path (phiên viết CONTRACT.md đã chạy nó trên cả 433 nét) nhưng không cập nhật từ 2022-08 và khai báo `sdk <3.0.0` 📘 — dùng được; tự viết 30 dòng thì đỡ một phụ thuộc không bảo trì.
 5. **Hợp đồng dữ liệu là `ProgressState` v1.** Mobile đọc và ghi đúng khối JSON này thì tệp sao lưu của web nhập được vào app, và ngược lại — không cần tài khoản hay đồng bộ. Lưu bằng **một tệp JSON ghi nguyên tử** trong thư mục ứng dụng; Android Auto Backup và iCloud backup cho độ bền miễn phí, **khắc phục điểm yếu lớn nhất của bản web** (Safari xoá dữ liệu sau 7 ngày không dùng).
 6. **Môi trường dev hiện tại chưa sẵn sàng** ✅: máy có Flutter **3.35.4 / Dart 3.9.2**, trong khi các gói đề xuất (Riverpod 3.4.3, go_router 18.0.2, ML Kit 0.16.1…) đòi Dart ≥ 3.12 / Flutter ≥ 3.44 📘 — phải nâng lên Flutter 3.47 (stable hiện hành). Android SDK thiếu `cmdline-tools`, chưa chấp nhận license; máy Windows không build được iOS → cần macOS (CI hoặc máy thật).
 7. **Cửa hàng có mốc cứng** 📘: Google Play yêu cầu target API 36 từ 2026-08-31 (đang hiệu lực) và hỗ trợ 16 KB page size từ 2027-02-01; tài khoản nhà phát triển cá nhân mới phải chạy closed test 12 người × 14 ngày liên tục; Apple yêu cầu Xcode 26 từ 2026-04-28 và khai báo Privacy Manifest cho `UserDefaults`.
 8. **Lợi thế native lớn nhất** (mục 9): nhắc ôn tập và chuỗi ngày bằng thông báo cục bộ, widget màn hình chính, độ bền dữ liệu, âm thanh chuẩn, bút (Apple Pencil/S Pen). **Nâng cấp học thuật đáng đầu tư nhất** (mục 10): lưu nhật ký ôn (*revlog*) để tối ưu tham số FSRS theo từng người và để đồng bộ không mất dữ liệu; sửa các khoảng hở của lộ trình học hiện tại (thẻ từ vựng chỉ xuất hiện sau ≈ 21–42 ngày; thẻ đọc và từ vựng vẫn tự chấm).
 9. **Phát hiện thêm trên bản web, nên xử lý trước khi nhân đôi sang mobile**: chữ nhỏ màu `gold` trên nền giấy chỉ đạt **3,4 : 1** (dưới ngưỡng AA 4,5 : 1); nút chính chữ trắng ở giao diện tối chỉ **3,6 : 1** (còn **2,8 : 1** ở đầu gradient), số nét đã xong chữ trắng trên nền xanh chỉ **3,0 : 1** ✅; và web vẫn tải font từ Google Fonts trong khi tài liệu nói không có request ngoài (mục 7.4, 8.3).
-10. **Ước lượng** 📐: bản v1.0 ngang tính năng web ≈ **15–17 tuần-người** (một dev quen Flutter), nên dự phòng thêm 10–25% (→ 17–21 tuần); chưa tính đồ hoạ cửa hàng và nội dung mới (mục 14).
+10. **Ước lượng** 📐: bản v1.0 ngang tính năng web ≈ **15–18 tuần-người** (một dev quen Flutter), nên dự phòng thêm 10–25% (→ 17–22 tuần); chưa tính đồ hoạ cửa hàng và nội dung mới (mục 14).
 
 **Thứ tự đề xuất:** nâng toolchain và dựng monorepo + hợp đồng fixture → engine → khung viết nét (rủi ro cao nhất, làm sớm) → các màn hình → tính năng native → beta kín → nâng cấp theo mức ưu tiên ở mục 9–10.
 
@@ -135,7 +136,7 @@ kana-dojo/
 │   │   └── kd_content/          asset sinh từ web/src/data (kana-data.json, content.json)
 │   └── app/                     ứng dụng Flutter
 │       └── lib/{features, ui, platform, l10n}
-├── contract/                    (đề xuất) script sinh fixture từ web + schema — nguồn sự thật chung
+├── contract/                    (đề xuất) content/ (JSON), kana-samples.json, schema/, fixtures/ + script sinh — nguồn sự thật chung, đặc tả ở docs/CONTRACT.md
 └── docs/
 ```
 
@@ -217,6 +218,7 @@ Outcome<QuizResult>    submitQuiz(ProgressState s, int quizId, Map<int, String> 
 | 5 | **Chuẩn hoá Unicode.** `fold()` của tìm kiếm từ vựng dùng `normalize("NFD")` rồi bỏ dấu để gõ "ban" ra "bạn". Dart core **không** có chuẩn hoá Unicode | 📐 (suy từ API; chưa chạy) | Hoặc gói bỏ dấu (như `diacritic`), hoặc bảng ánh xạ tự viết — app chỉ cần tiếng Việt và Latin. Tính trước `searchText` đã bỏ dấu cho 80 từ ngay ở bước sinh nội dung; chỉ truy vấn của người dùng cần `fold` lúc chạy. Có test: "ban" tìm ra "bạn", "dong" tìm ra "đồng" |
 | 6 | **Sao chép trạng thái** (`structuredClone`) | — | `ProgressDraft` như mục 5.2 |
 | 7 | **Múi giờ** (`Intl.DateTimeFormat` với IANA zone) | — | Mục 5.4 |
+| 8 | **`String.trim()`.** Dart coi U+0085 (NEL) là khoảng trắng, JS thì không. `isCorrect` của quiz so khớp sau `trim` | ✅ Thử 10 ký tự: khác nhau **chỉ ở U+0085**; U+00A0, U+3000, U+FEFF, U+1680, U+2028, U+000B cả hai bỏ; U+200B, U+180E, U+001C cả hai giữ (phát hiện bởi phiên viết CONTRACT.md, tái lập ở đây) | Hàm `jsTrim` dùng đúng tập khoảng trắng của JS; fixture quiz có `\u0085` |
 
 Ngoài ra (nhỏ): `Object.values(state.cards)` duyệt theo thứ tự chèn với khoá không phải số nguyên — `LinkedHashMap` của Dart giữ thứ tự chèn như vậy nên khớp; chuỗi kana là BMP nên tách theo `runes` hay `split('')` đều đúng (dùng `runes` cho chắc); `toLocaleString("vi-VN")` và `toFixed(1)` chỉ dùng ở giao diện → `intl`.
 
@@ -234,6 +236,8 @@ abstract interface class DayClock {
 
 - **Production:** `DeviceClock` dùng `DateTime.fromMillisecondsSinceEpoch(ms)` (giờ địa phương theo cơ sở dữ liệu múi giờ của hệ điều hành) rồi tự đệm số 0. Không cần gói nào.
 - **Test:** `ZonedClock(zone)` dùng gói `timezone` (0.11.1) để dựng lại đúng các ca web đã test (`Asia/Ho_Chi_Minh`) và thêm các ca khó: `America/Los_Angeles` (chuyển giờ mùa hè), `Pacific/Kiritimati` (+14), `Australia/Lord_Howe` (lệch 30 phút khi chuyển giờ), `Asia/Kolkata` (+5:30), và ranh giới 23:00 / 00:00 / Thứ Hai.
+- **Đã đo** (phiên viết [CONTRACT.md](CONTRACT.md), chưa tái lập ở đây): `timezone` so với `Intl.DateTimeFormat` của Node trên 27.000 ca (18 vùng gồm Lord_Howe, Chatham, Kathmandu, Casablanca, Gaza, Apia…, 2015–2036): **0 sai lệch** `dayKey` / `hourOf`. Nhưng hai bên dùng **hai bản tz database khác nhau** (Node: 2025b; `timezone` 0.11.1: 2025c) và sẽ lệch khi luật múi giờ đổi → ghim phiên bản gói và có fixture múi giờ trong CI.
+- **Vì sao production dùng `DateTime` địa phương thay vì `timezone`** 📐: hệ điều hành cập nhật dữ liệu múi giờ độc lập với app, còn `timezone` đóng băng dữ liệu theo phiên bản gói — người ở nơi vừa đổi luật sẽ lệch ngày cho tới khi cập nhật app. Đây là một lựa chọn thiết kế chưa so sánh trên thiết bị ❓; `flutter_local_notifications` vẫn cần `timezone`, chấp nhận lệch rất nhỏ ở thông báo.
 - `weekStart`, `addDays`, `daysBetween` của web tính bằng `Date.UTC`, **không phụ thuộc múi giờ** → port nguyên bằng `DateTime.utc`.
 - Quy ước thiết bị đổi múi giờ giữa chừng giữ như web: ngày tính theo múi giờ tại thời điểm ghi nhận (📐 cân nhắc lưu `dayKey` vào sự kiện khi có nhật ký ôn, mục 10.1, để việc gộp dữ liệu không phụ thuộc múi giờ về sau).
 
@@ -254,16 +258,16 @@ Mục tiêu: bất kỳ thay đổi nào ở engine web mà làm đổi kết qu
 | Nhóm | Nội dung | So khớp |
 |---|---|---|
 | `fsrs` | Chuỗi chấm ngẫu nhiên có seed (như spike) | Trạng thái, `learningStep`, `reps`, `lapses`, `intervalDays`, `dueAt` **bằng tuyệt đối**; `stability`, `difficulty` sai số tương đối ≤ 1e-12 |
-| `stroke` | Nét người dùng + nét mẫu → `score`, `reason`, `reversed` | `score`, `reason`, `reversed` bằng tuyệt đối; `dev`, `ratio` ≤ 1e-12 |
+| `stroke` | Nét người dùng + **bảng mẫu chung** (mục 2 bên dưới) → `score`, `reason`, `reversed` | `score`, `reason`, `reversed` bằng tuyệt đối khi dùng bảng mẫu chung (nếu mỗi nền tảng tự lấy mẫu thì ± 1 điểm); `dev`, `ratio` ≤ 1e-12 |
 | `scenarios` | Chuỗi gọi `buildQueue` / `gradeCard` / `recordWriting` / `submitQuiz` kèm đồng hồ giả (các ca của `reviews.test.ts`, `activity.test.ts`, `quiz.test.ts`) | Trạng thái và kết quả sau mỗi bước |
 | `state-parse` | Tệp hợp lệ (gồm **một tệp xuất thật từ web**) và tệp sai | Nhận/từ chối và lý do |
 | `time` | `dayKey`, `hourOf`, `weekStart` ở các múi giờ khó (mục 5.4) | Bằng tuyệt đối |
-| `content` | Băm nội dung đã sinh (`kana-data`, từ vựng, quiz, huy hiệu) | Bằng tuyệt đối |
+| `content` | Băm nội dung đã sinh (`kana-data`, `kana-samples`, từ vựng, quiz, huy hiệu) | Bằng tuyệt đối |
 
-Định dạng tệp: [phụ lục E](#phụ-lục-e-định-dạng-fixture). Hai điểm cần biết:
+Định dạng và dung sai chuẩn: [CONTRACT.md §4](CONTRACT.md#4-hợp-đồng-3--hành-vi-engine); ví dụ thật ở [phụ lục E](#phụ-lục-e-định-dạng-fixture). Hai điểm cần biết:
 
 1. **Nhóm `scenarios` không sinh được bằng `node` trần.** `cards.ts` và `quiz.ts` import `@/data/...` (alias của `tsconfig`); chạy thử ✅: `node` ném `ERR_MODULE_NOT_FOUND: Cannot find package '@/data'`. Spike import được `fsrs.ts` và `stroke-match.ts` vì hai tệp đó không có alias. Bộ sinh `scenarios` phải chạy trong **Vitest** (đã có sẵn alias). Ngược lại ba tệp dữ liệu (`badges.ts`, `quizzes.ts`, `vocabulary.ts`) import được bằng `node` trần ✅ vì chỉ có `import type` — đủ cho bước sinh nội dung (mục 8.1).
-2. **Dung sai hình học ở bước lấy mẫu nét mẫu.** Mobile dùng `PathMetric` (độ dài cung và điểm theo độ dài) thay cho `getPointAtLength` của trình duyệt. Đo trên cả 433 nét ✅: trình duyệt so với tích phân chính xác lệch độ dài **trung bình 5,8e-7, tối đa 2,1e-6 (tương đối)**; điểm mẫu lệch **tối đa 0,001 đơn vị** (1 đơn vị ≈ 0,92% cạnh ô) — nhỏ hơn mọi ngưỡng chấm vài bậc. Vì vậy fixture `stroke` dùng điểm mẫu *chuẩn hoá* (cùng đầu vào cho hai phía) để kiểm đúng công thức; còn sai lệch giữa `PathMetric` và trình duyệt chỉ cần dung sai 0,01 đơn vị / ±1 điểm ở ranh giới làm tròn, đo một lần trên thiết bị ❓.
+2. **Điểm mẫu của nét chuẩn: `PathMetric` không giống `getPointAtLength()`.** Mobile có `PathMetric` thay cho `getPointAtLength` của trình duyệt. Trình duyệt so với tích phân chính xác lệch rất ít ✅ (độ dài trung bình 5,8e-7, tối đa 2,1e-6; điểm mẫu tối đa 0,001 đơn vị), nhưng **`PathMetric` so với chính xác lệch nhiều hơn hẳn** ✅ (Flutter 3.35.4, Windows, 433 nét): điểm mẫu trung bình **0,077**, p95 0,212, **tối đa 0,456 đơn vị** (1 đơn vị ≈ 0,92% cạnh ô); độ dài trung bình **0,21%**, tối đa **1,23%** (nét む). Phiên viết CONTRACT.md đo độc lập `PathMetric` so với Chromium và ra đúng các số đó; **bản đầu của tài liệu này ghi dung sai 0,01 đơn vị là sai** (khi đó chưa đo `PathMetric`). Tác động lên điểm **nhỏ** ✅: 2.165 nét giả × 3 mức nhiễu → điểm lệch tối đa **1**, 2–4% số nét lệch 1 điểm, lật ngưỡng 48/58/70/88 ở 0–0,05% số nét. Quyết định (phương án B của [CONTRACT.md §3.2](CONTRACT.md#32-mẫu-điểm-của-nét-chuẩn-kana-samplesjson--quyết-định-cần-chốt)): sinh một bảng `kana-samples.json` (32 điểm + độ dài cho mỗi nét, tính bằng Node) dùng chung cho cả hai nền tảng khi **chấm điểm**; `PathMetric` chỉ còn dùng cho hoạt ảnh. Nhờ vậy fixture `stroke` so bằng tuyệt đối thay vì ± 1 điểm. Mã đo: [`docs/spikes/flutter-pathmetric/`](spikes/flutter-pathmetric/README.md). Chưa đo trên Android/iOS và Flutter 3.47 ❓.
 
 CI: job `engine-parity` chạy trên mỗi PR chạm `web/src/lib/**`, `web/src/data/**` hoặc `mobile/packages/**`: `npm ci` → sinh fixture → `dart test`. Chạy thêm trên máy ARM64 hoặc thiết bị thật (`integration_test`) vì libm khác x64 ❓.
 
@@ -291,7 +295,7 @@ class StrokeModel { Path path; double length; List<Pt> pts32; double dx; }   // 
 ```
 
 - **Phân tích** chuỗi `d` bằng bộ phân tích 30 dòng (`parseKanjiVgPath` trong `docs/spikes/flutter-engine-parity/engine.dart`): chỉ hiểu `M` và `c`, ném lỗi với lệnh khác để test nội dung bắt ngay ✅ (433 nét, bit-exact so với web). Dựng `Path` bằng `cubicTo` tuyệt đối.
-- **32 điểm mẫu** theo độ dài cung bằng `path.computeMetrics()` → `metric.getTangentForOffset(len * i / 31)` 📘, cộng `dx` thủ công **sau** khi lấy điểm. Bẫy `getPointAtLength` bỏ qua `transform` của web (SPEC §1.1) biến mất nếu tính trong toạ độ glyph rồi cộng `dx` — không dùng `Path.shift` trước khi đo.
+- **32 điểm mẫu để chấm** lấy từ bảng dùng chung `kana-samples.json` (mục 5.6; [CONTRACT.md §3.2](CONTRACT.md#32-mẫu-điểm-của-nét-chuẩn-kana-samplesjson--quyết-định-cần-chốt)), **không** tự đo bằng `PathMetric` (lệch web tới 0,456 đơn vị). Phần **hoạt ảnh** vẫn dùng `path.computeMetrics()` (`extractPath`, `getTangentForOffset`) 📘. Ký tự ghép: điểm mẫu của glyph thứ hai đã cộng `dx = 109` trong bảng. Nếu chưa có bảng chung (giai đoạn đầu), lấy mẫu bằng `metric.getTangentForOffset(len * i / 31)` rồi cộng `dx` sau khi lấy — chấp nhận lệch ≤ 1 điểm; bẫy `getPointAtLength` bỏ qua `transform` của web (SPEC §1.1) tránh được nếu không dùng `Path.shift` trước khi đo.
 - `PathMetrics` không nhớ kết quả (`computeMetrics` là snapshot) 📘 → dựng một lần khi mở chữ, giữ `StrokeModel`.
 
 ### 6.3 Con trỏ
@@ -311,6 +315,7 @@ final button = (e.buttons & kPrimaryButton) != 0 ? 0 : 1;
 | Sự kiện web | Flutter |
 |---|---|
 | `pointerdown/move/up` | `onPointerDown/Move/Up` |
+| `pointerId` | `PointerEvent.pointer`: duy nhất cho mỗi lần chạm và **không tái sử dụng** 📘 (id chuột/bút của web có thể lặp), nên nhánh "`down` lặp của chính con trỏ → viết lại" chỉ còn xảy ra khi sự kiện `up` thất lạc |
 | `pointercancel` | `onPointerCancel` (`PointerCancelEvent`) → `gate.cancel(id)` → **bỏ nét, không chấm** |
 | `lostpointercapture` | Không có tương đương; Flutter chuyển mọi sự kiện của một con trỏ tới các đích đã hit-test lúc `down` nên nét không đứt khi tay vượt khung 📐 |
 | `touch-action: none` | Không có cuộn tổ tiên: khung viết nằm trong trang **không cuộn** hoặc dùng `NeverScrollableScrollPhysics`. `Listener` vẫn nhận sự kiện kể cả khi `ScrollView` thắng arena → cuộn và vẽ **cùng lúc** nếu để khung trong danh sách cuộn 📐 |
@@ -634,7 +639,7 @@ Web đã bỏ nhật ký ôn ("Không còn lưu nhật ký từng lần ôn", SP
 
 - **Mẹo nhớ bằng tiếng Việt và các cặp dễ nhầm** (シ/ツ, ソ/ン, ヌ/メ, ぬ/め, ね/れ/わ…): web đã có `explanationVi` cho cả 38 câu quiz ✅ → dùng làm hạt giống; **sinh quiz động từ các cặp dễ nhầm** thay vì 4 bài cố định.
 - **Bài giải thích biến âm và âm ghép** (hiện chỉ có trong bảng).
-- **Phòng luyện gõ:** web có PR #2 (còn mở) "Phòng Luyện Gõ tiếng Nhật: romaji, kana JIS, IME". Quyết định làm bản mobile tương đương sau khi PR đó được chốt ❓.
+- **Phòng luyện gõ:** web có `/luyen-go` (bản gộp tương thích site tĩnh ở nhánh `claude/typing-room-unified`, thiết kế trong `docs/TYPING.md` của nhánh đó; thay cho PR #2). Bộ máy riêng ở `lib/typing/`, kỷ lục lưu riêng ngoài `ProgressState`. Bản mobile có thể port bộ máy gõ (thuần hàm) nhưng **điện thoại không có bàn phím vật lý**: chỉ chế độ IME/flick dùng được ❓ (đúng như web ghi cho màn cảm ứng) — cần quyết định riêng, sau v1.
 - **Chữ Hán.** Engine không biết mình đang vẽ kana (ARCHITECTURE: *Hướng mở rộng*); KanjiVG có 6.763 tệp, mỗi nét là đường tâm đơn tuyến (SPEC §1.1). **Bắt đầu từ 160 chữ Hán đã có trong từ vựng và quiz** ✅. Ước lượng dung lượng 📐: kana = 59 KB / 433 nét ≈ 136 B/nét, nên 500 chữ × ≈ 11 nét ≈ 0,75 MB thô (số nét trung bình ≈ 10–12 là suy đoán ❓). Cần: bộ sinh dữ liệu (script cũ vẫn trong git: `git show ed8ff35:archive/legacy-v1/build_data.py`), ngưỡng chấm riêng cho nét dài/ngắn và ô nhỏ hơn, giấy phép CC BY-SA 3.0 như kana.
 - **Mở rộng từ vựng.** Hiện 80 từ (70 N5 + 10 N4). Nguồn: JMdict (CC BY-SA 4.0, bắt buộc ghi công 📘) — nhưng kho này chủ yếu có nghĩa bằng ngôn ngữ châu Âu nên `meaningVi` phải biên soạn và duyệt tay ❓. Câu ví dụ: Tatoeba (CC BY 2.0 FR, ghi tên tác giả từng câu 📘). Danh sách cấp JLPT phổ biến là phi chính thức → ghi rõ nguồn. Giữ bất biến `id` chỉ thêm cuối.
 - **Trò chơi hoá:** nhiệm vụ ngày/tuần; **thẻ chia sẻ thành tích** (dựng ảnh bằng `RepaintBoundary` + share sheet); thêm huy hiệu; *không* có bảng xếp hạng (cần máy chủ — web đã bỏ vì lý do này).
@@ -661,6 +666,9 @@ Chạy `flutter doctor -v` ngày 2026-10-02 ✅:
 | **iOS** | **Không** (máy Windows) | macOS: CI (GitHub Actions runner macOS, Codemagic…) hoặc máy Mac; Xcode 26+ |
 | Visual Studio | Không có | Không cần (không làm app Windows) |
 | Ghim phiên bản | — | FVM hoặc ghi cứng phiên bản trong CI ❓ (bản stable mùa thu ra tháng 11 📘) |
+| `ANDROID_HOME` | Chưa đặt | Đặt thành `C:\Users\rando\AppData\Local\Android\Sdk` (đường dẫn Android SDK mà `flutter doctor` báo; theo phiên viết CONTRACT.md) |
+| Mức OS tối thiểu | Flutter 3.47: Android **API 24** (hỗ trợ 24–37, CI thử 24–36), iOS **15** (hỗ trợ 15–27) 📘 | Đặt `minSdk 24` và iOS deployment target 15 |
+| JDK cho Android Studio 2026.1.3 | JDK 25 đi kèm | Nếu Gradle báo không tương thích, trỏ Flutter tới JDK 17 đã có trên máy: `flutter config --jdk-dir` ❓ chưa thử |
 
 ### 11.2 Chính sách cửa hàng
 
@@ -671,7 +679,7 @@ Chạy `flutter doctor -v` ngày 2026-10-02 ✅:
 | Google Play 📘 | Tài khoản cá nhân tạo sau 2023-11-13: closed test **≥ 12 tester opt-in liên tục ≥ 14 ngày** trước khi xin production; tài khoản tổ chức hoặc cũ hơn được miễn | — | **Chọn loại tài khoản sớm:** ảnh hưởng lịch phát hành ≥ 2 tuần |
 | Android 16 📘 | Màn hình lớn bỏ qua hạn chế hướng/co giãn; edge-to-edge bắt buộc; predictive back | Khi target 36 | Mục 7.5 |
 | Apple 📘 | Bản tải lên App Store Connect build bằng **Xcode 26+ / SDK iOS 26+** | **2026-04-28 (đang hiệu lực)** | Cần macOS với Xcode 26 |
-| Apple 📘 | **Privacy Manifest** cho các API "required reason": `UserDefaults`, file timestamp, system boot time, disk space, active keyboard. Dùng mà không khai → bị từ chối. `UserDefaults` dùng riêng cho app khai `CA92.1` | — | `shared_preferences` bọc `NSUserDefaults`: kiểm báo cáo privacy của Xcode (*Generate Privacy Report* khi archive) để chắc plugin đã kèm manifest ❓ |
+| Apple 📘 | **Privacy Manifest** cho các API "required reason": `UserDefaults`, file timestamp, system boot time, disk space, active keyboard. Dùng mà không khai → bị từ chối. `UserDefaults` dùng riêng cho app khai `CA92.1` | — | `shared_preferences` bọc `NSUserDefaults`: kiểm báo cáo privacy của Xcode (*Generate Privacy Report* khi archive) để chắc plugin đã kèm manifest ❓; **báo cáo:** `file_picker` 12.0.0–12.1.1 (và `file_picker_darwin` 1.0.0–1.0.2) từng **rơi `PrivacyInfo.xcprivacy` khi build bằng Swift Package Manager** → App Store báo ITMS-91061 (issue #2175 của `file_picker`, đã đóng kèm cách sửa; chưa kiểm bản 13.1.0 đã có bản vá chưa ❓) |
 | Flutter 3.47 📘 | iOS tối thiểu **15**; SDK iOS 27 đòi vòng đời **UIScene** cho mọi app UIKit; CocoaPods chuyển sang bảo trì, Swift Package Manager đã có 92/100 plugin hàng đầu | — | Dự án mới theo template mới là đủ; ưu tiên plugin hỗ trợ SwiftPM |
 | Apple (ARCHITECTURE) | 5.1.1(v): mô hình không tài khoản phù hợp; 4.2.2 loại app chỉ là "web clipping" | — | Có tính năng native thật (thông báo, widget, bút) |
 
@@ -760,6 +768,7 @@ Nét thật (từ beta, có đồng ý) làm fixture cố định: mọi thay đ
 | 13 | Ngưỡng chấm không hợp người dùng (quá khó/dễ) → bỏ cuộc | Trung bình | Cao | Beta kín; đo phân bố điểm; tham số hoá |
 | 14 | Phạm vi trượt (nâng cấp chen vào v1) | **Cao** | Trung bình | Khoá phạm vi v1 (mục 2); backlog P1/P2 tách riêng |
 | 15 | Web chưa triển khai công khai, tên miền chưa chốt ✅ | — | Trung bình | Chốt domain trước khi làm liên kết sâu (9.10) |
+| 16 | Điểm nét lệch giữa hai nền tảng vì `PathMetric` ≠ trình duyệt ✅ | Chắc chắn (có lệch) | Thấp: ≤ 1 điểm, ≈ 0,05% lật ngưỡng | Bảng mẫu chung `kana-samples.json` (mục 5.6) |
 
 ---
 
@@ -769,16 +778,16 @@ Nét thật (từ beta, có đồng ý) làm fixture cố định: mọi thay đ
 
 | Giai đoạn | Nội dung | Tiêu chí hoàn thành | Tuần |
 |---|---|---|---|
-| **M0 Chuẩn bị** | Nâng Flutter 3.47, Android SDK, FVM; monorepo `mobile/` + `contract/`; CI khung; chốt app id và cách build iOS | `flutter doctor` xanh; build APK trống; CI chạy | 1 |
+| **M0 Chuẩn bị** | Nâng Flutter 3.47, Android SDK, FVM; monorepo `mobile/` + `contract/`; CI khung; chốt app id và cách build iOS. **Phía web (cho hợp đồng):** sinh `kana-samples.json`; chốt chiều nội dung (quyết định 13); xuất JSON Schema từ zod (tuỳ chọn, để kiểm tệp nhập); bộ sinh fixture chạy dưới **Vitest** (`node` trần không giải được bí danh `@/`); job CI kiểm fixture đã commit không đổi sau khi sinh lại | `flutter doctor` xanh; build APK trống; CI chạy; fixture sinh được từ web | 1–1,5 |
 | **M1 Engine + fixture** | Port phần còn lại (reviews, activity, badges, quiz, time, state-parse, content) trên nền spike; đủ sáu nhóm fixture; `ProgressRepository` dạng tệp | 100% fixture qua trên x64 và ARM; 95 test của `src/lib` có ánh xạ | 2 |
 | **M2 Design system + khung app** | Token (đã sửa AA), `kd_ui`, điều hướng, theme, phông cắt tập con, l10n vi | Năm tab rỗng; golden sáng/tối | 2 |
 | **M3 Khung viết nét** | Lớp vẽ, mô hình nét, cổng con trỏ, chấm, hoạt ảnh; thử thiết bị thật | Viết đủ 208 chữ trên ≥ 4 thiết bị; bảng 6.6 có kết luận | 3 |
 | **M4 Màn hình lõi** | Hôm nay, Học (kana + từ vựng), Viết, Ôn tập, Quiz, Tôi (sao lưu/nhập) | Ngang web v2; nhập được tệp xuất từ web | 3–4 |
 | **M5 Native cơ bản** | Thông báo, TTS, rung, trợ năng, (en) | Các mục P0 ở mục 9 | 2–3 |
 | **M6 Hoàn thiện, phát hành** | Ma trận thiết bị, hiệu năng, ghi công, tài sản cửa hàng, chính sách quyền riêng tư; beta kín | Beta kín → production (+ 14 ngày chờ closed test nếu tài khoản cá nhân) | 2 |
-| **Tổng** | | | **≈ 15–17** |
+| **Tổng** | | | **≈ 15–18** |
 
-Nên dự phòng thêm **10–25%** cho các ẩn số lớn (build iOS lần đầu, hành vi cảm ứng trên thiết bị thật, plugin bất ngờ) → khoảng 17–21 tuần.
+Nên dự phòng thêm **10–25%** cho các ẩn số lớn (build iOS lần đầu, hành vi cảm ứng trên thiết bị thật, plugin bất ngờ) → khoảng 17–22 tuần.
 
 M2 và M3 độc lập với nhau, có thể song song nếu có hai người. **Đường găng là M3**: chất lượng khung viết quyết định chất lượng sản phẩm → làm sớm, thử thiết bị sớm.
 
@@ -800,13 +809,15 @@ Sau v1, theo ưu tiên ở mục 9–10: **P1** âm thu sẵn, widget, bút, nh�
 | 8 | Chữ Hán: khi nào, bắt đầu từ 160 chữ đã có? | Sau v1 (P2); cần thiết kế riêng cho ô nhỏ và nét dài |
 | 9 | Sửa trước ở web: màu đạt AA, tự lưu phông (mục 7.4, 8.3) | Tách PR riêng, làm trước hoặc song song M2 |
 | 10 | Kiếm tiền (nếu có) | Xem lại giấy phép share-alike (8.5) và nhãn quyền riêng tư (11.4) trước |
-| 11 | PR #2–#4 của web (còn mở, dựa trên bản có backend) | Đóng #3, #4 (đã bị PR #5 thay thế); chốt #2 vì ảnh hưởng phòng luyện gõ |
+| 11 | PR #2–#4 của web (còn mở, dựa trên bản có backend) | #3, #4 đã bị #5 thay thế → đóng; #2 (phòng luyện gõ) được thay bằng nhánh `claude/typing-room-unified` đã tương thích site tĩnh → đóng khi nhánh đó merge |
+| 12 | Mẫu điểm nét: mỗi nền tảng tự lấy mẫu (A) hay bảng chung `kana-samples.json` (B) | **B** — `PathMetric` lệch web tới 0,456 đơn vị (mục 5.6); B cho điểm giống hệt và test chấm nét được trong Node |
+| 13 | Chiều nội dung: JSON làm bản gốc (web nhập JSON) hay sinh JSON từ `.ts` | Bắt đầu bằng **sinh từ `.ts`** (không đụng web; import được bằng `node` trần ✅); lật sang JSON gốc khi nội dung lớn lên ([CONTRACT.md §3.1](CONTRACT.md#31-tệp-nội-dung) đề xuất lật ngay) |
 
 ---
 
 ## Phụ lục A. Kết quả spike
 
-Mã và cách chạy: [`docs/spikes/flutter-engine-parity/`](spikes/flutter-engine-parity/README.md). Môi trường: Node 22.18.0, Dart 3.9.2, Windows x64. Fixture sinh bằng cách **import chính `web/src/lib/fsrs.ts` và `stroke-match.ts`**; Dart đọc cùng tệp.
+Mã và cách chạy: [`docs/spikes/flutter-engine-parity/`](spikes/flutter-engine-parity/README.md) (engine, sắp xếp, độ lệch của trình duyệt) và [`docs/spikes/flutter-pathmetric/`](spikes/flutter-pathmetric/README.md) (`PathMetric`, cần Flutter). Môi trường: Node 22.18.0, Dart 3.9.2, Flutter 3.35.4, Windows x64. Fixture sinh bằng cách **import chính `web/src/lib/fsrs.ts` và `stroke-match.ts`**; Dart đọc cùng tệp.
 
 **Phạm vi phủ:** 500 thẻ × 40–80 lần chấm = **29.773 bước FSRS**, gồm ôn lại trong cùng ngày, ôn sớm / đúng hạn / trễ, quên, học lại, và `desiredRetention` ∈ {0,7; 0,8; 0,85; 0,9; 0,95; 0,97} (phân bố trạng thái sau chấm: `REVIEW` 24.845, `RELEARNING` 4.222, `LEARNING` 706). **1.500 nét** thử: gần đúng có nhiễu và co giãn, ngược chiều, nét của chữ khác, nét suy biến (phân bố lý do lỗi: `TOO_LONG` 882, `TOO_SHORT` 223, `REVERSED` 153, `OFF_PATH` 96, không lỗi 146). **433 đường nét thật** cho bộ phân tích.
 
@@ -822,8 +833,11 @@ Mã và cách chạy: [`docs/spikes/flutter-engine-parity/`](spikes/flutter-engi
 | Làm tròn | `jsRound(-2.5)` = −2 (JS) so với `(-2.5).round()` = −3 (Dart); `jsRound(0.49999999999999994)` = 0 |
 | `List.sort` có ổn định không | Có khi n ≤ 33; **không ở n ≥ 100 (200/200 lần chạy đảo thứ tự phần tử bằng nhau)** |
 | Trình duyệt so với tích phân chính xác, 433 nét (Edge) | độ dài lệch tương đối: trung bình **5,8e-7**, tối đa **2,1e-6** (nét `ゃ` thứ 2: 16,07079 so với 16,07076); điểm mẫu lệch: trung bình 5,8e-5, tối đa **1,0e-3** đơn vị |
+| **`PathMetric` của Flutter** so với tích phân chính xác, 433 nét (`flutter test`, Flutter 3.35.4) | điểm mẫu lệch: trung bình **0,077**, trung vị 0,061, p95 0,212, p99 0,289, tối đa **0,456** đơn vị; độ dài lệch tương đối: trung bình **0,21%**, tối đa **1,23%** (nét む: 30,116 so với 30,492). Trùng với phép đo độc lập của phiên viết CONTRACT.md (so với Chromium) |
+| Tác động lên điểm: mục tiêu `PathMetric` thay vì chính xác (2.165 nét giả × nhiễu σ = 1, 3, 6 đơn vị) | điểm lệch tối đa **1**; 3,9% / 2,7% / 2,2% số nét lệch 1 điểm; lật ngưỡng 48/58/70/88: 0–0,05% (tối đa 1 trên 2.165) |
+| `String.trim()` | Dart bỏ U+0085, JS giữ; 9 ký tự còn lại trong 10 ký tự thử giống nhau |
 
-**Phạm vi chưa kiểm** (phải làm ở M1): `reviews`, `activity`, `badges`, `quiz`, `time`, `state-parse`, `store`; **ARM64** (libm khác x64 nên "bit-exact" không được suy rộng); `PathMetric` của Flutter (spike dùng tích phân Bézier thay); mọi hành vi trên thiết bị thật.
+**Phạm vi chưa kiểm** (phải làm ở M1): `reviews`, `activity`, `badges`, `quiz`, `time`, `state-parse`, `store`; **ARM64** (libm khác x64 nên "bit-exact" không được suy rộng); `PathMetric` trên Android/iOS và Flutter 3.47 (mới đo trên Windows, Flutter 3.35.4); múi giờ (27.000 ca là báo cáo của CONTRACT.md, chưa tái lập ở đây); mọi hành vi trên thiết bị thật.
 
 Ghi chú về môi trường dev (`flutter doctor`) ở mục 11.1.
 
@@ -886,7 +900,7 @@ Tra ngày 2026-10-02 bằng `pub.dev/api/packages/<tên>` 📘. **Nhiều gói �
 | Gói | Lý do |
 |---|---|
 | `fsrs` 2.0.1 (2025-06-20) | Tham số mặc định khác web (W[0] 0,2172 so với 0,212; W[3] 16,1507 so với 8,2956…), `enable_fuzzing` mặc định `true`, bước học và các nhánh có thể khác quy ước của web → lịch ôn không tái lập. Port 252 dòng rẻ hơn và đã kiểm chứng |
-| `path_drawing` 1.0.1 (2022-08-04) | Không cập nhật từ 2022, khai báo `sdk <3.0.0`. ARCHITECTURE.md từng gợi ý gói này — đã sửa |
+| `path_drawing` 1.0.1 (2022-08-04) | Dùng được (phiên viết CONTRACT.md chạy `parseSvgPathData` trên cả 433 nét, Dart 3.9) nhưng không cập nhật từ 2022 và khai báo `sdk <3.0.0`. Ta chọn bộ phân tích 30 dòng tự viết để khỏi phụ thuộc gói không bảo trì; dùng `path_drawing` cũng chấp nhận được |
 | `path_parsing` 1.1.0 (2024-11-01) | Dùng được, nhưng dữ liệu chỉ có `M`/`c` nên bộ phân tích 30 dòng tự viết rẻ hơn một phụ thuộc |
 | `fsrs-rs-dart` (kho GitHub) | README không nêu optimizer, không nêu đã có trên pub.dev; cần Rust. Chỉ xem xét ở spike riêng (10.1) |
 | `google_fonts` (tải lúc chạy) | Phông phải đóng gói sẵn (mục 8.2) |
@@ -922,28 +936,27 @@ Thẻ mồ côi (khoá trỏ tới mục nội dung đã gỡ) hợp lệ; engin
 
 Một tệp JSON mỗi nhóm; số thực in bằng dạng rút gọn lặp lại được của `JSON.stringify` (Dart `jsonDecode` đọc lại đúng từng bit), số nguyên in nguyên.
 
-Ví dụ 1 là **một bước thật** trích từ `fixtures.json` do spike sinh (thẻ đang ở bước học thứ hai, chấm Good → tốt nghiệp sang `REVIEW`, hẹn 1 ngày):
+Ví dụ 1 là **một bước thật** trích từ `fixtures.json` do spike sinh (thẻ đang ở bước học thứ hai, chấm Good → tốt nghiệp sang `REVIEW`, hẹn 1 ngày). Hình dạng theo [CONTRACT.md §4](CONTRACT.md#4-hợp-đồng-3--hành-vi-engine) (`suite` · `name` · `input` · `expected`):
 
 ```json
-{ "kind": "fsrs", "name": "learning-step-2-good-graduates",
+{ "suite": "fsrs.review", "name": "learning-step-2-good-graduates",
   "input":  { "cur": { "stability": 0.24668918777567272, "difficulty": 6.4078867, "state": "LEARNING", "learningStep": 1, "reps": 2, "lapses": 0 },
               "grade": 3, "elapsedDays": 0.02098866898148148, "now": 1769033369719, "retention": 0.9 },
-  "expect": { "next": { "stability": 0.2842063592758949, "difficulty": 6.4024788133, "state": "REVIEW", "learningStep": 0, "reps": 3, "lapses": 0 },
-              "intervalDays": 1, "dueAt": 1769119769719 },
-  "tolerance": { "stability": 1e-12, "difficulty": 1e-12 } }
+  "expected": { "next": { "stability": 0.2842063592758949, "difficulty": 6.4024788133, "state": "REVIEW", "learningStep": 0, "reps": 3, "lapses": 0 },
+              "intervalDays": 1, "dueAt": 1769119769719 } }
 ```
 
-Ví dụ 2 là **hình dạng** của một kịch bản, với kỳ vọng lấy từ chính test của web (`reviews.test.ts`, "lần viết đạt đầu tiên ghi đủ mọi thứ": `recordWriting(emptyState(), { あ, 95 }, MON)` cho `passed: true, grade: 4, xpEarned: 25, newBadges: ["FIRST_STROKE"]`, thẻ `KANA_WRITING:あ` ở `REVIEW`, `reps: 1`, `xpTotal: 25`):
+Ví dụ 2 cho một thao tác của `reviews`, với kỳ vọng lấy từ chính test của web (`reviews.test.ts`, "lần viết đạt đầu tiên ghi đủ mọi thứ": `recordWriting(emptyState(), { あ, 95 }, MON)` cho `passed: true, grade: 4, xpEarned: 25, newBadges: ["FIRST_STROKE"]`, thẻ `KANA_WRITING:あ` ở `REVIEW`, `reps: 1`, `xpTotal: 25`):
 
 ```json
-{ "kind": "scenario", "name": "writing-first-pass-awards-badge", "zone": "Asia/Ho_Chi_Minh",
-  "steps": [ { "op": "recordWriting", "at": "2026-09-07T03:00:00Z",
-               "args": { "character": "あ", "avgScore": 95, "strokeErrors": [], "durationMs": 4000 },
-               "expect": { "result": { "passed": true, "grade": 4, "xpEarned": 25, "newBadges": ["FIRST_STROKE"] },
-                           "state": "<toàn bộ ProgressState sau bước, sinh bởi bộ sinh Vitest>" } } ] }
+{ "suite": "reviews.recordWriting", "name": "đạt lần đầu cho +25 XP và huy hiệu Nét đầu tiên",
+  "input":  { "state": "<emptyState()>", "clock": { "now": 1788750000000, "zone": "Asia/Ho_Chi_Minh" },
+              "args": { "character": "あ", "avgScore": 95, "strokeErrors": [], "durationMs": 4000 } },
+  "expected": { "result": { "passed": true, "grade": 4, "xpEarned": 25, "newBadges": ["FIRST_STROKE"] },
+                "state": "<toàn bộ ProgressState sau bước, sinh bởi bộ sinh Vitest>" } }
 ```
 
-Quy tắc so khớp: số nguyên, chuỗi, bool, trạng thái, `dueAt` **bằng tuyệt đối**; số thực theo bảng `tolerance` của từng trường (mặc định 1e-12 tương đối); `state` so sánh sâu cả khối. Fixture `state-parse` có thêm `expect.error` là **mã lỗi** (không phải câu chữ).
+Quy tắc so khớp theo [CONTRACT.md §4](CONTRACT.md#4-hợp-đồng-3--hành-vi-engine): số nguyên, chuỗi, bool, trạng thái, `dueAt`, ngày **bằng tuyệt đối**; số thực sai số tương đối ≤ 1e-12; thứ tự danh sách bằng tuyệt đối kể cả khi hoà khoá; `state` so sánh sâu cả khối. Fixture `state-parse` có thêm `expected.error` là **mã lỗi** (không phải câu chữ).
 
 ---
 
@@ -957,6 +970,7 @@ Tra cứu ngày 2026-10-02.
 - [Impeller rendering engine](https://docs.flutter.dev/perf/impeller) — mặc định theo nền tảng; Web còn dùng Skia.
 - [Flutter SDK archive](https://docs.flutter.dev/install/archive) xác nhận 3.47 là bản mới nhất; số bản vá 3.47.5 (2026-09-18) theo trang bên thứ ba [flutterreleases.com](https://flutterreleases.com/).
 - [`PathMetric`](https://api.flutter.dev/flutter/dart-ui/PathMetric-class.html) · [`PointerDeviceKind`](https://api.flutter.dev/flutter/dart-ui/PointerDeviceKind.html) · [`GestureBinding.resamplingEnabled`](https://api.flutter.dev/flutter/gestures/GestureBinding/resamplingEnabled.html) · [`List.sort`](https://api.dart.dev/stable/dart-core/List/sort.html).
+- [Flutter: supported platforms](https://docs.flutter.dev/reference/supported-platforms) (Android API 24+, iOS 15+) · [`PointerEvent.pointer`](https://api.flutter.dev/flutter/gestures/PointerEvent/pointer.html) (id không tái sử dụng).
 
 **Cửa hàng ứng dụng**
 
@@ -965,10 +979,10 @@ Tra cứu ngày 2026-10-02.
 
 **Thư viện và dữ liệu**
 
-- [`flutter_local_notifications`](https://pub.dev/packages/flutter_local_notifications) (giới hạn 64 thông báo iOS, quyền Android 13/14, múi giờ) · [ML Kit Digital Ink Recognition](https://developers.google.com/ml-kit/vision/digital-ink-recognition) · [`dart-fsrs`](https://github.com/open-spaced-repetition/dart-fsrs) · [`fsrs-rs-dart`](https://github.com/open-spaced-repetition/fsrs-rs-dart) · [Anki: FSRS](https://docs.ankiweb.net/deck-options.html).
+- [`flutter_local_notifications`](https://pub.dev/packages/flutter_local_notifications) (giới hạn 64 thông báo iOS, quyền Android 13/14, múi giờ) · [ML Kit Digital Ink Recognition](https://developers.google.com/ml-kit/vision/digital-ink-recognition) · [`dart-fsrs`](https://github.com/open-spaced-repetition/dart-fsrs) · [`fsrs-rs-dart`](https://github.com/open-spaced-repetition/fsrs-rs-dart) · [Anki: FSRS](https://docs.ankiweb.net/deck-options.html). · [`file_picker` issue #2175](https://github.com/vicajilau/flutter_file_picker/issues/2175) (Privacy Manifest bị rơi với SwiftPM).
 - Phiên bản gói: `https://pub.dev/packages/<tên gói>` (bảng ở phụ lục C).
 - [EDRDG: giấy phép JMdict/KANJIDIC](https://www.edrdg.org/edrdg/licence.html) · [Tatoeba: điều khoản sử dụng](https://tatoeba.org/en/terms_of_use) · [KanjiVG](http://kanjivg.tagaini.net).
 
 **Trong repo**
 
-[SPEC.md](SPEC.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [`docs/spikes/flutter-engine-parity/`](spikes/flutter-engine-parity/README.md) · [`docs/spikes/color-contrast/contrast.mjs`](spikes/color-contrast/contrast.mjs).
+[CONTRACT.md](CONTRACT.md) (hợp đồng chuẩn web ↔ mobile) · [SPEC.md](SPEC.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [`docs/spikes/flutter-engine-parity/`](spikes/flutter-engine-parity/README.md) · [`docs/spikes/flutter-pathmetric/`](spikes/flutter-pathmetric/README.md) · [`docs/spikes/color-contrast/contrast.mjs`](spikes/color-contrast/contrast.mjs).

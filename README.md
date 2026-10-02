@@ -13,6 +13,7 @@ kana-dojo/
 │   ├── DEVELOPMENT.md     Môi trường phát triển, quy ước code, cách kiểm thử (kể cả PWA và cảm ứng)
 │   ├── DEPLOYMENT.md      Đưa site lên mạng: HTTPS, domain, Nginx, CI
 │   ├── MOBILE_FLUTTER.md  Phiên bản mobile bằng Flutter — nghiên cứu, thiết kế, tính năng nâng cấp, lộ trình (đề xuất)
+│   ├── CONTRACT.md        Hợp đồng dữ liệu và hành vi web ↔ mobile: tệp tiến độ, nội dung, fixture, khác biệt JS/Dart (đặc tả)
 │   └── spikes/            Mã chạy thử bỏ đi, minh chứng cho số liệu trong MOBILE_FLUTTER.md
 ├── web/                   Next.js 15 (xuất bản tĩnh) · TypeScript · Tailwind CSS v4 (+ Dockerfile, nginx.conf, scripts/ dựng service worker)
 ├── docker-compose.yml     Một container Nginx phục vụ bản build tĩnh
@@ -182,6 +183,7 @@ Kiểm chứng ngày 2026-10-02:
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Kiến trúc, độ bền dữ liệu theo nền tảng, PWA/offline, thiết kế giao diện, hướng mobile, quyết định thiết kế |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Thiết lập môi trường dev, quy ước code, cách kiểm thử, sự cố đã gặp |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Đưa site lên mạng: máy chủ tĩnh, Docker, Nginx, HTTPS/domain, CI |
+| [docs/CONTRACT.md](docs/CONTRACT.md) | Hợp đồng web ↔ mobile: tệp tiến độ, nội dung dùng chung, bảng mẫu nét, fixture hành vi, những chỗ JS và Dart khác nhau (đã đo) |
 | [docs/MOBILE_FLUTTER.md](docs/MOBILE_FLUTTER.md) | Phiên bản mobile bằng Flutter: kiến trúc, port engine (đã chạy thử), khung viết nét, tính năng native, nâng cấp học thuật, cửa hàng ứng dụng, lộ trình — **đề xuất, chưa triển khai** |
 
 ---

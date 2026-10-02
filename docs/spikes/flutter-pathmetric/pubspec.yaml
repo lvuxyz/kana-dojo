@@ -1,0 +1,11 @@
+name: kd_pathmetric_spike
+description: Throwaway spike — measures Flutter's Path.computeMetrics against exact Bezier integration (see README).
+publish_to: none
+environment:
+  sdk: ^3.9.0
+dependencies:
+  flutter:
+    sdk: flutter
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
