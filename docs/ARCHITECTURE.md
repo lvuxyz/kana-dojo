@@ -315,6 +315,7 @@ Mọi màu là CSS custom property ở `:root`, định nghĩa lại cho `@media
 ## Hướng mobile
 
 *Định hướng, chưa triển khai.* Đã làm: PWA (cài được, offline) và sửa đa điểm chạm — cả hai có ích cho mọi phương án phía sau.
+Phân tích chi tiết cho phương án Flutter (kiến trúc, port engine kèm kết quả chạy thử, khung viết nét, tính năng native, cửa hàng, lộ trình): [MOBILE_FLUTTER.md](MOBILE_FLUTTER.md).
 
 **Hợp đồng dùng chung giữa các nền tảng** là khối `ProgressState` v1 (SPEC §2): tệp sao lưu của web nhập thẳng được vào app mobile nếu app đọc/ghi đúng định dạng này — không cần cơ chế đồng bộ hay tài khoản.
 Quy tắc: mọi thay đổi định dạng tăng `STATE_VERSION` ở cả hai phía và có migrate; mỗi nền tảng phải qua cùng bộ fixture "đầu vào → đầu ra" sinh từ test của web.
@@ -324,7 +325,7 @@ Quy tắc: mọi thay đổi định dạng tăng `STATE_VERSION` ở cả hai p
 | PWA (đã làm) | 100% | Chưa có mặt trên kho ứng dụng; iOS tách kho dữ liệu của bản đã cài |
 | Capacitor (bọc bản static) | ~100% | `localStorage`/IndexedDB trong WebView **có thể bị hệ điều hành thu hồi** — phải chuyển sang Preferences/SQLite; Apple 4.2.2 loại app chỉ là "web clipping" nên cần tính năng native thật |
 | Expo / React Native | Engine TS (≈ 1.100 dòng + ≈ 1.070 dòng test) dùng chung; UI viết lại (≈ 2.100 dòng) | Canvas viết nét và `getPointAtLength` ngoài DOM cần thư viện (`react-native-svg`, `svg-path-properties`) |
-| Flutter | Port engine sang Dart + UI viết lại | Hai bản engine dễ lệch — bắt buộc có fixture chung. `path_drawing` có `parseSvgPathData` đọc thẳng path của `kana-data.json` |
+| Flutter | Port engine sang Dart + UI viết lại | Hai bản engine dễ lệch — bắt buộc có fixture chung (đã chạy thử: port FSRS + chấm nét cho kết quả trùng web trên ≈ 30.000 bước và 1.500 nét). Không cần thư viện SVG: dữ liệu nét chỉ dùng lệnh `M` và `c`, bộ phân tích 30 dòng đọc đúng cả 433 nét; `path_drawing` đã không cập nhật từ 2022 nên không dùng |
 
 Dữ kiện nền tảng: Android Auto Backup mặc định bật từ API 23, tối đa 25 MB, khôi phục khi cài lại (nên bản native bền hơn web); iOS dùng `UserDefaults` phải khai báo lý do trong Privacy Manifest, thiếu là bị từ chối;
 build iOS cần macOS + Xcode (không build được trên Windows); tài khoản Google Play cá nhân tạo sau 13/11/2023 phải chạy closed test với 12 tester liên tục 14 ngày trước khi lên production;
