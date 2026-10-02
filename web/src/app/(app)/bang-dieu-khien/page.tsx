@@ -74,6 +74,11 @@ export default function DashboardPage() {
                 Vào phòng luyện viết
               </Button>
             </Link>
+            <Link href="/luyen-go">
+              <Button size="lg" variant="ghost" className="font-semibold px-5">
+                Luyện gõ phím
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

@@ -11,7 +11,8 @@ kana-dojo/
 │   ├── SPEC.md            Đặc tả kỹ thuật — dữ liệu, FSRS, XP/streak/huy hiệu, chấm nét, nhập con trỏ, PWA
 │   ├── ARCHITECTURE.md    Kiến trúc, độ bền dữ liệu, PWA/offline, giao diện, hướng mobile, quyết định thiết kế
 │   ├── DEVELOPMENT.md     Môi trường phát triển, quy ước code, cách kiểm thử (kể cả PWA và cảm ứng)
-│   └── DEPLOYMENT.md      Đưa site lên mạng: HTTPS, domain, Nginx, CI
+│   ├── DEPLOYMENT.md      Đưa site lên mạng: HTTPS, domain, Nginx, CI
+│   └── TYPING.md          Phòng luyện gõ tiếng Nhật — nghiên cứu, thiết kế, quyết định khi gộp vào site tĩnh
 ├── web/                   Next.js 15 (xuất bản tĩnh) · TypeScript · Tailwind CSS v4 (+ Dockerfile, nginx.conf, scripts/ dựng service worker)
 ├── docker-compose.yml     Một container Nginx phục vụ bản build tĩnh
 ├── .github/workflows/     CI: lint, typecheck, test, build, rồi smoke test qua Docker
@@ -28,6 +29,7 @@ kana-dojo/
 | **FSRS-6** | Lặp lại ngắt quãng thế hệ mới — điểm tập viết tự động xác định cấp độ ghi nhớ |
 | **Streak & XP** | Chuỗi ngày học, điểm kinh nghiệm, level, 9 huy hiệu thành tích |
 | **Quiz** | 4 bài mẫu (trắc nghiệm + gõ romaji), đếm giờ, chấm và giải thích từng câu |
+| **Luyện gõ tiếng Nhật** | `/luyen-go`: gõ theo câu mẫu, bấm giờ và chấm điểm — 3 cách nhập (romaji, kana JIS, bộ gõ IME/flick) × 6 loại văn bản (hiragana, katakana, hỗn hợp, kanji có furigana, kana ngẫu nhiên, chữ hay sai) × 3 chế độ (bài mẫu, đua giờ, sinh tử); màn gõ chỉ có tiếng Nhật, có gợi ý khi kẹt và nghe chép. Kỷ lục lưu trên trình duyệt; không cộng XP/streak ([docs/TYPING.md](docs/TYPING.md)) |
 | **Từ vựng JLPT** | 70 từ N5 + 10 từ N4, nghĩa tiếng Việt, câu ví dụ; tìm kiếm không cần gõ dấu |
 | **PWA & offline** | Cài ra màn hình chính (Chrome/Edge: nút cài; iPhone/iPad: Thêm vào Màn hình chính); sau lần mở đầu tiên chạy được khi không có mạng |
 | **Sao lưu tiến độ** | Xuất/nhập tiến độ thành tệp JSON để chuyển máy hoặc phòng khi xoá dữ liệu trình duyệt |
@@ -92,6 +94,7 @@ web/src/
 │   ├── (app)/                   Khu vực học — dùng chung khung có thanh điều hướng
 │   │   ├── bang-dieu-khien/     Tổng quan: XP, streak, heatmap, huy hiệu
 │   │   ├── luyen-viet/          Tập viết (nhận ?c=あ để mở thẳng một chữ)
+│   │   ├── luyen-go/            Luyện gõ tiếng Nhật (chọn bài → gõ → kết quả)
 │   │   ├── on-tap/              Ôn tập SRS
 │   │   ├── tu-vung/             Từ vựng
 │   │   ├── quiz/ , quiz/[id]/   Danh sách và màn làm bài
@@ -102,10 +105,12 @@ web/src/
 │   ├── app/                     Brand, Nav, ThemeToggle, InstallCard, ServiceWorkerRegister
 │   ├── kana/                    StrokeStage, KanaGrid, PracticePanel, HeroDemo
 │   ├── quiz/QuizRunner.tsx
+│   ├── typing/                  TypingSetup, TypingStage, TypingResult, PhraseView, useTypingGame
 │   └── ui/index.tsx             Design system: Button, Card, Field, Chip, Progress, Stat, …
 ├── data/
 │   ├── kana-data.json           Dữ liệu nét 208 ký tự (57 KB, ~20 KB gzip)
 │   ├── vocabulary.ts · quizzes.ts · badges.ts   Nội dung tĩnh
+│   └── typing-texts.ts          Kho câu mẫu luyện gõ, kanji viết {chữ|cách đọc}
 └── lib/
     ├── fsrs.ts                  FSRS-6 — thuần hàm
     ├── stroke-match.ts          Bộ chấm điểm nét — arc-length resampling, thuần hàm
@@ -114,6 +119,7 @@ web/src/
     ├── kana.ts                  Truy cập dữ liệu nét đã bundle
     ├── vocabulary.ts            Lọc/tìm từ vựng (bỏ dấu)
     ├── types.ts
+    ├── typing/                  Bộ máy luyện gõ: romaji.ts (bảng IME), kana-layout.ts (JIS), engine.ts, ime.ts, phrases.ts, score.ts, history.ts
     └── learning/                Bộ máy học chạy trong trình duyệt
         ├── state.ts             Hình dạng + schema (zod) của tiến độ lưu trữ
         ├── store.ts             localStorage, đồng bộ nhiều tab, xuất/nhập — nơi duy nhất đụng I/O
@@ -131,7 +137,7 @@ web/scripts/                 build-sw.mjs sinh out/sw.js từ sw.template.js sau
 
 ```bash
 cd web
-npm test              # Vitest — 109 test (11 tệp)
+npm test              # Vitest — 320 test (16 tệp)
 npm run lint
 npm run typecheck
 npm run build         # xuất bản tĩnh vào out/ và sinh out/sw.js
@@ -147,9 +153,9 @@ container bằng `docker compose` và chạy `scripts/smoke-test.sh` — xem [do
 
 Kiểm chứng ngày 2026-10-02:
 
-- `npm test` 109/109 · `npm run lint` sạch · `tsc --noEmit` sạch · `next build` — 21 route tĩnh, `sw.js` precache 73 tệp
+- `npm test` 320/320 · `npm run lint` sạch · `tsc --noEmit` sạch · `next build` — 22 route tĩnh, `sw.js` precache 77 tệp (≈ 2,5 MB)
 - **End-to-end trong trình duyệt** (bản build tĩnh và dev): viết đủ 3 nét あ → +25 XP, huy hiệu "Nét đầu tiên", thẻ REVIEW hẹn 8 ngày → tải lại trang vẫn còn → Ôn tập cấp đúng 9 thẻ mới (hạn mức 10/ngày)
-  → quiz → xuất/nhập/xoá tiến độ ở Cài đặt; không có request mạng nào ngoài tệp tĩnh
+$1- **Luyện gõ** (bản build tĩnh): `/luyen-go` với romaji + bài mẫu 5 câu bằng phím thật — phím sai bị từ chối và được đếm, màn kết quả hiện điểm, đai, kỷ lục và chữ hay sai; tải lại vẫn còn kỷ lục; *Xoá toàn bộ tiến độ* xoá cả kỷ lục. Kana JIS, IME, đua giờ, sinh tử, nghe chép **chưa chạy lại** trong lần kiểm này (engine có test). Thanh điều hướng dưới 7 mục vừa ở 375 px, tràn 2–4 px nhãn ở 320 px
 - **Đa điểm chạm** (sự kiện con trỏ giả lập, chưa thử trên thiết bị thật): ngón thứ hai chạm giữa nét → nét vẫn được chấm; `pointercancel` → nét dở bị bỏ, không chấm; bút giành quyền từ lòng bàn tay
 - **PWA:** manifest, icon, `apple-touch-icon` và meta iOS được phục vụ đúng; `scripts/smoke-test.sh` qua toàn bộ trên server giả lập Nginx, gồm kiểm tra *mọi* URL precache trả 200.
   Logic service worker được kiểm bằng test Node (Cache API giả) — **vòng đời service worker chưa được kiểm trong trình duyệt thật**: trình duyệt nhúng trong môi trường phát triển không cho đăng ký service worker (kể cả tệp một dòng)
@@ -167,6 +173,7 @@ Kiểm chứng ngày 2026-10-02:
 | Đáp án quiz | Nằm trong bundle JS (không có máy chủ để giấu) — phù hợp với quiz tự học, không phù hợp để thi có tính điểm nghiêm túc |
 | Offline / cài đặt | Chưa thử service worker và nút cài trên trình duyệt thật hay iPhone thật (xem trên). Bản mới chỉ có hiệu lực khi đóng hết tab của bản cũ, không có thông báo "có bản mới" |
 | Lưu bền | Chưa gọi `navigator.storage.persist()` và chưa có nhắc sao lưu định kỳ — dữ liệu "best-effort" vẫn có thể bị trình duyệt dọn khi máy đầy (xem ARCHITECTURE) |
+| Luyện gõ | Kỷ lục lưu riêng (`kd.typing.history.v1`), **chưa nằm trong tệp sao lưu** và không cộng XP/streak — quyết định và cách đổi ở [docs/TYPING.md §3.4](docs/TYPING.md) |
 | App mobile native | Mới có PWA. Định hướng và các lựa chọn (Capacitor / Expo / Flutter) ở [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#hướng-mobile) |
 | Dữ liệu cũ trên PostgreSQL | Phiên bản có tài khoản lưu tiến độ trên máy chủ; không có công cụ chuyển sang tiến độ cục bộ |
 
@@ -180,6 +187,7 @@ Kiểm chứng ngày 2026-10-02:
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Kiến trúc, độ bền dữ liệu theo nền tảng, PWA/offline, thiết kế giao diện, hướng mobile, quyết định thiết kế |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Thiết lập môi trường dev, quy ước code, cách kiểm thử, sự cố đã gặp |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Đưa site lên mạng: máy chủ tĩnh, Docker, Nginx, HTTPS/domain, CI |
+| [docs/TYPING.md](docs/TYPING.md) | Phòng luyện gõ: cách người Nhật gõ chữ, kiểu bài, chấm điểm, bộ máy so khớp, quyết định khi gộp vào site không tài khoản |
 
 ---
 

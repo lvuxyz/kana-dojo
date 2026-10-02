@@ -115,6 +115,9 @@ Tệp sai không bao giờ làm thay đổi tiến độ hiện có. Dữ liệu
 |---|---|
 | `kd.theme` | `"light"` \| `"dark"` — giao diện (không thuộc `ProgressState`) |
 | `kd.progress.corrupt` | bản sao khối tiến độ bị hỏng, để cứu hộ |
+| `kd.typing.history.v1` | kỷ lục, lịch sử và chữ hay sai của phòng luyện gõ — **ngoài** `ProgressState`, không nằm trong tệp sao lưu; "Xoá toàn bộ tiến độ" có xoá (`docs/TYPING.md`) |
+| `kd.typing.history.corrupt` | bản sao khối luyện gõ bị hỏng, để cứu hộ |
+| `kd.typing.config` | lựa chọn lần trước của phòng luyện gõ (nội dung, cách nhập, chế độ…) — tiện ích, mất cũng không sao |
 | Cache Storage `kd-<phiên bản>` | tệp tĩnh cho chế độ offline (§8). Xoá lúc nào cũng được — không chứa tiến độ |
 
 ---
@@ -207,6 +210,8 @@ Cài trong `web/src/lib/learning/activity.ts` và `badges.ts`.
 | Đạt mục tiêu ngày | +50 thưởng |
 
 `level = floor(sqrt(xp_total / 100)) + 1`; XP còn thiếu để lên cấp kế = `100·level² − xp_total`.
+
+Phòng luyện gõ (`docs/TYPING.md`) **không** cộng XP và không tính vào streak hay mục tiêu ngày.
 
 ### 4.2 Streak — tính theo **ngày địa phương của thiết bị**
 
@@ -346,7 +351,7 @@ trộn điểm của hai con trỏ vào một nét, và `pointercancel` bị coi
 ## 8. PWA và chế độ offline
 
 **Cài đặt được.** `web/src/app/manifest.ts` sinh `/manifest.webmanifest`: `id "/"`, `start_url "/bang-dieu-khien"` (người đã cài là người quay lại học), `scope "/"`, `display "standalone"`,
-`lang "vi"`, icon 192 và 512 (`any`) cùng 512 `maskable` ở `web/public/icons/`, và ba `shortcuts` (Luyện viết, Ôn tập, Quiz). Icon cảm ứng iOS là `web/src/app/apple-icon.png` (180×180, nền đặc —
+`lang "vi"`, icon 192 và 512 (`any`) cùng 512 `maskable` ở `web/public/icons/`, và bốn `shortcuts` (Luyện viết, Luyện gõ, Ôn tập, Quiz). Icon cảm ứng iOS là `web/src/app/apple-icon.png` (180×180, nền đặc —
 iOS tự bo góc); `appleWebApp` trong metadata thêm meta `mobile-web-app-capable`, tiêu đề và kiểu thanh trạng thái cho Safari iOS (việc mở toàn màn hình trên các bản iOS cũ dựa vào meta này,
 chưa được kiểm trên thiết bị thật). Chrome/Edge cần HTTPS (hoặc `localhost`), manifest và icon 192/512; service worker không bắt buộc để cài được.
 
