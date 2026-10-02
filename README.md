@@ -12,7 +12,10 @@ kana-dojo/
 │   ├── ARCHITECTURE.md    Kiến trúc, độ bền dữ liệu, PWA/offline, giao diện, hướng mobile, quyết định thiết kế
 │   ├── DEVELOPMENT.md     Môi trường phát triển, quy ước code, cách kiểm thử (kể cả PWA và cảm ứng)
 │   ├── DEPLOYMENT.md      Đưa site lên mạng: HTTPS, domain, Nginx, CI
-│   └── TYPING.md          Phòng luyện gõ tiếng Nhật — nghiên cứu, thiết kế, quyết định khi gộp vào site tĩnh
+│   ├── TYPING.md          Phòng luyện gõ tiếng Nhật — nghiên cứu, thiết kế, quyết định khi gộp vào site tĩnh
+│   ├── MOBILE_FLUTTER.md  Phiên bản mobile bằng Flutter — nghiên cứu, thiết kế, tính năng nâng cấp, lộ trình (đề xuất)
+│   ├── CONTRACT.md        Hợp đồng dữ liệu và hành vi web ↔ mobile: tệp tiến độ, nội dung, fixture, khác biệt JS/Dart (đặc tả)
+│   └── spikes/            Mã chạy thử bỏ đi, minh chứng cho số liệu trong MOBILE_FLUTTER.md
 ├── web/                   Next.js 15 (xuất bản tĩnh) · TypeScript · Tailwind CSS v4 (+ Dockerfile, nginx.conf, scripts/ dựng service worker)
 ├── docker-compose.yml     Một container Nginx phục vụ bản build tĩnh
 ├── .github/workflows/     CI: lint, typecheck, test, build, rồi smoke test qua Docker
@@ -174,7 +177,7 @@ $1- **Luyện gõ** (bản build tĩnh): `/luyen-go` với romaji + bài mẫu 5
 | Offline / cài đặt | Chưa thử service worker và nút cài trên trình duyệt thật hay iPhone thật (xem trên). Bản mới chỉ có hiệu lực khi đóng hết tab của bản cũ, không có thông báo "có bản mới" |
 | Lưu bền | Chưa gọi `navigator.storage.persist()` và chưa có nhắc sao lưu định kỳ — dữ liệu "best-effort" vẫn có thể bị trình duyệt dọn khi máy đầy (xem ARCHITECTURE) |
 | Luyện gõ | Kỷ lục lưu riêng (`kd.typing.history.v1`), **chưa nằm trong tệp sao lưu** và không cộng XP/streak — quyết định và cách đổi ở [docs/TYPING.md §3.4](docs/TYPING.md) |
-| App mobile native | Mới có PWA. Định hướng và các lựa chọn (Capacitor / Expo / Flutter) ở [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#hướng-mobile) |
+| App mobile native | Mới có PWA. Định hướng và các lựa chọn (Capacitor / Expo / Flutter) ở [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#hướng-mobile); phân tích chi tiết cho Flutter ở [docs/MOBILE_FLUTTER.md](docs/MOBILE_FLUTTER.md) |
 | Dữ liệu cũ trên PostgreSQL | Phiên bản có tài khoản lưu tiến độ trên máy chủ; không có công cụ chuyển sang tiến độ cục bộ |
 
 ---
@@ -188,6 +191,8 @@ $1- **Luyện gõ** (bản build tĩnh): `/luyen-go` với romaji + bài mẫu 5
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Thiết lập môi trường dev, quy ước code, cách kiểm thử, sự cố đã gặp |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Đưa site lên mạng: máy chủ tĩnh, Docker, Nginx, HTTPS/domain, CI |
 | [docs/TYPING.md](docs/TYPING.md) | Phòng luyện gõ: cách người Nhật gõ chữ, kiểu bài, chấm điểm, bộ máy so khớp, quyết định khi gộp vào site không tài khoản |
+| [docs/CONTRACT.md](docs/CONTRACT.md) | Hợp đồng web ↔ mobile: tệp tiến độ, nội dung dùng chung, bảng mẫu nét, fixture hành vi, những chỗ JS và Dart khác nhau (đã đo) |
+| [docs/MOBILE_FLUTTER.md](docs/MOBILE_FLUTTER.md) | Phiên bản mobile bằng Flutter: kiến trúc, port engine (đã chạy thử), khung viết nét, tính năng native, nâng cấp học thuật, cửa hàng ứng dụng, lộ trình — **đề xuất, chưa triển khai** |
 
 ---
 
