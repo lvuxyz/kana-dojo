@@ -8,7 +8,7 @@ import {
 import { KANA, type KanaGroup, type Script } from "@/lib/kana";
 import { isSkipped, isTypeable } from "./romaji";
 
-export type ContentType = "HIRAGANA" | "KATAKANA" | "MIXED" | "KANJI" | "KANA_DRILL" | "WEAK";
+export type ContentType = "HIRAGANA" | "KATAKANA" | "MIXED" | "KANJI" | "KANA_DRILL" | "WEAK" | "MINE";
 
 export const CONTENT_INFO: Record<ContentType, { ja: string; label: string; hint: string }> = {
   HIRAGANA: { ja: "ひらがな", label: "Hiragana", hint: "Câu chào hỏi, câu đơn giản" },
@@ -17,6 +17,7 @@ export const CONTENT_INFO: Record<ContentType, { ja: string; label: string; hint
   KANJI: { ja: "漢字", label: "Kanji có furigana", hint: "Đọc câu có kanji, gõ theo cách đọc" },
   KANA_DRILL: { ja: "五十音", label: "Kana ngẫu nhiên", hint: "Chuỗi chữ rời để làm quen phím" },
   WEAK: { ja: "苦手", label: "Chữ hay sai", hint: "Luyện lại đúng những chữ bạn hay gõ sai" },
+  MINE: { ja: "自作", label: "Câu của tôi", hint: "Những câu bạn tự soạn trong Thư viện" },
 };
 
 /** Nhóm chữ cho bài kana ngẫu nhiên — người mới chỉ nên gặp 46 chữ cơ bản. */
@@ -88,7 +89,7 @@ export function parsePhrase(src: string, vi: string): Phrase {
   return { segments, kana, ime, text, vi };
 }
 
-type TextContent = Exclude<ContentType, "KANA_DRILL" | "WEAK">;
+type TextContent = Exclude<ContentType, "KANA_DRILL" | "WEAK" | "MINE">;
 
 const TEXTS: Record<TextContent, TextEntry[]> = {
   HIRAGANA: HIRAGANA_TEXTS,
@@ -99,6 +100,33 @@ const TEXTS: Record<TextContent, TextEntry[]> = {
 
 export function textsOf(content: TextContent): Phrase[] {
   return TEXTS[content].map((e) => parsePhrase(e.t, e.vi));
+}
+
+/**
+ * Một câu tự soạn có gõ được trọn vẹn không? Trả về lý do (tiếng Việt) nếu không, `null` nếu được.
+ * Kanji chỉ gõ được khi kèm cách đọc ({漢字|かんじ}); chữ Latin, số và ký hiệu lạ thì không có cách gõ nào cả,
+ * và một câu như vậy sẽ làm ván gõ kẹt vĩnh viễn — nên bị chặn từ lúc soạn.
+ */
+export function validateTypingText(src: string): string | null {
+  const text = src.trim();
+  if (!text) return "Câu đang trống.";
+  const phrase = parsePhrase(text, "");
+  for (const seg of phrase.segments) {
+    for (const ch of seg.reading) {
+      if (!isTypeable(ch)) {
+        return seg.ruby
+          ? `Cách đọc "${seg.reading}" có chữ "${ch}" không gõ được — cách đọc chỉ gồm hiragana hoặc katakana.`
+          : `Chữ "${ch}" không gõ được. Kanji phải viết kèm cách đọc, ví dụ {漢字|かんじ}; chỉ hiragana, katakana và dấu câu mới đứng một mình.`;
+      }
+    }
+  }
+  if (phrase.kana.length === 0) return "Câu không có chữ nào để gõ.";
+  return null;
+}
+
+/** Câu tự soạn đã lọc những câu không gõ được (tệp sao lưu sửa tay cũng không làm kẹt ván). */
+export function userPhrases(texts: readonly { text: string; vi: string }[]): Phrase[] {
+  return texts.filter((t) => validateTypingText(t.text) === null).map((t) => parsePhrase(t.text.trim(), t.vi));
 }
 
 function shuffle<T>(list: T[], rng: () => number): T[] {
@@ -147,6 +175,8 @@ export interface FeedOptions {
   weak?: [string, number][];
   /** Danh sách câu cố định (luyện lại các câu có lỗi) — gõ lần lượt, hết thì quay lại đầu */
   phrases?: Phrase[];
+  /** Câu người học tự soạn, cho nội dung MINE (xáo trộn như kho câu mẫu) */
+  mine?: Phrase[];
 }
 
 /**
@@ -166,7 +196,10 @@ export function createFeed(content: ContentType, opts: FeedOptions, rng: () => n
   }
   if (content === "KANA_DRILL" || content === "WEAK") return () => drillPhrase(opts.drillScript, opts.drillGroup, rng);
 
-  const all = textsOf(content);
+  // Chưa có câu tự soạn nào thì dùng kana ngẫu nhiên, giống "Chữ hay sai" khi chưa có dữ liệu.
+  if (content === "MINE" && !(opts.mine && opts.mine.length > 0)) return () => drillPhrase(opts.drillScript, opts.drillGroup, rng);
+
+  const all = content === "MINE" ? opts.mine! : textsOf(content);
   let queue: Phrase[] = [];
   let previous: Phrase | undefined;
   return () => {
