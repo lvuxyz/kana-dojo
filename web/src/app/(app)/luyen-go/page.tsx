@@ -14,7 +14,8 @@ import {
   weakList,
   type TypingHistory,
 } from "@/lib/typing/history";
-import type { Phrase } from "@/lib/typing/phrases";
+import { getSpace } from "@/lib/space/store";
+import { userPhrases, type Phrase } from "@/lib/typing/phrases";
 
 const DEFAULT_CONFIG: GameConfig = {
   content: "HIRAGANA",
@@ -33,7 +34,7 @@ const DEFAULT_CONFIG: GameConfig = {
 const STORAGE_KEY = "kd.typing.config";
 
 const ALLOWED: { [K in keyof GameConfig]: readonly GameConfig[K][] } = {
-  content: ["HIRAGANA", "KATAKANA", "MIXED", "KANJI", "KANA_DRILL", "WEAK"],
+  content: ["HIRAGANA", "KATAKANA", "MIXED", "KANJI", "KANA_DRILL", "WEAK", "MINE"],
   method: ["ROMAJI", "KANA", "IME"],
   mode: ["PASSAGE", "TIME_ATTACK", "SUDDEN_DEATH"],
   phraseCount: [5, 10, 20],
@@ -68,6 +69,9 @@ function storeConfig(c: GameConfig) {
 }
 
 type View = "setup" | "play" | "result";
+
+/** Nguồn câu của một ván thường: chữ hay sai và câu tự soạn đều đọc lại từ kho lúc bắt đầu, không dùng state cũ. */
+const liveSource = (): GameSource => ({ weak: weakList(loadHistory()), mine: userPhrases(getSpace().library.texts) });
 
 /** Một ván: cấu hình cố định trong suốt ván + nguồn câu. `practice` = luyện lại câu có lỗi, không tính kỷ lục. */
 interface Session {
@@ -108,7 +112,7 @@ export default function TypingPage() {
   const start = (c: GameConfig = config) => {
     storeConfig(c);
     setConfig(c);
-    play({ config: c, source: { weak: weakList(loadHistory()) }, practice: false });
+    play({ config: c, source: liveSource(), practice: false });
   };
 
   const retryMistakes = (phrases: Phrase[]) => {
@@ -162,7 +166,7 @@ export default function TypingPage() {
       <TypingResult
         result={result}
         outcome={outcome}
-        onRetry={() => play(session.practice ? session : { ...session, source: { weak: weakList(loadHistory()) } })}
+        onRetry={() => play(session.practice ? session : { ...session, source: liveSource() })}
         onRetryMistakes={retryMistakes}
         onSetup={exit}
       />

@@ -9,14 +9,14 @@ export const metadata: Metadata = {
     template: "%s · Kana Dōjō",
   },
   description:
-    "Luyện viết Hiragana và Katakana trên lưới giấy ô vuông Nhật. Máy chấm điểm từng nét, tự lên lịch ôn theo thuật toán FSRS. Miễn phí, học trực tiếp trên trình duyệt.",
+    "Luyện viết Hiragana và Katakana trên lưới giấy ô vuông Nhật, máy chấm từng nét, tự lên lịch ôn theo FSRS — và mỗi người có một dōjō riêng: tự soạn ghi chú, bộ thẻ, câu luyện gõ. Miễn phí, không cần tài khoản.",
   keywords: ["học tiếng Nhật", "hiragana", "katakana", "bảng chữ cái tiếng Nhật", "tập viết kana", "thứ tự nét"],
   openGraph: {
     type: "website",
     locale: "vi_VN",
     siteName: "Kana Dōjō",
     title: "Kana Dōjō — Học viết Hiragana & Katakana đúng nét",
-    description: "Máy chấm từng nét viết của bạn và tự lên lịch ôn tập. Học trực tiếp trên trình duyệt.",
+    description: "Máy chấm từng nét viết của bạn, tự lên lịch ôn tập, và một dōjō riêng do chính bạn soạn. Học trực tiếp trên trình duyệt.",
   },
   robots: { index: true, follow: true },
   applicationName: "Kana Dōjō",

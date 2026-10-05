@@ -5,7 +5,7 @@ import Link from "next/link";
 import { StrokeStage, type AttemptResult } from "@/components/kana/StrokeStage";
 import { Button, Card, Empty, Progress, Spinner } from "@/components/ui";
 import { KANA } from "@/lib/kana";
-import { useProgress } from "@/lib/learning/hooks";
+import { useLearnContext, useProgress } from "@/lib/learning/hooks";
 import { createReviewQueue, gradeReviewCard, recordWritingAttempt } from "@/lib/learning/store";
 import type { Grade, GradeResult, ItemType, ReviewQueue, ReviewQueueItem } from "@/lib/types";
 
@@ -34,10 +34,9 @@ const GRADE_LABEL: Record<Grade, { text: string; hint: string; tone: string }> =
   4: { text: "Dễ", hint: "khoảng cách dài hơn", tone: "border-genko/50 text-genko hover:bg-genko-tint" },
 };
 
-const QUEUE_SIZE = 30;
-
 export default function ReviewPage() {
   const { ready } = useProgress();
+  const { study } = useLearnContext();
   const [queue, setQueue] = useState<ReviewQueue | null>(null);
   const [i, setI] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -51,7 +50,8 @@ export default function ReviewPage() {
   const loadQueue = useCallback(() => {
     clearTimeout(timer.current);
     locked.current = false;
-    setQueue(createReviewQueue({ limit: QUEUE_SIZE }));
+    // Cỡ phiên, hạn mức thẻ mới và nguồn thẻ do người học chọn (Cài đặt › Cách học) — store tự áp.
+    setQueue(createReviewQueue());
     setI(0);
     setRevealed(false);
     setLast(null);
@@ -110,8 +110,13 @@ export default function ReviewPage() {
     return (
       <Empty
         title="Hết thẻ đến hạn rồi 🎉"
-        hint="Lịch ôn được tính bằng FSRS — ôn sớm hơn hạn thì tốn thời gian mà trí nhớ không khá hơn bao nhiêu. Học ký tự mới thì hữu ích hơn."
-        action={<Link href="/luyen-viet"><Button variant="solid">Học ký tự mới</Button></Link>}
+        hint={`Lịch ôn được tính bằng FSRS — ôn sớm hơn hạn thì tốn thời gian mà trí nhớ không khá hơn bao nhiêu. Mỗi ngày bạn học thêm tối đa ${study.newCardsPerDay} thẻ mới (đổi ở Cài đặt › Cách học); thẻ chưa có nghĩa là hạn mức hôm nay đã dùng hết hoặc bạn đã tắt nguồn thẻ đó.`}
+        action={
+          <div className="flex flex-wrap justify-center gap-2.5">
+            <Link href="/luyen-viet"><Button variant="solid">Học ký tự mới</Button></Link>
+            <Link href="/thu-vien?tab=decks"><Button>Soạn thẻ của tôi</Button></Link>
+          </div>
+        }
       />
     );
   }

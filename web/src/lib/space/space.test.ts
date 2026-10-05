@@ -14,7 +14,7 @@ describe("không gian riêng — mặc định", () => {
   it("người mới: đủ mọi công cụ, chưa dựng, cách học y như site từ trước tới nay", () => {
     const s = emptySpace(5);
     expect(s).toMatchObject({ version: SPACE_VERSION, createdAt: 5, onboarded: false });
-    expect(s.modules).toEqual(["home", "review", "writing", "typing", "vocab", "quiz", "library", "settings"]);
+    expect(s.modules).toEqual(["home", "review", "writing", "library", "typing", "vocab", "quiz", "settings"]);
     expect(s.study).toMatchObject({ newCardsPerDay: 10, sessionSize: 30, desiredRetention: 0.9, vocab: true, decks: true });
     expect(s.library).toEqual({ notes: [], decks: [], texts: [] });
   });
@@ -62,12 +62,11 @@ describe("cách học", () => {
 });
 
 describe("hồ sơ và widget", () => {
-  it("cắt khoảng trắng và độ dài; chỉ nhận màu có thật", () => {
-    const s = setProfile(emptySpace(), { name: `  ${"a".repeat(100)}  `, goal: "  N5 trong 6 tháng ", accent: "ai" });
+  it("cắt khoảng trắng và độ dài; chỉ đổi trường được nêu", () => {
+    const s = setProfile(emptySpace(), { name: `  ${"a".repeat(100)}  `, goal: "  N5 trong 6 tháng " });
     expect(s.profile.name).toHaveLength(LIMITS.name);
     expect(s.profile.goal).toBe("N5 trong 6 tháng");
-    expect(s.profile.accent).toBe("ai");
-    expect(setProfile(s, { accent: "neon" as never }).profile.accent).toBe("ai");
+    expect(setProfile(s, { name: "Vũ" }).profile).toEqual({ name: "Vũ", goal: "N5 trong 6 tháng" });
   });
 
   it("widget: bỏ trùng và mã lạ, giữ thứ tự người học chọn", () => {

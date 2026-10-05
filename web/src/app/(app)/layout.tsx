@@ -1,15 +1,39 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { Brand } from "@/components/app/Brand";
 import { BottomNav, SideNav } from "@/components/app/Nav";
+import { Onboarding } from "@/components/app/Onboarding";
 import { ThemeToggle } from "@/components/app/ThemeToggle";
 import { Progress } from "@/components/ui";
-import { usePersistent, useStats } from "@/lib/learning/hooks";
+import { usePersistent, useProgress, useStats } from "@/lib/learning/hooks";
+import { useSpace, useSpacePersistent } from "@/lib/space/hooks";
+import { completeOnboarding } from "@/lib/space/space";
+import { updateSpace } from "@/lib/space/store";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { stats, ready } = useStats();
-  const persistent = usePersistent();
+  const { state, ready: progressReady } = useProgress();
+  const { space, ready: spaceReady } = useSpace();
+  // Hai kho lưu độc lập: cảnh báo nếu một trong hai không ghi được. Gọi cả hai hook trước rồi mới gộp (không dùng &&,
+  // vì vế đầu sai sẽ bỏ qua hook thứ hai và làm thứ tự hook đổi giữa các lần render).
+  const progressPersistent = usePersistent();
+  const spacePersistent = useSpacePersistent();
+  const persistent = progressPersistent && spacePersistent;
+
+  // Người đã học từ trước khi có "không gian riêng" không phải qua màn chào: họ đã có thói quen riêng của mình.
+  const returning = progressReady && (state.stats.xpTotal > 0 || Object.keys(state.cards).length > 0);
+  const needsOnboarding = spaceReady && progressReady && !space.onboarded && !returning;
+
+  useEffect(() => {
+    if (spaceReady && !space.onboarded && returning) updateSpace(completeOnboarding);
+  }, [spaceReady, space.onboarded, returning]);
+
+  if (needsOnboarding) return <Onboarding />;
+
+  const name = space.profile.name;
+  const tagline = spaceReady && name ? `Dōjō của ${name}` : "Học tiếng Nhật theo cách của bạn";
 
   return (
     <div className="relative min-h-screen bg-paper text-sumi">
@@ -18,7 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-[1220px] gap-8 px-4 pb-24 lg:px-6 lg:pb-10">
         <aside className="hidden w-56 flex-none flex-col gap-6 py-6 lg:flex">
-          <Brand href="/bang-dieu-khien" />
+          <Brand href="/bang-dieu-khien" tagline={tagline} />
           <SideNav />
         </aside>
 
@@ -65,8 +89,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {!persistent && (
             <p role="alert" className="mb-5 rounded-2xl border border-gold/40 bg-gold-tint/80 px-4.5 py-3 text-xs font-semibold text-sumi-2 shadow-xs">
-              Trình duyệt đang không cho lưu dữ liệu (có thể bạn đang ở chế độ riêng tư), nên tiến độ chỉ giữ được đến khi đóng
-              tab này. Bạn vẫn học bình thường — vào <Link href="/cai-dat" className="underline">Cài đặt</Link> để tải tiến độ về máy trước khi thoát.
+              Trình duyệt đang không cho lưu dữ liệu (có thể bạn đang ở chế độ riêng tư, hoặc bộ nhớ đã đầy), nên tiến độ,
+              ghi chú và bộ thẻ chỉ giữ được đến khi đóng tab này. Bạn vẫn dùng bình thường — vào{" "}
+              <Link href="/cai-dat?tab=data" className="underline">Cài đặt › Dữ liệu</Link> để tải bản sao lưu về máy trước khi thoát.
             </p>
           )}
 

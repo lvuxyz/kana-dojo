@@ -4,7 +4,9 @@ import {
 } from "../learning/context";
 
 /* "Không gian riêng" của một người học: mọi thứ do CHÍNH HỌ quyết định — công cụ nào hiện ra, tài liệu và bộ thẻ họ tự
-   soạn, câu luyện gõ của họ, cách học (hạn mức, độ dày lịch ôn, nguồn thẻ), tên và màu giao diện.
+   soạn, câu luyện gõ của họ, cách học (hạn mức, độ dày lịch ôn, nguồn thẻ), tên và mục đích học.
+   Cố ý KHÔNG có màu giao diện tuỳ chọn: màu đỏ (--shu) của site mang nghĩa "sai / xoá / cảnh báo" (thông báo lỗi, nút
+   "Quên rồi", nút xoá), đổi nó thành màu khác sẽ làm lỗi trông như thông tin bình thường.
    Tách khỏi ProgressState (tiến độ học) vì hai thứ đổi với nhịp khác nhau và vì tệp tiến độ là hợp đồng web ↔ mobile
    (docs/CONTRACT.md §2) — thêm tài liệu của người dùng vào đó sẽ buộc đổi hợp đồng. Hai thứ gặp nhau ở tệp sao lưu (lib/backup.ts).
    Mọi thao tác ở đây là hàm thuần: nhận Space cũ, trả Space mới (hoặc ném SpaceError, khi đó không có gì đổi). */
@@ -34,18 +36,15 @@ export const LIMITS = {
 
 export class SpaceError extends Error {}
 
-// ------------------------------------------------------------------ mô-đun, widget, màu
+// ------------------------------------------------------------------ mô-đun, widget
 
 /** Các công cụ người học có thể bật/tắt và sắp xếp. `home` và `settings` luôn có: tắt hết thì không còn đường quay lại. */
-export const MODULE_IDS = ["home", "review", "writing", "typing", "vocab", "quiz", "library", "settings"] as const;
+export const MODULE_IDS = ["home", "review", "writing", "library", "typing", "vocab", "quiz", "settings"] as const;
 export type ModuleId = (typeof MODULE_IDS)[number];
 export const LOCKED_MODULES: readonly ModuleId[] = ["home", "settings"];
 
 export const WIDGET_IDS = ["today", "stats", "goal", "heatmap", "badges", "notes"] as const;
 export type WidgetId = (typeof WIDGET_IDS)[number];
-
-export const ACCENTS = ["shu", "ai", "fuji", "matcha"] as const;
-export type Accent = (typeof ACCENTS)[number];
 
 const dedupe = <T>(list: readonly T[]): T[] => [...new Set(list)];
 
@@ -116,7 +115,6 @@ export const spaceSchema = z.object({
     name: z.string().max(LIMITS.name),
     /** Mục đích học, người học tự viết — hiện ở trang Tổng quan. */
     goal: z.string().max(LIMITS.goal),
-    accent: z.enum(ACCENTS),
   }),
   modules: z.array(z.enum(MODULE_IDS)).transform(normalizeModules),
   home: z.object({ widgets: z.array(z.enum(WIDGET_IDS)).transform(dedupe) }),
@@ -151,7 +149,7 @@ export function emptySpace(now = Date.now()): Space {
     version: SPACE_VERSION,
     createdAt: now,
     onboarded: false,
-    profile: { name: "", goal: "", accent: "shu" },
+    profile: { name: "", goal: "" },
     modules: normalizeModules(MODULE_IDS),
     home: { widgets: [...DEFAULT_WIDGETS] },
     study: defaultStudy(),
@@ -219,7 +217,6 @@ export function setProfile(space: Space, patch: Partial<Profile>): Space {
   const profile = { ...space.profile };
   if (patch.name !== undefined) profile.name = patch.name.trim().slice(0, LIMITS.name);
   if (patch.goal !== undefined) profile.goal = patch.goal.trim().slice(0, LIMITS.goal);
-  if (patch.accent !== undefined && ACCENTS.includes(patch.accent)) profile.accent = patch.accent;
   return { ...space, profile };
 }
 

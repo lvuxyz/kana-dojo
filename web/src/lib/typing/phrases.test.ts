@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TypingRun } from "./engine";
 import { KANA } from "@/lib/kana";
-import { createFeed, parsePhrase, textsOf, type FeedOptions, type Phrase } from "./phrases";
+import { createFeed, parsePhrase, textsOf, userPhrases, validateTypingText, type FeedOptions, type Phrase } from "./phrases";
 
 /** Bộ sinh số giả ngẫu nhiên có hạt giống, để test lặp lại được. */
 function seeded(seed: number) {
@@ -143,5 +143,54 @@ describe("createFeed — nhóm kana, chữ hay sai, câu cố định", () => {
     const list = textsOf("HIRAGANA").slice(0, 3);
     const next = createFeed("HIRAGANA", { ...ALL, phrases: list }, seeded(2));
     expect([next(), next(), next(), next()].map((p) => p.text)).toEqual([...list, list[0]].map((p) => p.text));
+  });
+});
+
+describe("câu tự soạn (nội dung MINE)", () => {
+  const opts = (mine: Phrase[]): FeedOptions => ({ drillScript: "h", drillGroup: "basic", mine });
+
+  it("validateTypingText: nhận câu gõ được, từ chối câu sẽ làm kẹt ván", () => {
+    for (const ok of ["こんにちは", "{私|わたし}は{学生|がくせい}です。", "コーヒーをください", "  ありがとう  "]) {
+      expect(validateTypingText(ok)).toBeNull();
+    }
+    expect(validateTypingText("")).toMatch(/trống/);
+    expect(validateTypingText("   ")).toMatch(/trống/);
+    expect(validateTypingText("私は")).toMatch(/Kanji phải viết kèm cách đọc/);
+    expect(validateTypingText("hello")).toMatch(/không gõ được/);
+    expect(validateTypingText("{私|watashi}")).toMatch(/Cách đọc/);
+    expect(validateTypingText("、。")).toMatch(/không có chữ nào/);
+  });
+
+  it("mọi câu mà validateTypingText nhận đều gõ trọn được bằng cả romaji lẫn kana (không có câu 'hợp lệ nhưng kẹt')", () => {
+    for (const src of ["こんにちは", "{水|みず}をください", "ファイル、ティー。", "きょうは{天気|てんき}がいい"]) {
+      expect(validateTypingText(src)).toBeNull();
+      const p = parsePhrase(src, "");
+      expect(typeByGuide(p, "ROMAJI")).toEqual({ finished: true, misses: 0 });
+      expect(typeByGuide(p, "KANA")).toEqual({ finished: true, misses: 0 });
+    }
+  });
+
+  it("userPhrases lọc câu không gõ được (tệp sao lưu sửa tay không làm kẹt ván) và cắt khoảng trắng", () => {
+    const list = userPhrases([
+      { text: " ありがとう ", vi: "Cảm ơn" },
+      { text: "abc", vi: "" },
+      { text: "{水|みず}", vi: "nước" },
+    ]);
+    expect(list.map((p) => p.text)).toEqual(["ありがとう", "水"]);
+    expect(list[0].vi).toBe("Cảm ơn");
+  });
+
+  it("MINE chỉ ra câu của người học, xáo trộn, không lặp cho tới khi dùng hết", () => {
+    const mine = userPhrases([{ text: "あ", vi: "" }, { text: "い", vi: "" }, { text: "う", vi: "" }]);
+    const feed = createFeed("MINE", opts(mine), seeded(7));
+    const firstRound = Array.from({ length: 3 }, () => feed().text);
+    expect([...firstRound].sort()).toEqual(["あ", "い", "う"]);
+  });
+
+  it("chưa có câu nào thì dùng kana ngẫu nhiên thay vì kẹt", () => {
+    const feed = createFeed("MINE", opts([]), seeded(1));
+    const p = feed();
+    expect(p.kana.length).toBeGreaterThan(0);
+    expect(typeByGuide(p, "ROMAJI").finished).toBe(true);
   });
 });

@@ -8,6 +8,8 @@ import { CONTENT_INFO, DRILL_GROUPS, type ContentType } from "@/lib/typing/phras
 import { BELTS, beltFor, formatDuration, type TypingMode } from "@/lib/typing/score";
 import { STUCK_AFTER } from "./useTypingGame";
 import { findBest, weakList, type TypingHistory } from "@/lib/typing/history";
+import { useSpace } from "@/lib/space/hooks";
+import { userPhrases } from "@/lib/typing/phrases";
 import type { GameConfig } from "./useTypingGame";
 
 export const METHOD_INFO: Record<InputMethod, { ja: string; label: string; hint: string }> = {
@@ -34,7 +36,7 @@ export const MODE_INFO: Record<TypingMode, { ja: string; label: string; hint: st
   SUDDEN_DEATH: { ja: "一発勝負", label: "Sinh tử", hint: "Sai một phím là dừng — luyện độ chính xác tuyệt đối." },
 };
 
-const CONTENTS: ContentType[] = ["HIRAGANA", "KATAKANA", "MIXED", "KANJI", "KANA_DRILL", "WEAK"];
+const CONTENTS: ContentType[] = ["HIRAGANA", "KATAKANA", "MIXED", "KANJI", "KANA_DRILL", "WEAK", "MINE"];
 const METHODS: InputMethod[] = ["ROMAJI", "KANA", "IME"];
 const MODES: TypingMode[] = ["PASSAGE", "TIME_ATTACK", "SUDDEN_DEATH"];
 
@@ -67,15 +69,26 @@ export function TypingSetup({
 }) {
   const set = <K extends keyof GameConfig>(key: K, value: GameConfig[K]) => onChange({ ...config, [key]: value });
   const touch = useCoarsePointer();
+  const { space } = useSpace();
   const best = findBest(history, config);
   const weak = weakList(history);
-  const contentHint = (c: ContentType) =>
-    c !== "WEAK"
-      ? CONTENT_INFO[c].hint
-      : weak.length > 0
-        ? `Đang theo dõi ${weak.length} chữ bạn hay gõ sai`
-        : "Chưa có dữ liệu — tạm dùng kana ngẫu nhiên cho tới khi bạn gõ sai vài chữ";
-  const drillOptions = config.content === "KANA_DRILL" || (config.content === "WEAK" && weak.length === 0);
+  // Chỉ những câu gõ được mới tính — đúng bộ lọc mà ván gõ sẽ dùng.
+  const mineCount = userPhrases(space.library.texts).length;
+  const contentHint = (c: ContentType) => {
+    if (c === "MINE") {
+      return mineCount > 0
+        ? `${mineCount} câu bạn đã soạn trong Thư viện`
+        : "Chưa có câu nào — soạn ở Thư viện › Câu luyện gõ; tạm dùng kana ngẫu nhiên";
+    }
+    if (c !== "WEAK") return CONTENT_INFO[c].hint;
+    return weak.length > 0
+      ? `Đang theo dõi ${weak.length} chữ bạn hay gõ sai`
+      : "Chưa có dữ liệu — tạm dùng kana ngẫu nhiên cho tới khi bạn gõ sai vài chữ";
+  };
+  const drillOptions =
+    config.content === "KANA_DRILL" ||
+    (config.content === "WEAK" && weak.length === 0) ||
+    (config.content === "MINE" && mineCount === 0);
 
   return (
     <div className="flex flex-col gap-6">

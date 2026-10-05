@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 type BtnVariant = "solid" | "outline" | "ghost" | "danger" | "cinnabar" | "sumi" | "gold";
 type BtnSize = "sm" | "md" | "lg";
@@ -193,7 +193,7 @@ export function Field({
   error,
   className,
   ...rest
-}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) {
+}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; ref?: Ref<HTMLInputElement> }) {
   return (
     <label className="flex flex-col gap-1.5">
       <span className="label-xs">{label}</span>
@@ -266,5 +266,109 @@ export function Spinner({ label = "Đang tải" }: { label?: string }) {
       <span className="h-4 w-4 animate-spin rounded-full border-2 border-rule border-t-shu" />
       <span>{label}…</span>
     </div>
+  );
+}
+
+export function TextArea({
+  label,
+  error,
+  className,
+  ...rest
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      {label && <span className="label-xs">{label}</span>}
+      <textarea
+        className={clsx(
+          "rounded-xl border bg-surface/90 px-4 py-2.5 text-sm leading-relaxed text-sumi shadow-xs outline-none transition-all duration-200",
+          error
+            ? "border-shu ring-2 ring-shu/20"
+            : "border-rule/80 focus:border-shu focus:ring-3 focus:ring-shu/15",
+          className,
+        )}
+        aria-invalid={!!error}
+        {...rest}
+      />
+      {error && <span className="text-xs font-medium text-shu">{error}</span>}
+    </label>
+  );
+}
+
+export function Select({
+  label,
+  className,
+  children,
+  ...rest
+}: SelectHTMLAttributes<HTMLSelectElement> & { label?: string }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      {label && <span className="label-xs">{label}</span>}
+      <select
+        className={clsx(
+          "rounded-xl border border-rule/80 bg-surface/90 px-3.5 py-2.5 text-sm text-sumi shadow-xs outline-none transition-all duration-200",
+          "focus:border-shu focus:ring-3 focus:ring-shu/15",
+          className,
+        )}
+        {...rest}
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
+/** Công tắc bật/tắt kèm nhãn và dòng giải thích — dùng cho mọi lựa chọn có/không của người học. */
+export function Switch({
+  checked,
+  onChange,
+  label,
+  hint,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  const on = checked && !disabled;
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex cursor-pointer items-start gap-3 text-left disabled:cursor-not-allowed disabled:opacity-45"
+    >
+      <span className={clsx("relative mt-0.5 h-5 w-9 flex-none rounded-full transition-colors", on ? "bg-shu" : "bg-rule-firm")}>
+        <span
+          className={clsx(
+            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all",
+            on ? "left-[18px]" : "left-0.5",
+          )}
+        />
+      </span>
+      <span className="flex flex-col">
+        <span className="text-[13px] font-semibold text-sumi">{label}</span>
+        {hint && <span className="text-[12px] text-sumi-3">{hint}</span>}
+      </span>
+    </button>
+  );
+}
+
+/** Thông báo ngắn sau một thao tác (đã lưu / lỗi). `role=status` để trình đọc màn hình đọc lên. */
+export function Notice({ tone, children, className }: { tone: "ok" | "err"; children: ReactNode; className?: string }) {
+  return (
+    <p
+      role={tone === "err" ? "alert" : "status"}
+      className={clsx(
+        "rounded-xl border px-3.5 py-2.5 text-[13px] font-semibold",
+        tone === "ok" ? "border-genko/30 bg-genko-tint text-genko" : "border-shu/30 bg-shu-tint text-shu-2",
+        className,
+      )}
+    >
+      {children}
+    </p>
   );
 }
