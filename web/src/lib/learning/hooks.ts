@@ -5,7 +5,9 @@ import type { Script } from "../kana";
 import { heatmapOf, statsOf } from "./activity";
 import { badgeStatuses } from "./badges";
 import { kanaProgress, summaryOf } from "./reviews";
+import { getLearnContext, getServerLearnContext, subscribe as subscribeSpace } from "../space/store";
 import { SERVER_STATE, getServerState, getState, isPersistent, subscribe } from "./store";
+import type { LearnContext } from "./context";
 import { systemClock } from "./time";
 
 /* Cầu nối giữa kho tiến độ (localStorage) và React.
@@ -27,9 +29,15 @@ export function useStats() {
   return { ready, stats: useMemo(() => statsOf(state, systemClock()), [state]) };
 }
 
+/** Cách học và thẻ tự soạn của người dùng; đổi khi họ sửa không gian riêng. */
+export function useLearnContext(): LearnContext {
+  return useSyncExternalStore(subscribeSpace, getLearnContext, getServerLearnContext);
+}
+
 export function useSummary() {
   const { state, ready } = useProgress();
-  return { ready, summary: useMemo(() => summaryOf(state, systemClock()), [state]) };
+  const ctx = useLearnContext();
+  return { ready, summary: useMemo(() => summaryOf(state, systemClock(), ctx), [state, ctx]) };
 }
 
 export function useKanaProgress(script: Script) {

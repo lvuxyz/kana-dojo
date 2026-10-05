@@ -1,6 +1,15 @@
 import Link from "next/link";
 
-export function Brand({ href = "/", compact = false }: { href?: string; compact?: boolean }) {
+export function Brand({
+  href = "/",
+  compact = false,
+  tagline = "Luyện viết Hiragana & Katakana chuẩn nét",
+}: {
+  href?: string;
+  compact?: boolean;
+  /** Dòng nhỏ dưới tên: trong khu vực học nó là tên không gian riêng của người học. */
+  tagline?: string;
+}) {
   return (
     <Link
       href={href}
@@ -25,8 +34,8 @@ export function Brand({ href = "/", compact = false }: { href?: string; compact?
               道場
             </span>
           </span>
-          <span className="font-sans text-[11.5px] font-medium tracking-normal text-sumi-3">
-            Luyện viết Hiragana &amp; Katakana chuẩn nét
+          <span title={tagline} className="max-w-52 truncate font-sans text-[11.5px] font-medium tracking-normal text-sumi-3">
+            {tagline}
           </span>
         </span>
       )}

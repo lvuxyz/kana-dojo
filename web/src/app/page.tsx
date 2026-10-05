@@ -67,6 +67,7 @@ const COMPARISON = [
 ];
 
 const METRIC_PILLS = [
+  { label: "Mỗi người một dōjō riêng: tự soạn tài liệu & bộ thẻ", icon: "🏯" },
   { label: "Miễn phí, không cần tài khoản", icon: "✨" },
   { label: "Chấm nét 24 điểm Arc-length", icon: "🎯" },
   { label: "Chuẩn 208 ký tự Hiragana & Katakana", icon: "📜" },
@@ -141,7 +142,7 @@ export default function Landing() {
 
             <Link href="/bang-dieu-khien">
               <Button size="sm" variant="outline" className="hidden sm:inline-flex">
-                Tiến độ của tôi
+                Dōjō của tôi
               </Button>
             </Link>
             <Link href="/luyen-viet">
@@ -200,12 +201,16 @@ export default function Landing() {
               rèn luyện thực thụ: cầm bút vẽ từng nét trên giấy ô vuông Nhật Bản — máy chấm điểm tức thì, phát hiện vẽ ngược chiều
               hay sai thứ tự để khắc phục ngay.
             </p>
+            <p className="max-w-[54ch] text-base leading-relaxed text-sumi-2 sm:text-[17px]">
+              Và mỗi người mở trang này có <b>một dōjō của riêng mình</b>: bạn chọn công cụ nào hiện ra, tự soạn ghi chú, bộ thẻ và
+              câu luyện gõ, rồi quyết định học theo cách của bạn — mọi thứ nằm ngay trong trình duyệt, không cần tài khoản.
+            </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap items-center gap-3.5 pt-1">
-              <Link href="/luyen-viet">
+              <Link href="/bang-dieu-khien">
                 <Button variant="solid" size="lg" className="group text-[15px] px-7 shadow-lg shadow-shu/25">
-                  <span>Học miễn phí ngay</span>
+                  <span>Dựng dōjō của tôi</span>
                   <svg
                     className="h-4 w-4 transition-transform group-hover:translate-x-1"
                     fill="none"

@@ -74,6 +74,12 @@ Unit test đặt cạnh mã nguồn, tên `*.test.ts`, chạy trong môi trườ
 | `lib/vocabulary.test.ts` | Trang Từ vựng hiện đủ 70 từ N5 (không cắt ở 60), tìm không dấu, tìm theo cách đọc/romaji/nghĩa |
 | `lib/learning/quiz.test.ts` | Chấm quiz + tính toàn vẹn nội dung đóng gói (id, đáp án nằm trong options) |
 | `lib/learning/store.test.ts` | `localStorage` giả: lưu/nạp lại, dữ liệu hỏng, trình duyệt chặn ghi, đồng bộ tab, xuất/nhập/xoá |
+| `lib/learning/personal.test.ts` | Cách học và thẻ tự soạn: catalog (chỉ bộ đang bật), thứ tự cấp thẻ mới (`mine`/`builtin`/`mixed`), hạn mức dùng chung, tắt nguồn thẻ, phạm vi kana, retention đổi lịch ôn, thẻ đã xoá giữ lịch trong tiến độ nhưng không vào hàng đợi, mặc định không đổi |
+| `lib/space/space.test.ts` · `library.test.ts` | Schema/chuẩn hoá không gian riêng, kẹp cách học, `home`/`settings` luôn có; ghi chú (ghim không đổi `updatedAt`, tìm không dấu), bộ thẻ (trùng/trống/giới hạn), nhập–xuất TSV, câu gõ phải gõ được, mã không trùng |
+| `lib/space/store.test.ts` | `localStorage` giả cho `kd.space.v1`: không tự ghi khi mở lần đầu, `SpaceError` không đổi gì, bản hỏng giữ ở `.corrupt`, đồng bộ tab, ghi thất bại lộ ra `isPersistent`, **trần tổng dung lượng** chỉ chặn việc làm to thêm |
+| `lib/space/markup.test.ts` | Cú pháp ghi chú; cú pháp dang dở không nuốt nội dung; HTML/liên kết không bao giờ thành phần tử |
+| `lib/space/presets.test.ts` · `schedule.test.ts` | Điểm xuất phát của màn dựng lần đầu (hàng ôn đúng theo từng preset); tình trạng ôn của thẻ tự soạn |
+| `lib/backup.test.ts` | Tệp sao lưu bọc: vòng xuất–nhập, `progress` bên trong là v1 nguyên vẹn, nhập được tệp tiến độ trần của bản cũ (không đụng ghi chú), từ chối tệp hỏng/mới hơn/sai app, sai một phần là từ chối cả tệp, reset giữ tài liệu |
 | `lib/pointer-gate.test.ts` | Cổng con trỏ: ngón thứ hai bị bỏ qua, bút thắng cảm ứng, `pointercancel` bỏ nét dở, chuột phải bị bỏ qua, `up` thất lạc không gây kẹt |
 | `lib/typing/engine.test.ts` | Mọi biến thể romaji (`shi/si/ci`, `nn`/`n'`/`xn`, `っ` gấp đôi, âm ghép, katakana mở rộng), kana JIS, phím "lẽ ra phải bấm" và gợi ý theo cách người học đang gõ |
 | `lib/typing/phrases.test.ts` | Phân tích `{kanji|cách đọc}`; **từng câu trong kho** gõ trọn bằng cả romaji lẫn kana JIS; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được; "Chữ hay sai" |
@@ -98,9 +104,13 @@ const { state, result } = recordWriting(emptyState(), { character: "あ", avgSco
 
 ## Quy ước code
 
-- **Logic trong hàm thuần:** mọi thứ trong `lib/` (trừ `store.ts` và `hooks.ts`) không chạm DOM, `localStorage` hay `Date.now()`. Thêm luật mới → thêm vào hàm thuần + test, rồi mới nối vào giao diện.
+- **Logic trong hàm thuần:** mọi thứ trong `lib/` (trừ các `store.ts`, `hooks.ts` và `backup.ts` — chỗ nối hai kho) không chạm DOM hay `localStorage`, và không tự đọc đồng hồ: thời gian và nguồn mã đi vào qua tham số (`Clock`, `Env`); chỉ giá trị *mặc định* của tham số mới gọi `Date.now()`.
+  Thêm luật mới → thêm vào hàm thuần + test, rồi mới nối vào giao diện. Hàm cần DOM (tải tệp về…) nằm ở `components/`, không ở `lib/`.
 - **Thao tác học trả `{ state, result }`:** sao chép trạng thái (`structuredClone`), sửa bản sao, trả về. Không sửa trạng thái đầu vào. Lỗi (ký tự lạ, thẻ không tồn tại) ném **trước** khi sao chép để trạng thái cũ nguyên vẹn.
-- **Chỉ `store.ts` đụng `localStorage`.** Component đọc qua hook trong `lib/learning/hooks.ts` và ghi qua hàm hành động của `store.ts`.
+- **Chỉ các `store.ts` đụng `localStorage`** (`lib/learning/store.ts` cho tiến độ, `lib/space/store.ts` cho không gian riêng; kỷ lục gõ có `lib/typing/history.ts` riêng). Component đọc qua hook (`lib/learning/hooks.ts`, `lib/space/hooks.ts`) và ghi qua hàm hành động của store.
+  Sửa không gian riêng bằng `updateSpace(fn)` với `fn` là thao tác thuần ở `lib/space/` — nó trả `{ ok, error }`, luôn hiện `error` cho người dùng.
+- **Văn bản người dùng tự soạn không bao giờ vào HTML thô:** hiển thị bằng phần tử React dựng từ `parseMarkup` (xem `components/library/RichText.tsx`). Không dùng `dangerouslySetInnerHTML` cho bất cứ thứ gì đến từ `Space`.
+- **Hook không bao giờ gọi có điều kiện**, kể cả khi gộp hai cờ: viết `const a = useA(); const b = useB(); a && b`, không viết `useA() && useB()` (vế đầu sai sẽ bỏ qua hook thứ hai). ESLint `react-hooks/rules-of-hooks` bắt lỗi này.
 - **Chống thao tác đúp bằng `ref`, không bằng state:** hai click trong cùng một tick (chạm đúp, hoặc hết giờ trùng lúc bấm nộp) đều thấy state cũ vì React chưa render lại giữa chúng. Xem `locked` ở `on-tap/page.tsx` và `submitted` ở `QuizRunner.tsx`.
 - **Hydration:** trang đọc tiến độ phải kiểm tra `ready` (từ `useProgress`/`useStats`/…) trước khi hiện số — phía máy chủ chỉ có trạng thái rỗng. Đặt mọi hook *trước* lệnh `return` sớm.
 - **Hiển thị theo `type`, không so khớp chuỗi tự do:** `ItemType`, `CardState`, `Grade` định nghĩa ở `lib/types.ts`.
@@ -110,6 +120,15 @@ const { state, result } = recordWriting(emptyState(), { character: "あ", avgSco
 - **Service worker:** sửa `scripts/sw.template.js`, không bao giờ sửa `out/sw.js` (sinh lại sau mỗi build). URL precache phải đúng dạng trình duyệt yêu cầu (`encodeURI`), và **mọi URL trong danh sách phải trả 200** từ Nginx — nếu không `cache.addAll` làm hỏng cả lần cài đặt.
   Thêm tệp không nên precache (ví dụ trang chỉ Nginx phục vụ nội bộ như `404.html`) thì thêm vào `EXCLUDED` ở `scripts/build-sw.mjs` kèm test.
 - **Naming:** component file = PascalCase, utility file = camelCase, route folder = tiếng Việt (theo codebase).
+
+---
+
+## Thêm một công cụ (mô-đun) vào điều hướng
+
+Công cụ mà người học bật/tắt/xếp thứ tự là một `ModuleId`. Để thêm: (1) thêm mã vào `MODULE_IDS` ở `lib/space/space.ts` (thứ tự mảng là thứ tự mặc định); (2) thêm mục tương ứng vào `MODULE_INFO` ở `lib/space/modules.ts`
+(đường dẫn, nhãn, biểu tượng — thêm hình vào `ICONS` ở `components/app/Nav.tsx`, mô tả); (3) nếu muốn nó nằm trong một điểm xuất phát, thêm vào `PRESETS` ở `lib/space/presets.ts`.
+Không gian đã lưu của người dùng *không* có mã mới trong `modules` nên công cụ mới không tự hiện với họ — họ bật nó ở Cài đặt › Công cụ. Đổi `Space` theo cách không tương thích thì tăng `SPACE_VERSION` kèm migrate và test.
+Các khối ở Tổng quan (`WidgetId`) làm tương tự với `WIDGET_IDS`, `WIDGET_INFO` và bản dựng ở `app/(app)/bang-dieu-khien/page.tsx`.
 
 ---
 
@@ -209,7 +228,8 @@ Extensions được khuyến nghị:
 
 ## Kiểm thử tính năng trong trình duyệt
 
-Mở DevTools → Application → Local Storage → khoá `kd.progress.v1` để xem trạng thái thật sau mỗi thao tác.
+Mở DevTools → Application → Local Storage → khoá `kd.progress.v1` (tiến độ) và `kd.space.v1` (không gian riêng) để xem trạng thái thật sau mỗi thao tác.
+Muốn thấy lại màn dựng lần đầu: xoá cả hai khoá (hoặc Cài đặt › Dữ liệu › *Xoá sạch mọi thứ*) rồi tải lại; muốn giả lập "người dùng cũ" thì chỉ xoá `kd.space.v1` và giữ `kd.progress.v1`.
 
 ### Tập viết
 

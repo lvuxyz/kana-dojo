@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "Kana Dōjō — Học viết Hiragana & Katakana",
     short_name: "Kana Dōjō",
-    description: "Luyện viết Hiragana và Katakana đúng thứ tự nét, tự xếp lịch ôn bằng FSRS. Miễn phí, không cần tài khoản.",
+    description: "Luyện viết Hiragana và Katakana đúng thứ tự nét, tự xếp lịch ôn bằng FSRS, và một dōjō riêng do chính bạn soạn. Miễn phí, không cần tài khoản.",
     lang: "vi",
     // Người đã cài là người quay lại học: vào thẳng tổng quan thay vì trang giới thiệu.
     start_url: "/bang-dieu-khien",
@@ -25,6 +25,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
+      { name: "Thư viện của tôi", url: "/thu-vien" },
       { name: "Luyện viết", url: "/luyen-viet" },
       { name: "Luyện gõ", url: "/luyen-go" },
       { name: "Ôn tập", url: "/on-tap" },

@@ -29,6 +29,8 @@ export interface GameConfig {
 export interface GameSource {
   phrases?: Phrase[];
   weak?: [string, number][];
+  /** Câu người học tự soạn (nội dung MINE) */
+  mine?: Phrase[];
 }
 
 /** Số lần sai liên tiếp ở cùng một chỗ trước khi gợi ý bậc 1; gấp đôi thì gợi ý bậc 2. */
@@ -127,6 +129,7 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
       drillGroup: config.drillGroup,
       weak: source.weak,
       phrases: source.phrases,
+      mine: source.mine,
     });
     feedRef.current = feed;
     const first = feed();

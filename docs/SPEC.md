@@ -106,8 +106,27 @@ interface CardRecord {
 
 ### 2.1 Tệp sao lưu
 
-Xuất = đúng `JSON.stringify(ProgressState, null, 2)`. Nhập = `parseState` (JSON hợp lệ → `version` không mới hơn bản hiện tại → khớp schema) rồi thay thế toàn bộ.
-Tệp sai không bao giờ làm thay đổi tiến độ hiện có. Dữ liệu hỏng ở `localStorage` được giữ ở khoá `kd.progress.corrupt`.
+Do `web/src/lib/backup.ts` xuất, **định dạng 2 (bọc)**: tiến độ học *và* không gian riêng (§2.3) trong một tệp JSON.
+
+```json
+{ "app": "kana-dojo", "format": 2, "exportedAt": "2026-10-05T03:00:00.000Z",
+  "progress": { /* ProgressState v1, nguyên vẹn */ },
+  "space":    { /* Space, §2.3 */ } }
+```
+
+Nhập (`parseBackup`) nhận hai dạng:
+
+| Tệp | Cách xử lý |
+|---|---|
+| Bọc (`format: 2`) | Kiểm cả `progress` (`parseStateValue`) lẫn `space` (`parseSpaceValue`); sai **một** phần thì từ chối **cả tệp**. Thay cả tiến độ lẫn không gian riêng |
+| `ProgressState` trần của bản cũ (không có `format`) | Chỉ thay tiến độ; **không đụng** ghi chú, bộ thẻ, cài đặt hiện có (giao diện nói rõ điều này trước khi hỏi xác nhận) |
+
+`format` lớn hơn 2 bị từ chối ("phiên bản mới hơn"), không đoán. Mọi thứ được kiểm xong *trước* khi ghi: tệp sai không bao giờ làm đổi dữ liệu hiện có.
+Dữ liệu hỏng ở `localStorage` được giữ ở `kd.progress.corrupt` / `kd.space.corrupt`.
+
+**Vì sao bọc thay vì thêm trường vào tệp tiến độ:** bản Kana Dōjō cũ đọc tệp bọc sẽ báo "sai định dạng" và từ chối rõ ràng, thay vì nhập phần tiến độ rồi âm thầm
+vứt tài liệu của người học (zod bỏ khoá lạ). Phần `progress` bên trong giữ nguyên `ProgressState` v1 từng byte nên hợp đồng web ↔ mobile ([CONTRACT.md §2](CONTRACT.md)) không đổi.
+Kỷ lục luyện gõ vẫn **ngoài** tệp (quyết định đã chốt, [TYPING.md §3.4](TYPING.md#34-quyết-định-khi-gộp-vào-site-không-tài-khoản)); thêm sau này chỉ là thêm một phần vào tệp bọc.
 
 ### 2.2 Khoá khác
 
@@ -115,10 +134,81 @@ Tệp sai không bao giờ làm thay đổi tiến độ hiện có. Dữ liệu
 |---|---|
 | `kd.theme` | `"light"` \| `"dark"` — giao diện (không thuộc `ProgressState`) |
 | `kd.progress.corrupt` | bản sao khối tiến độ bị hỏng, để cứu hộ |
+| `kd.space.v1` | **không gian riêng** của người học (§2.3): hồ sơ, công cụ, cách học, ghi chú, bộ thẻ, câu luyện gõ — nằm trong tệp sao lưu |
+| `kd.space.corrupt` | bản sao khối không gian riêng bị hỏng, để cứu hộ |
 | `kd.typing.history.v1` | kỷ lục, lịch sử và chữ hay sai của phòng luyện gõ — **ngoài** `ProgressState`, không nằm trong tệp sao lưu; "Xoá toàn bộ tiến độ" có xoá (`docs/TYPING.md`) |
 | `kd.typing.history.corrupt` | bản sao khối luyện gõ bị hỏng, để cứu hộ |
 | `kd.typing.config` | lựa chọn lần trước của phòng luyện gõ (nội dung, cách nhập, chế độ…) — tiện ích, mất cũng không sao |
 | Cache Storage `kd-<phiên bản>` | tệp tĩnh cho chế độ offline (§8). Xoá lúc nào cũng được — không chứa tiến độ |
+
+### 2.3 Không gian riêng (`Space`)
+
+Mỗi người mở site có **một dōjō riêng**: họ chọn công cụ nào hiện ra, tự soạn tài liệu, bộ thẻ và câu luyện gõ, và quyết định cách học. Dữ liệu đó là `Space`
+(schema zod: `web/src/lib/space/space.ts`), lưu ở khoá **`kd.space.v1`**, **tách khỏi `ProgressState`**: hai thứ đổi với nhịp khác nhau (mỗi nét viết ghi tiến độ, không cần ghi lại cả
+kho ghi chú) và tệp tiến độ là hợp đồng web ↔ mobile, nên thêm văn bản người dùng vào đó sẽ buộc đổi hợp đồng.
+
+```ts
+interface Space {
+  version: 1;
+  createdAt: number;
+  onboarded: boolean;                       // đã qua (hoặc bỏ qua) màn dựng không gian lần đầu
+  profile: { name: string; goal: string };  // tên (≤ 40) · mục đích học tự viết (≤ 200)
+  modules: ModuleId[];                      // công cụ đang bật, THEO THỨ TỰ; luôn có "home" đầu và "settings" cuối
+  home: { widgets: WidgetId[] };            // khối ở Tổng quan, theo thứ tự
+  study: StudyOptions;                      // cách học — xem dưới
+  library: { notes: Note[]; decks: Deck[]; texts: UserText[] };
+}
+type ModuleId = "home" | "review" | "writing" | "library" | "typing" | "vocab" | "quiz" | "settings";
+type WidgetId = "today" | "stats" | "goal" | "heatmap" | "badges" | "notes";
+
+interface Note     { id; title; body; pinned; createdAt; updatedAt }          // body ≤ 20.000 ký tự
+interface Deck     { id; name; active; reverse; createdAt; cards: DeckCard[] } // active: vào hàng ôn · reverse: hỏi cả hai chiều
+interface DeckCard { id; front; back; hint }                                   // mặt trước / mặt sau / gợi ý (tuỳ chọn)
+interface UserText { id; text; vi }                                            // câu luyện gõ, cú pháp {漢字|かんじ}
+```
+
+**Chuẩn hoá khi đọc:** `modules` bỏ trùng và luôn đặt `home` đầu, `settings` cuối (tắt hết công cụ vẫn còn đường vào Cài đặt); `home.widgets`, `kanaScripts`, `kanaGroups` bỏ trùng.
+Mã (`id`) là `[a-z0-9]{4,24}`, duy nhất trong cả không gian (ghi chú, bộ thẻ, thẻ và câu dùng chung một miền mã).
+
+**Giới hạn** (`LIMITS`): 500 ghi chú · 50 bộ thẻ · 5.000 thẻ tổng · 500 câu gõ; mặt trước ≤ 200, mặt sau ≤ 400, gợi ý ≤ 200 ký tự; câu gõ ≤ 200. Ngoài trần từng mục còn **trần tổng
+1.000.000 ký tự JSON** (≈ 2 MB trong `localStorage`, tính 2 byte/ký tự; cả origin chỉ có ≈ 5 MiB và tiến độ chiếm tới ≈ 0,6 MiB ở kịch bản xấu nhất): vượt thì việc *thêm hoặc làm to thêm* bị từ chối
+kèm thông báo, còn xoá/rút gọn luôn được (kể cả khi đang vượt trần sau khi khôi phục một tệp lớn). Lý do: ghi `localStorage` thất bại là âm thầm, người học sẽ tin ghi chú đã được lưu.
+
+**Thao tác** là hàm thuần `(space, …) → space'` ở `lib/space/` (`space.ts`: hồ sơ, công cụ, cách học; `library.ts`: ghi chú, bộ thẻ, thẻ, câu gõ, nhập/xuất thẻ dạng văn bản). Vi phạm giới hạn ném `SpaceError`
+(thông báo tiếng Việt); `store.updateSpace` bắt nó, không đổi gì và trả `{ ok: false, error }` cho giao diện. `store.ts` lo `localStorage`, đồng bộ nhiều tab (`storage` event), giữ bản hỏng ở `.corrupt`,
+và lộ ra `isPersistent()` — mọi lần ghi thất bại đều hiện banner ở khu vực học.
+
+**Ghi chú** dùng cú pháp nhẹ (`lib/space/markup.ts`): `# ## ###` tiêu đề · `- ` / `1. ` danh sách · `> ` trích dẫn · `---` đường kẻ · `**đậm**` · `` `mã` `` · `{漢字|かんじ}` furigana.
+**Cố ý không có liên kết, ảnh, HTML**: bộ đọc chỉ sinh ra cây dữ liệu và giao diện dựng phần tử React từ cây đó — không có chỗ nào chèn HTML thô, nên ghi chú từ tệp sao lưu của người khác cũng không chạy được mã.
+
+**Câu luyện gõ** phải gõ được trọn vẹn: `validateTypingText` (`lib/typing/phrases.ts`) chặn từ lúc soạn kanji trần (phải kèm cách đọc), chữ Latin, ký hiệu lạ — một câu như vậy sẽ làm ván gõ kẹt vĩnh viễn.
+`userPhrases` lọc lại lần nữa lúc dựng ván, để tệp sao lưu sửa tay cũng không làm kẹt.
+
+#### Cách học (`StudyOptions`)
+
+| Trường | Mặc định | Ý nghĩa |
+|---|---|---|
+| `newCardsPerDay` | 10 | Thẻ mới tối đa mỗi ngày (0–100); 0 = chỉ ôn lại. Dùng chung cho mọi nguồn |
+| `sessionSize` | 30 | Số thẻ tối đa mỗi phiên ôn (5–100) |
+| `desiredRetention` | 0,9 | Xác suất nhớ mục tiêu lúc đến hạn (0,70–0,97), truyền vào `review()` của FSRS. Áp từ lần chấm kế tiếp; lịch đã hẹn không bị tính lại |
+| `kanaWriting` · `kanaReading` · `vocab` · `decks` | `true` | Nguồn thẻ nào vào hàng đợi. Tắt nguồn thì thẻ của nó (kể cả thẻ đã học đến hạn) không vào hàng đợi và không tính vào `dueToday`, nhưng lịch ôn trong tiến độ **được giữ** — bật lại là tiếp tục |
+| `kanaScripts` · `kanaGroups` | cả hai · cả ba | Phạm vi kana (Hiragana/Katakana × cơ bản/biến âm/âm ghép) áp cho cả thẻ viết lẫn đọc |
+| `newOrder` | `"mine"` | Thứ tự cấp thẻ mới: `mine` thẻ tự soạn trước · `builtin` nội dung có sẵn trước (cách cũ) · `mixed` xen kẽ từng nguồn |
+
+Mặc định cho kết quả **y hệt** hàng đợi trước khi có không gian riêng khi người học chưa có bộ thẻ nào.
+
+#### Thẻ tự soạn trong tiến độ
+
+Thẻ tự soạn đi vào `ProgressState.cards` bằng các loại thẻ **sẵn có**, nên schema tiến độ không đổi: mã mục là `u:<mã thẻ>` (tiền tố `u:` không bao giờ trùng id từ vựng đóng gói là số nguyên).
+
+| Khoá thẻ | Hỏi → đáp | Có khi |
+|---|---|---|
+| `VOCAB_MEANING:u:<mã>` | mặt trước → mặt sau (gợi ý hiện kèm) | luôn có |
+| `VOCAB_READING:u:<mã>` | mặt sau → mặt trước | bộ thẻ bật `reverse` |
+
+Xoá thẻ, tắt bộ thẻ hay tắt `reverse` làm mục "không còn tồn tại" với `itemExists`: thẻ bị bỏ qua khỏi hàng đợi và bộ đếm nhưng **lịch ôn vẫn nằm trong tiến độ** (cơ chế vốn có cho nội dung bị gỡ) —
+bật lại bộ thẻ là thẻ quay lại đúng lịch cũ. Bản không biết tới không gian riêng cũng chỉ coi chúng là nội dung đã gỡ, không báo lỗi tệp.
+Ngữ cảnh học (`LearnContext` = `StudyOptions` + `Catalog` thẻ tự soạn của các bộ đang bật, `lib/learning/context.ts`) đi vào bộ máy học qua tham số, xem §5.
 
 ---
 
@@ -248,15 +338,18 @@ Thẻ băng hồi đầy về 2 vào mỗi Thứ Hai (giờ thiết bị): nếu
 
 ## 5. Luồng thao tác
 
-Mỗi thao tác là một hàm thuần `(state, …, clock) → { state', result }` (xem `reviews.ts`, `quiz.ts`); `store.ts` bọc chúng, ghi `localStorage` và báo React.
+Mỗi thao tác là một hàm thuần `(state, …, clock, ctx?) → { state', result }` (xem `reviews.ts`, `quiz.ts`); `store.ts` bọc chúng, ghi `localStorage` và báo React.
+`ctx` là `LearnContext` (§2.3): cách học + thẻ tự soạn của người dùng. Không truyền thì dùng `DEFAULT_CONTEXT` (toàn bộ nội dung đóng gói, 10 thẻ mới/ngày, FSRS 0,9) — hành vi như trước khi có không gian riêng.
+`store.ts` luôn truyền ngữ cảnh lấy từ không gian riêng hiện tại.
 
-### 5.1 Hàng đợi ôn — `buildQueue(state, { limit = 20, types? }, clock)`
+### 5.1 Hàng đợi ôn — `buildQueue(state, { limit = 20, types? }, clock, ctx?)`
 
-1. `limit` kẹp trong 1..100; `types` rỗng = mọi loại, theo thứ tự `KANA_WRITING, KANA_READING, VOCAB_MEANING, VOCAB_READING`.
-2. **Thẻ đến hạn:** thẻ đã lưu có `dueAt ≤ now` và đúng loại, sắp theo `dueAt` tăng dần (trễ nhất trước), tối đa `limit`.
-3. **Thẻ mới:** nếu còn chỗ, bổ sung tối đa `min(limit − số đến hạn, 10 − số thẻ có introducedDay = hôm nay)` mục chưa có thẻ, theo loại rồi theo thứ tự dạy học.
+1. `limit` kẹp trong 1..100 (trang Ôn tập dùng `study.sessionSize`); `types` rỗng = mọi loại. Một thẻ *đủ điều kiện* khi: đúng `types`, mục còn tồn tại (`itemExists`, tính cả thẻ tự soạn trong `catalog`), và nằm trong cách học (`inStudy`: nguồn đang bật, kana trong phạm vi).
+2. **Thẻ đến hạn:** thẻ đã lưu, đủ điều kiện, `dueAt ≤ now`, sắp theo `dueAt` tăng dần (trễ nhất trước), tối đa `limit`.
+3. **Thẻ mới:** nếu còn chỗ, bổ sung tối đa `min(limit − số đến hạn, study.newCardsPerDay − số thẻ có introducedDay = hôm nay)` mục đủ điều kiện chưa có thẻ. Thứ tự theo `study.newOrder`: nguồn nội dung đóng gói
+   đi theo loại rồi thứ tự dạy học (`KANA_WRITING, KANA_READING, VOCAB_MEANING, VOCAB_READING`); thẻ tự soạn theo thứ tự soạn (chiều xuôi, rồi chiều ngược nếu bộ bật `reverse`).
 
-Trả `{ content, dueCount, newCount }`. Hạn mức thẻ mới là **10/ngày** (`NEW_CARDS_PER_DAY`).
+Trả `{ content, dueCount, newCount }`. Hạn mức thẻ mới mặc định là **10/ngày** (`NEW_CARDS_PER_DAY`), người học đổi được.
 
 ### 5.2 Chấm thẻ — `gradeCard(state, cardKey, grade, durationMs, clock)`
 
@@ -273,7 +366,7 @@ Làm đủ năm việc trong **một** thao tác (trạng thái chỉ thay khi c
 4. XP: `25` nếu `passed` **và** ký tự chưa từng đạt; ngược lại `reviewXp(grade)`;
 5. cộng hoạt động ngày/streak, xét huy hiệu `WRITING_ATTEMPT`.
 
-`avgScore` được làm tròn và kẹp trong 0..100. Ký tự không tồn tại ném lỗi.
+`avgScore` được làm tròn và kẹp trong 0..100. Ký tự không tồn tại ném lỗi. Luyện viết luôn ghi tiến độ bất kể nguồn "Viết kana" của hàng ôn đang bật hay tắt.
 
 ### 5.4 Quiz — `submitQuiz(state, quizId, answers, durationMs, clock)`
 
@@ -284,7 +377,7 @@ Giao diện chỉ cho nộp một lần mỗi lượt (kể cả khi hết giờ
 ### 5.5 Tiến độ hiển thị
 
 - **Lưới kana** (`kanaProgress`): mỗi ký tự một ô — `level 0` chưa học · `1` đang học (LEARNING/RELEARNING) · `2` đã qua bước học (REVIEW); kèm `bestScore`, `dueAt`.
-- **Tổng hợp** (`summaryOf`): `kanaLearned` = số thẻ viết đã có · `kanaMastered` = thẻ viết ở REVIEW với `stability ≥ 21` ngày · `dueToday` = số thẻ có `dueAt ≤ now`.
+- **Tổng hợp** (`summaryOf`): `kanaLearned` = số thẻ viết đã có · `kanaMastered` = thẻ viết ở REVIEW với `stability ≥ 21` ngày · `dueToday` = số thẻ có `dueAt ≤ now` **và** đủ điều kiện như hàng đợi (nguồn đang bật), để khớp với số thẻ thật sự vào phiên ôn.
 - **Heatmap** (`heatmapOf(state, days)`): `days` ngày gần nhất, từ cũ đến mới, ngày trống có `xp = 0`.
 
 ---
@@ -383,8 +476,8 @@ Vòng đời service worker trong trình duyệt thật chưa được kiểm t�
 
 ## 9. Quyền riêng tư và bảo mật
 
-1. Không có tài khoản, không có máy chủ nhận dữ liệu: tiến độ không bao giờ được gửi đi đâu.
+1. Không có tài khoản, không có máy chủ nhận dữ liệu: tiến độ, ghi chú, bộ thẻ và mọi thứ người học tự soạn không bao giờ được gửi đi đâu.
 2. Không có cookie, không có bộ theo dõi. Tài nguyên ngoài duy nhất là font từ Google Fonts (service worker không chặn nó; offline thì dùng font hệ thống).
-3. Dữ liệu từ bên ngoài (tệp nhập) luôn đi qua zod trước khi vào trạng thái; dữ liệu trong `localStorage` cũng vậy khi nạp.
+3. Dữ liệu từ bên ngoài (tệp nhập) luôn đi qua zod trước khi vào trạng thái; dữ liệu trong `localStorage` cũng vậy khi nạp. Văn bản người dùng tự soạn (ghi chú, thẻ, câu gõ) chỉ được hiển thị bằng phần tử React dựng từ cây dữ liệu, không bao giờ qua `dangerouslySetInnerHTML` (§2.3).
 4. Đáp án quiz có trong bundle — quiz là công cụ tự học, không phải bài thi.
 5. Header an toàn (`nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`) do `web/nginx.conf` đặt; HSTS để bên đầu cuối TLS đặt.

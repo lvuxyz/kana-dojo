@@ -85,14 +85,8 @@ export function emptyState(): ProgressState {
 
 export type ParseResult = { ok: true; state: ProgressState } | { ok: false; error: string };
 
-/** Đọc và kiểm tra một khối JSON (từ localStorage hoặc từ tệp người dùng nhập). */
-export function parseState(text: string): ParseResult {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch {
-    return { ok: false, error: "Tệp không phải JSON hợp lệ." };
-  }
+/** Kiểm tra một giá trị đã parse JSON — dùng chung cho localStorage, tệp tiến độ cũ và phần `progress` của tệp sao lưu bọc. */
+export function parseStateValue(raw: unknown): ParseResult {
   const version = (raw as { version?: unknown } | null)?.version;
   if (typeof version === "number" && version > STATE_VERSION) {
     return { ok: false, error: "Tệp được tạo bởi phiên bản Kana Dōjō mới hơn. Hãy tải lại trang để cập nhật rồi thử lại." };
@@ -102,4 +96,15 @@ export function parseState(text: string): ParseResult {
     return { ok: false, error: "Tệp không đúng định dạng tiến độ của Kana Dōjō." };
   }
   return { ok: true, state: parsed.data };
+}
+
+/** Đọc và kiểm tra một khối JSON (từ localStorage hoặc từ tệp người dùng nhập). */
+export function parseState(text: string): ParseResult {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { ok: false, error: "Tệp không phải JSON hợp lệ." };
+  }
+  return parseStateValue(raw);
 }

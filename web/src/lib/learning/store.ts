@@ -5,6 +5,7 @@ import {
   MAX_DAILY_GOAL_XP, MIN_DAILY_GOAL_XP, emptyState, parseState, type ProgressState,
 } from "./state";
 import { systemClock } from "./time";
+import { getLearnContext } from "../space/store";
 
 /* Nơi duy nhất đụng tới localStorage. Phần còn lại của bộ máy học là hàm thuần.
 
@@ -109,11 +110,11 @@ function commit<T>(outcome: Outcome<T>): T {
 // ------------------------------------------------------------------ hành động học
 
 export function recordWritingAttempt(input: WritingInput): WritingResult {
-  return commit(recordWriting(getState(), input, systemClock()));
+  return commit(recordWriting(getState(), input, systemClock(), getLearnContext()));
 }
 
 export function gradeReviewCard(cardKey: string, grade: Grade, durationMs = 0): GradeResult & { newBadges: string[] } {
-  return commit(gradeCard(getState(), cardKey, grade, durationMs, systemClock()));
+  return commit(gradeCard(getState(), cardKey, grade, durationMs, systemClock(), getLearnContext()));
 }
 
 export function submitQuizAnswers(
@@ -122,9 +123,11 @@ export function submitQuizAnswers(
   return commit(submitQuiz(getState(), quizId, answers, durationMs, systemClock()));
 }
 
-/** Hàng đợi chỉ là ảnh chụp lúc gọi — trang Ôn tập giữ nó cố định trong cả phiên để thẻ không nhảy chỗ giữa chừng. */
+/** Hàng đợi chỉ là ảnh chụp lúc gọi — trang Ôn tập giữ nó cố định trong cả phiên để thẻ không nhảy chỗ giữa chừng.
+ *  Cỡ phiên, hạn mức thẻ mới và nguồn thẻ lấy từ cách học người dùng đã chọn (không gian riêng). */
 export function createReviewQueue(opts: { limit?: number; types?: readonly ItemType[] } = {}): ReviewQueue {
-  return buildQueue(getState(), opts, systemClock());
+  const ctx = getLearnContext();
+  return buildQueue(getState(), { limit: ctx.study.sessionSize, ...opts }, systemClock(), ctx);
 }
 
 // ------------------------------------------------------------------ cài đặt & dữ liệu
@@ -139,6 +142,11 @@ export function setDailyGoal(xp: number): void {
 /** Toàn bộ tiến độ dưới dạng JSON dễ đọc — để người học tự sao lưu hoặc chuyển sang máy khác. */
 export function exportProgress(): string {
   return JSON.stringify(getState(), null, 2);
+}
+
+/** Thay toàn bộ tiến độ bằng một trạng thái đã được kiểm tra (phần `progress` của tệp sao lưu). */
+export function replaceProgress(state: ProgressState): void {
+  commit({ state, result: undefined });
 }
 
 /** Thay toàn bộ tiến độ bằng nội dung một tệp đã xuất trước đó. Trả về lỗi (tiếng Việt) nếu tệp không hợp lệ. */
