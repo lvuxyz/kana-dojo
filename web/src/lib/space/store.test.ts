@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addDeck, addNote } from "./library";
-import { emptySpace, setProfile, setStudy } from "./space";
+import { LIMITS, emptySpace, setProfile, setStudy, spaceChars } from "./space";
 
 class FakeStorage {
   data = new Map<string, string>();
@@ -150,5 +150,45 @@ describe("ngữ cảnh học từ không gian", () => {
       return d.space;
     });
     expect(store.getLearnContext().catalog.cards.size).toBe(0);
+  });
+});
+
+describe("trần tổng dung lượng", () => {
+  const bigNote = { title: "n", body: "あ".repeat(20_000) };
+
+  it("đủ chỗ thì thêm bình thường; hết chỗ thì từ chối thêm với thông báo rõ và không đổi gì", async () => {
+    const store = await freshStore();
+    const lib = await import("./library");
+    let added = 0;
+    let rejected = "";
+    for (let i = 0; i < 60 && !rejected; i++) {
+      const res = store.updateSpace((s) => lib.addNote(s, bigNote).space);
+      if (res.ok) added++;
+      else rejected = res.error;
+    }
+    expect(added).toBeGreaterThan(20);
+    expect(added).toBeLessThan(60);
+    expect(rejected).toMatch(/đã đầy/);
+    expect(spaceChars(store.getSpace())).toBeLessThanOrEqual(LIMITS.totalChars);
+    expect(store.getSpace().library.notes).toHaveLength(added);
+    // thứ nằm trong localStorage cũng đúng bằng thứ nằm trong bộ nhớ: thất bại không ghi nửa chừng
+    expect(JSON.parse(ls.data.get(store.SPACE_KEY)!).library.notes).toHaveLength(added);
+  });
+
+  it("đang vượt trần (vd. nhập tệp lớn) vẫn xoá và rút gọn được; chỉ việc làm to thêm bị chặn", async () => {
+    const store = await freshStore();
+    const lib = await import("./library");
+    // Dựng không gian vượt trần bằng đường khôi phục (không đi qua updateSpace).
+    let s = store.getSpace();
+    for (let i = 0; i < 55; i++) s = lib.addNote(s, bigNote).space;
+    expect(spaceChars(s)).toBeGreaterThan(LIMITS.totalChars);
+    store.replaceSpace(s);
+
+    const first = store.getSpace().library.notes[0];
+    expect(store.updateSpace((x) => lib.addNote(x, { title: "thêm" }).space)).toMatchObject({ ok: false });
+    expect(store.updateSpace((x) => lib.updateNote(x, first.id, { title: "x".repeat(60) }))).toMatchObject({ ok: false });
+    expect(store.updateSpace((x) => lib.updateNote(x, first.id, { body: first.body.slice(0, 100) }))).toEqual({ ok: true });
+    expect(store.updateSpace((x) => lib.deleteNote(x, first.id))).toEqual({ ok: true });
+    expect(store.getSpace().library.notes).toHaveLength(54);
   });
 });

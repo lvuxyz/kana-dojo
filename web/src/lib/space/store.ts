@@ -1,5 +1,5 @@
 import { DEFAULT_CONTEXT, type LearnContext } from "../learning/context";
-import { SpaceError, emptySpace, learnContextOf, parseSpace, type Space } from "./space";
+import { LIMITS, SpaceError, emptySpace, learnContextOf, parseSpace, type Space } from "./space";
 
 /* Kho không gian riêng trên localStorage — cùng quy ước với kho tiến độ (lib/learning/store.ts): một khối JSON có
    phiên bản, đồng bộ nhiều tab, giữ lại bản hỏng thay vì ghi đè âm thầm, và vẫn chạy trong bộ nhớ khi trình duyệt
@@ -49,14 +49,14 @@ function load(): Space {
   return emptySpace();
 }
 
-function persist(next: Space) {
+function persist(text: string) {
   const ls = storage();
   if (!ls) {
     persistent = false;
     return;
   }
   try {
-    ls.setItem(SPACE_KEY, JSON.stringify(next));
+    ls.setItem(SPACE_KEY, text);
     persistent = true;
   } catch {
     persistent = false;
@@ -88,9 +88,9 @@ export const getServerSpace = (): Space => SERVER_SPACE;
 /** false khi lần ghi gần nhất thất bại (đầy bộ nhớ, chế độ riêng tư): thay đổi chỉ sống đến khi đóng tab. */
 export const isPersistent = (): boolean => { getSpace(); return persistent; };
 
-function commit(next: Space) {
+function commit(next: Space, text: string = JSON.stringify(next)) {
   current = next;
-  persist(next);
+  persist(text);
   emit();
 }
 
@@ -106,7 +106,17 @@ export function updateSpace(fn: (space: Space) => Space): UpdateResult {
     if (e instanceof SpaceError) return { ok: false, error: e.message };
     throw e;
   }
-  if (next !== getSpace()) commit(next);
+  if (next === getSpace()) return { ok: true };
+
+  // Trần tổng dung lượng: chỉ chặn việc LÀM TO thêm — xoá hay rút gọn luôn được, kể cả khi đang vượt trần (tệp sao lưu lớn).
+  const text = JSON.stringify(next);
+  if (text.length > LIMITS.totalChars && text.length > JSON.stringify(getSpace()).length) {
+    return {
+      ok: false,
+      error: `Không gian riêng đã đầy (tối đa ${LIMITS.totalChars.toLocaleString("vi-VN")} ký tự). Hãy xoá bớt ghi chú hoặc thẻ không cần, hoặc tải bản sao lưu về rồi dọn dẹp.`,
+    };
+  }
+  commit(next, text);
   return { ok: true };
 }
 

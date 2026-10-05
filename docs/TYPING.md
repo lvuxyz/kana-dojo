@@ -176,6 +176,13 @@ Câu mẫu đóng gói sẵn ở frontend: nội dung cố định, không cần
 Thêm câu mới chỉ cần sửa file này — test `phrases.test.ts` tự kiểm tra mọi câu **gõ trọn được bằng cả romaji lẫn kana JIS**
 và đúng loại chữ của nhóm.
 
+### 3.3.1 Câu do người học tự soạn
+
+Nội dung `MINE` ("Câu của tôi") lấy câu từ không gian riêng (`Space.library.texts`, soạn ở Thư viện › Câu luyện gõ), dùng đúng cú pháp `{漢字|かんじ}` của kho câu mẫu và đi qua cùng bộ máy gõ.
+Vì một câu không gõ được (kanji trần, chữ Latin, ký hiệu lạ) làm ván kẹt vĩnh viễn, `validateTypingText` (`lib/typing/phrases.ts`) chặn nó **từ lúc soạn** với lý do bằng tiếng Việt, và `userPhrases` lọc lại lần nữa lúc dựng ván
+(tệp sao lưu sửa tay cũng không làm kẹt). Test `phrases.test.ts` kiểm rằng mọi câu mà `validateTypingText` nhận đều gõ trọn được bằng cả romaji lẫn kana JIS. Chưa có câu nào thì ván dùng kana ngẫu nhiên.
+Kỷ lục theo tổ hợp (cách nhập × nội dung × chế độ) coi `MINE` là một nội dung như các loại khác.
+
 ### 3.4 Quyết định khi gộp vào site không tài khoản
 
 Phòng luyện gõ được viết lúc site còn có backend và tài khoản (nhánh `claude/japanese-text-input-feature-df8fd6`, PR #2,
@@ -189,7 +196,7 @@ kèm một bản làm dở `claude/typing-sessions-backend`). Khi gộp vào sit
 | XP, streak | **Không cộng** | Chuỗi ngày được quảng bá là "đạt mục tiêu bằng nét viết thực thụ"; cộng XP từ luyện gõ là đổi nghĩa của nó và đổi engine (xem dưới) |
 | Bàn phím ảo | Không có | Nguyên tắc "chỉ tiếng Nhật" (§1.3). Bản làm dở có `VirtualKeyboard.tsx`, đã bỏ |
 | Sao lưu | Chưa nằm trong tệp sao lưu | Giữ nguyên hợp đồng `ProgressState` v1 giữa web và mobile (SPEC §2) |
-| Xoá | *Xoá toàn bộ tiến độ* xoá cả kỷ lục luyện gõ | Một nút, một lời hứa |
+| Xoá | *Xoá việc học* và *Xoá sạch mọi thứ* (Cài đặt › Dữ liệu) đều xoá cả kỷ lục luyện gõ | Một nút, một lời hứa |
 | Điều hướng | Mục "Luyện gõ" đứng cạnh "Luyện viết"; không đưa lại "Xếp hạng", "Hồ sơ" | Hai mục đó thuộc bản có tài khoản |
 
 **Đã chốt 2026-10-02:** giữ nguyên hai điểm *XP, streak* và *Sao lưu* ở bảng trên. Xem lại khi bắt đầu làm bản mobile hoặc khi thêm nhật ký ôn (`STATE_VERSION` 2), lúc đó đổi định dạng tệp một lần.
@@ -207,9 +214,9 @@ sức nên chia nhỏ lượt gõ không cày được XP), không tính lượt
 thao tác `recordTyping` ở `lib/learning/` gọi `recordActivity` như `quiz.ts` — không đổi schema. Phải đồng thời sửa lời ở trang
 Tổng quan về chuỗi ngày, SPEC §4.1, và thêm fixture (mobile phải làm đúng như web — xem MOBILE_FLUTTER.md, mục 5.6).
 
-**Nếu muốn đưa kỷ lục vào tệp sao lưu:** thêm phần `typing` tuỳ chọn vào `ProgressState` (bản cũ bỏ khoá lạ nên không hỏng,
-nhưng xuất rồi nhập qua bản cũ sẽ mất phần này) hoặc tăng `STATE_VERSION` lên 2 kèm migrate. Cả hai đều chạm hợp đồng web ↔ mobile
-nên cần chốt cùng lúc với mobile.
+**Nếu muốn đưa kỷ lục vào tệp sao lưu:** từ khi có tệp sao lưu bọc (định dạng 2, `lib/backup.ts`, SPEC §2.1) đường rẻ nhất là thêm một phần `typing` vào tệp bọc — **không** đụng `ProgressState` v1 nên không chạm
+hợp đồng web ↔ mobile. Phần việc còn lại: đọc/ghi `lib/typing/history.ts` từ `backup.ts` (kèm kiểm tra bằng `parseHistoryStrict`), tăng `BACKUP_FORMAT` lên 3 nếu muốn bản cũ từ chối rõ ràng thay vì bỏ qua khoá lạ,
+và cập nhật lời ở Cài đặt › Dữ liệu. Quyết định *giữ nguyên* ngày 2026-10-02 vẫn đang có hiệu lực; mục này chỉ ghi lại cách làm khi muốn đổi.
 
 ### 3.5 Kiểm thử
 

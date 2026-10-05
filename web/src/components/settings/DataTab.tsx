@@ -4,9 +4,10 @@ import { useRef, useState } from "react";
 import { InstallCard } from "@/components/app/InstallCard";
 import { Button, Card, Notice } from "@/components/ui";
 import { exportBackup, importBackup, parseBackup, resetEverything, resetLearning } from "@/lib/backup";
-import { downloadText } from "@/lib/download";
+import { downloadText } from "@/components/app/download";
 import { dayKey, systemClock } from "@/lib/learning/time";
 import { useSpace } from "@/lib/space/hooks";
+import { LIMITS, spaceChars } from "@/lib/space/space";
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
@@ -19,7 +20,8 @@ export function DataTab() {
 
   const { notes, decks, texts } = space.library;
   const cards = decks.reduce((n, d) => n + d.cards.length, 0);
-  const kb = Math.max(1, Math.round(JSON.stringify(space).length / 1024));
+  const used = spaceChars(space);
+  const pct = Math.max(1, Math.round((used / LIMITS.totalChars) * 100));
 
   const download = () => {
     const { now, zone } = systemClock();
@@ -67,7 +69,7 @@ export function DataTab() {
           Dùng nó để chuyển sang máy khác hoặc phòng khi lỡ xoá dữ liệu trình duyệt. Kỷ lục luyện gõ lưu riêng trên máy này và chưa nằm trong tệp.
         </p>
         <p className="text-[12px] text-sumi-3 tnum">
-          Hiện có: {notes.length} ghi chú · {decks.length} bộ thẻ ({cards} thẻ) · {texts.length} câu luyện gõ · không gian riêng chiếm khoảng {kb} KB
+          Hiện có: {notes.length} ghi chú · {decks.length} bộ thẻ ({cards} thẻ) · {texts.length} câu luyện gõ · đã dùng {pct}% dung lượng cho phép của không gian riêng
         </p>
 
         <div className="flex flex-wrap gap-2.5">

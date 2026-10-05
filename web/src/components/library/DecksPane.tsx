@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Badge, Button, Card, Empty, Field, Notice, Switch, TextArea } from "@/components/ui";
-import { downloadText, safeFileName } from "@/lib/download";
+import { downloadText, safeFileName } from "@/components/app/download";
 import { useProgress } from "@/lib/learning/hooks";
 import { systemClock } from "@/lib/learning/time";
 import {

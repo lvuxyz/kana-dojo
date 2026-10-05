@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Button, Card, Empty, Field, Notice, Seg, TextArea } from "@/components/ui";
-import { downloadText, safeFileName } from "@/lib/download";
+import { downloadText, safeFileName } from "@/components/app/download";
 import { addNote, deleteNote, searchNotes, updateNote } from "@/lib/space/library";
 import { previewOf } from "@/lib/space/markup";
 import { LIMITS, type Note } from "@/lib/space/space";

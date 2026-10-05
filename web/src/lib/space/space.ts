@@ -15,8 +15,13 @@ export const SPACE_VERSION = 1;
 
 // ------------------------------------------------------------------ giới hạn
 
-/** Giới hạn cứng để không gian luôn vừa localStorage (~5 MB) và nạp nhanh. Nới ra là đổi con số ở đây. */
+/** Giới hạn cứng để không gian riêng không bao giờ chiếm hết localStorage (≈5 MiB cho cả origin, tính 2 byte/ký tự, dùng
+ *  chung với tiến độ ≈ 0,6 MiB ở kịch bản xấu nhất và kỷ lục gõ). Từng mục có trần riêng, nhưng cộng lại có thể vượt xa
+ *  (500 ghi chú × 20.000 ký tự), nên còn một trần TỔNG (`totalChars`): vượt thì việc thêm/sửa bị từ chối với thông báo rõ
+ *  ràng — thay vì để lần ghi thất bại âm thầm và người học tin rằng nội dung đã được lưu. Nới ra là đổi con số ở đây. */
 export const LIMITS = {
+  /** Tổng độ dài JSON của không gian (≈ 2 MB trong localStorage, chừa chỗ cho phần còn lại). */
+  totalChars: 1_000_000,
   name: 40,
   goal: 200,
   noteTitle: 120,
@@ -208,6 +213,9 @@ export function freshId(space: Space, env: Env): string {
   }
   throw new SpaceError("Không tạo được mã mới, hãy thử lại.");
 }
+
+/** Dung lượng không gian đang dùng, tính bằng độ dài chuỗi JSON sẽ được lưu — đúng thứ chiếm chỗ trong localStorage. */
+export const spaceChars = (space: Space): number => JSON.stringify(space).length;
 
 const clampInt = (n: number, min: number, max: number) => Math.min(Math.max(Math.round(n) || 0, min), max);
 

@@ -13,8 +13,9 @@ Kana Dōjō là một **site tĩnh**: không máy chủ ứng dụng, không cơ
 │  ┌────────────┐   ┌───────────────────────┐   ┌──────────────┐  │
 │  │ Giao diện  │──►│ Bộ máy học (lib/*)    │──►│ localStorage │  │
 │  │ (app/, …)  │◄──│ hàm thuần: FSRS, XP,  │◄──│ kd.progress  │  │
-│  └────────────┘   │ streak, huy hiệu, quiz│   │ .v1 (JSON)   │  │
-│                   └───────────────────────┘   └──────────────┘  │
+│  └────────────┘   │ streak, huy hiệu, quiz│   │ .v1 · kd.space│ │
+│                   └───────────────────────┘   │ .v1 (JSON)   │  │
+│                                               └──────────────┘  │
 │        ▲  nội dung tĩnh: kana-data.json, vocabulary, quizzes    │
 └────────┼────────────────────────────────────────────────────────┘
          │ chỉ tải tệp tĩnh (HTML / JS / CSS / font)
@@ -30,6 +31,9 @@ Site còn là **PWA**: cài được ra màn hình chính và, nhờ service wor
 **Vì sao bỏ máy chủ:** mọi thứ máy chủ từng làm hoặc là dữ liệu tĩnh (kana, từ vựng, quiz, huy hiệu), hoặc là tính toán thuần tuý trên
 tiến độ của *một* người (FSRS, XP, streak, chấm quiz). Chỉ có bảng xếp hạng thực sự cần dữ liệu chung giữa nhiều người — và đó là tính năng bị bỏ.
 Kết quả: không có gì để vận hành, bảo mật, sao lưu hay trả tiền thuê, và không có dữ liệu cá nhân nào rời khỏi máy người học.
+
+**Mỗi người một dōjō:** vì dữ liệu nằm trên máy từng người, mỗi người mở site đã có sẵn một không gian riêng. Site không áp một giáo trình duy nhất: nó cung cấp *công cụ* và *nội dung mẫu*,
+còn người học quyết định công cụ nào hiện ra, tự soạn tài liệu/bộ thẻ/câu luyện gõ và chỉnh cách học — xem [Không gian riêng](#không-gian-riêng-mỗi-người-một-dōjō).
 
 ---
 
@@ -267,13 +271,52 @@ nên không cần tác vụ nền.
 
 ---
 
+## Không gian riêng (mỗi người một dōjō)
+
+Nguyên tắc: **công cụ do site cung cấp, nội dung và cách dùng do người học quyết định.** Không có đường học "đúng" duy nhất; không có gì bị ép.
+Đặc tả dữ liệu ở [SPEC.md §2.3](SPEC.md#23-không-gian-riêng-space); phần này nói về cách nó khớp vào kiến trúc.
+
+```
+ lib/space/            Space (schema zod) · space.ts (hồ sơ, công cụ, cách học) · library.ts (ghi chú, bộ thẻ, câu gõ)
+   store.ts · hooks.ts    localStorage `kd.space.v1` + React — cùng khuôn với lib/learning/store.ts
+   markup.ts              cú pháp ghi chú → cây dữ liệu (không HTML thô)
+   modules.ts · presets.ts · schedule.ts
+ lib/learning/context.ts  StudyOptions + Catalog (thẻ tự soạn) — bộ máy học nhận qua tham số, không import gì từ lib/space
+ lib/backup.ts          tệp sao lưu bọc: ProgressState v1 + Space (nối hai kho; ngoại lệ duy nhất của quy tắc "lib/ không chạm kho")
+ app/(app)/thu-vien/    Thư viện: ghi chú · bộ thẻ · câu luyện gõ        components/library/
+ app/(app)/cai-dat/     4 tab: hồ sơ · công cụ · cách học · dữ liệu       components/settings/
+ components/app/Onboarding.tsx  màn dựng không gian lần đầu
+```
+
+**Hai kho, một tệp sao lưu.** `kd.space.v1` tách khỏi `kd.progress.v1` vì nhịp ghi khác nhau (mỗi nét viết ghi tiến độ; soạn ghi chú không nên kéo theo ghi cả tiến độ, và ngược lại) và vì
+`ProgressState` là hợp đồng web ↔ mobile ([CONTRACT.md §2](CONTRACT.md)). Chúng gặp nhau ở tệp sao lưu định dạng 2 (bọc), nên người học chỉ phải nhớ một tệp.
+
+**Bộ máy học vẫn thuần hàm.** Cách học và thẻ tự soạn đi vào `buildQueue/gradeCard/recordWriting/summaryOf` qua tham số `LearnContext` cuối cùng, mặc định là cấu hình cũ — nên toàn bộ test cũ không đổi và
+mặc định cho kết quả y hệt. Thẻ tự soạn dùng lại các loại thẻ `VOCAB_*` với mã mục `u:<id>`, nên `ProgressState` không đổi hình dạng (SPEC §2.3).
+
+**Điều hướng do người học dựng.** `space.modules` là danh sách công cụ bật, theo thứ tự; `Nav` đọc từ đó. Tắt một công cụ chỉ ẩn nó khỏi điều hướng — dữ liệu và đường dẫn vẫn nguyên (vào thẳng URL vẫn được).
+`home` và `settings` bị khoá (luôn bật, ở hai đầu) để người học không tự khoá mình ra ngoài. Trên điện thoại, quá 6 mục thì thanh dưới gom phần còn lại vào "Thêm" — Cài đặt (nơi có sao lưu) vẫn cách hai chạm.
+Trước khi đọc được lựa chọn (render tĩnh, lúc hydrate) điều hướng chưa vẽ mục nào, để không nháy các mục sẽ biến mất.
+
+**Màn dựng lần đầu** (`Onboarding`) hiện khi `space.onboarded = false` *và* chưa có tiến độ nào. Người đã học từ trước khi có tính năng này được đánh dấu "đã dựng" tự động, không bị chen ngang. Màn này bỏ qua được,
+và có lối "Khôi phục từ tệp" cho người chuyển máy. Có ba điểm xuất phát (`presets.ts`): học đầy đủ · chỉ tập viết kana · tự soạn từ trang trắng; tất cả đổi được sau.
+
+**Ghi nhận hiểu rõ:**
+- *Không có màu giao diện tuỳ chọn.* Màu đỏ `--shu` mang nghĩa "sai/xoá/cảnh báo" (thông báo lỗi, nút "Quên rồi", nút xoá); đổi nó thành màu khác làm lỗi trông như thông tin thường.
+  Muốn có màu nhấn riêng thì phải tách token "chính" khỏi token "lỗi" trước.
+- *Thẻ tự soạn cũng cộng XP/streak như mọi thẻ ôn.* Đây là site cá nhân không có bảng xếp hạng nên không có gì để gian lận với ai; nếu sau này cần, đó là quyết định về `reviewXp`, không phải về lưu trữ.
+- *Một trình duyệt = một không gian.* Máy dùng chung nhiều người cần hồ sơ riêng (tiền tố khoá theo hồ sơ) — chưa làm.
+
+---
+
 ## Phòng luyện gõ
 
 Trang `/luyen-go` (chi tiết: [TYPING.md](TYPING.md)) gộp thêm vào sau khi site đã tĩnh, theo cùng nguyên tắc:
 
 - **Bộ máy thuần hàm** ở `lib/typing/` (`romaji`, `kana-layout`, `engine`, `ime`, `phrases`, `score`, `history`) — không React, test trong Node như `lib/learning`.
 - **Lưu riêng** ở `kd.typing.history.v1` (kỷ lục, 10 lượt gần nhất, chữ hay sai), cùng quy ước với `kd.progress.v1`: tiền tố `kd.`, dữ liệu hỏng được giữ lại ở `.corrupt`, bị chặn lưu trữ thì vẫn chơi được trong bộ nhớ. Một trình duyệt là một kỷ lục (không có tài khoản).
-- **Không đi qua `ProgressState`**: không cộng XP/streak và chưa nằm trong tệp sao lưu, nên hợp đồng tệp sao lưu giữa web và mobile (SPEC §2) không đổi. "Xoá toàn bộ tiến độ" vẫn xoá nó. Hai việc này đã chốt ngày 2026-10-02 là **giữ nguyên** (chưa cộng XP, chưa đưa vào sao lưu); cách đổi và lúc nên xem lại ở TYPING.md §3.4.
+- **Không đi qua `ProgressState`**: không cộng XP/streak và chưa nằm trong tệp sao lưu, nên hợp đồng tệp sao lưu giữa web và mobile (SPEC §2) không đổi. "Xoá việc học" và "Xoá sạch mọi thứ" ở Cài đặt › Dữ liệu đều xoá nó.
+- **Câu của tôi** (`MINE`): người học tự soạn câu ở Thư viện (lưu trong không gian riêng, nằm trong tệp sao lưu) và chọn nội dung "Câu của tôi" ở màn chọn bài. Câu phải gõ được trọn vẹn (`validateTypingText`); chưa có câu nào thì dùng kana ngẫu nhiên. Hai việc này đã chốt ngày 2026-10-02 là **giữ nguyên** (chưa cộng XP, chưa đưa vào sao lưu); cách đổi và lúc nên xem lại ở TYPING.md §3.4.
 
 ---
 
@@ -347,7 +390,7 @@ mô hình không tài khoản khớp guideline 5.1.1(v) của Apple.
 
 ### Không tài khoản, không CSDL
 
-Đổi lại cho sự đơn giản và riêng tư tuyệt đối, tiến độ gắn với từng trình duyệt. Trang Cài đặt nói rõ điều này và có sao lưu/khôi phục bằng tệp JSON.
+Đổi lại cho sự đơn giản và riêng tư tuyệt đối, tiến độ *và mọi thứ người học tự soạn* gắn với từng trình duyệt. Trang Cài đặt nói rõ điều này và có sao lưu/khôi phục bằng tệp JSON (cả tiến độ lẫn không gian riêng).
 Không có đồng bộ nhiều thiết bị — nếu sau này cần, nên làm theo hướng người học tự mang theo tệp (hoặc mã chia sẻ), không phải thêm tài khoản.
 
 ### Đáp án quiz nằm trong bundle
@@ -400,6 +443,9 @@ Không React, không I/O, không side effect → unit test hoàn toàn trong Nod
 - **Kanji:** engine không biết mình đang vẽ kana. Thêm mã Unicode chữ Hán vào bước sinh dữ liệu là chạy được với 6.763 chữ của KanjiVG (script `build_data.py` cũ lấy lại từ lịch sử git — xem [SPEC.md §1.1](SPEC.md#11-nguồn-gốc-dữ-liệu-nét)).
 - **Nét bút lông:** thay phần vẽ mực bằng `perfect-freehand` để nét có độ dày biến thiên theo tốc độ.
 - **Âm thanh thu sẵn:** hiện dùng giọng `ja-JP` của hệ điều hành (`speechSynthesis`); muốn đồng nhất trên mọi máy thì thay bằng tệp audio thu sẵn.
+- **Quiz từ bộ thẻ của tôi:** `submitQuiz` hiện chấm đề đóng gói theo id; sinh đề từ bộ thẻ cần cho nó nhận đối tượng `Quiz` thay vì id, và một route tĩnh nhận bộ thẻ qua query.
+- **Nhiều hồ sơ trên một máy:** tiền tố khoá `kd.<hồ sơ>.` cho cả `progress` và `space`, kèm màn chọn hồ sơ.
+- **Kỷ lục luyện gõ vào tệp sao lưu:** thêm phần `typing` vào tệp bọc (không đụng `ProgressState`); chốt cùng lúc với mobile — xem [TYPING.md §3.4](TYPING.md#34-quyết-định-khi-gộp-vào-site-không-tài-khoản).
 - **Lưu bền:** gọi `navigator.storage.persist()`, nhắc sao lưu định kỳ (xem [Dữ liệu nằm ở đâu và khi nào mất](#dữ-liệu-nằm-ở-đâu-và-khi-nào-mất)).
 
 ## Nguồn tham khảo
