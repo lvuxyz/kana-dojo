@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { StrokeStage, type AttemptResult } from "@/components/kana/StrokeStage";
+import { HINT_AFTER_MISSES, StrokeStage, type AttemptResult } from "@/components/kana/StrokeStage";
 import { Button, Card, Empty, Progress, Spinner } from "@/components/ui";
 import { KANA } from "@/lib/kana";
 import { useLearnContext, useProgress } from "@/lib/learning/hooks";
@@ -158,7 +158,8 @@ export default function ReviewPage() {
           </div>
 
           <p className="text-center text-[13px] text-sumi-3">
-            Không có nét mờ — điểm bạn viết sẽ tự quyết định lịch ôn kế tiếp.
+            Bảng trắng, không có nét mờ. Sai {HINT_AFTER_MISSES.TEST} lần liên tiếp ở một nét thì nét mẫu mới hiện.
+            Điểm bạn viết sẽ tự quyết định lịch ôn kế tiếp.
           </p>
         </Card>
       ) : (

@@ -303,8 +303,8 @@
 .gstroke.is-next { opacity: 0.42; stroke: var(--shu); }
 .gstroke.is-done { opacity: 0; }
 [data-mode="test"] .gstroke { opacity: 0; }
-[data-mode="test"][data-peek="true"] .gstroke { opacity: 0.12; }
-[data-mode="test"][data-peek="true"] .gstroke.is-next { opacity: 0.42; stroke: var(--shu); }
+/* Tự viết: bảng trắng; chỉ nét đang trượt quá số lần cho phép mới hiện mẫu */
+[data-mode="test"] .gstroke.is-hint { opacity: 0.42; stroke: var(--shu); }
 .astroke {
   fill: none; stroke: var(--shu); stroke-width: 6.8;
   stroke-linecap: round; stroke-linejoin: round;
