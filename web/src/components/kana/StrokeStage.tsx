@@ -37,8 +37,11 @@ export interface StrokeStageHandle {
   reset: () => void;
   replay: () => void;
   toggleCompare: () => void;
-  peek: () => void;
 }
+
+/** Số lần trượt liên tiếp ở cùng một nét trước khi khung tự cho xem nét mẫu.
+ *  TRACE: phát lại hoạt ảnh. TEST: bảng trắng cho tới lúc này, rồi mới hiện nét mẫu của riêng nét đó. */
+export const HINT_AFTER_MISSES = { TRACE: 2, TEST: 3 } as const;
 
 interface Props {
   char: KanaChar;
@@ -92,7 +95,8 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
   const colors = useRef({ ink: "#1a1f1c", accent: "#c33c2b" });
 
   const [compare, setCompare] = useState(false);
-  const [peeking, setPeeking] = useState(false);
+  // TEST: chỉ số nét đang được hé mẫu sau khi trượt đủ HINT_AFTER_MISSES.TEST lần; null = bảng trắng.
+  const [hint, setHint] = useState<number | null>(null);
   const [finished, setFinished] = useState(false);
 
   const glyphs = strokesOf(char.c);
@@ -222,16 +226,17 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
     strokes.current.forEach((s, i) => {
       s.el.classList.toggle("is-next", i === si.current);
       s.el.classList.toggle("is-done", i < si.current);
+      s.el.classList.toggle("is-hint", i === hint && i === si.current);
     });
     const g = numRef.current;
     if (!g) return;
     const cur = strokes.current[si.current];
-    const hidden = mode === "TEST" && !peeking;
+    const hidden = mode === "TEST" && hint !== si.current;
     if (!cur || hidden) { g.innerHTML = ""; return; }
     const p = cur.pts[0];
     g.innerHTML =
       `<circle cx="${p.x}" cy="${p.y}" r="5.8"/><text x="${p.x}" y="${p.y}">${si.current + 1}</text>`;
-  }, [mode, peeking]);
+  }, [mode, hint]);
 
   const reset = useCallback(() => {
     stopAnim();
@@ -245,7 +250,7 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
     gate.current.reset();
     startedAt.current = performance.now();
     setCompare(false);
-    setPeeking(false);
+    setHint(null);
     setFinished(false);
     paintGuides();
     repaint();
@@ -278,7 +283,8 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
     readColors();
     reset();
     fitCanvas();
-    timer.current = setTimeout(() => playFrom(0), 260);
+    // Tự viết là bảng trắng: không tự chạy hoạt ảnh mẫu.
+    if (mode === "TRACE") timer.current = setTimeout(() => playFrom(0), 260);
     return () => stopAnim();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [char.c, mode]);
@@ -307,6 +313,7 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
       scores.current.push(res.score);
       si.current += 1;
       misses.current = 0;
+      setHint(null);
       paintGuides();
       repaint();
       onProgress?.(si.current, list.length);
@@ -361,16 +368,26 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
       message = "Sát rồi — bám đường tâm nét mẫu thêm chút nữa.";
     }
 
+    const limit = HINT_AFTER_MISSES[mode];
+    const showHint = misses.current >= limit;
+    if (mode === "TEST") {
+      if (showHint) message += ` Nét mẫu số ${si.current + 1} đã hiện — viết theo nét đỏ.`;
+      else if (hint !== si.current) {
+        message += ` Sai thêm ${limit - misses.current} lần nữa sẽ hiện nét mẫu.`;
+      }
+    }
+
     onFeedback?.({ strokeIndex: si.current, ok: false, score: res.score, message });
     repaint(p);
     timer.current = setTimeout(() => { if (!drawing.current) repaint(); }, 560);
 
-    if (misses.current >= 2) {
+    if (showHint) {
       misses.current = 0;
       const target = si.current;
+      if (mode === "TEST") setHint(target);
       timer.current = setTimeout(() => play(target), 620);
     }
-  }, [mode, onComplete, onFeedback, onProgress, paintGuides, play, repaint]);
+  }, [hint, mode, onComplete, onFeedback, onProgress, paintGuides, play, repaint]);
 
   /* ------------------------------------------------------ sự kiện con trỏ */
   const toStage = useCallback((e: React.PointerEvent): Pt => {
@@ -429,17 +446,12 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
     reset,
     replay: () => (finished ? playFrom(0) : play(si.current)),
     toggleCompare: () => setCompare((v) => !v),
-    peek: () => {
-      setPeeking(true);
-      setTimeout(() => setPeeking(false), 2200);
-    },
   }), [finished, play, playFrom, reset]);
 
   return (
     <div
       ref={wrapRef}
       data-mode={mode === "TEST" ? "test" : "trace"}
-      data-peek={peeking}
       className="relative w-full touch-none select-none"
       style={{ aspectRatio: `${glyphN} / 1` }}
     >

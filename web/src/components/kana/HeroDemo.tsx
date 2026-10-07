@@ -1,10 +1,15 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { StrokeStage, type StrokeStageHandle } from "./StrokeStage";
+import { HINT_AFTER_MISSES, StrokeStage, type StrokeStageHandle } from "./StrokeStage";
 import { Button, Seg } from "@/components/ui";
 import { KANA } from "@/lib/kana";
 import type { PracticeMode } from "@/lib/types";
+
+const startNote = (mode: PracticeMode) =>
+  mode === "TEST"
+    ? `Bảng trắng: tự viết theo trí nhớ. Sai ${HINT_AFTER_MISSES.TEST} lần liên tiếp ở một nét thì nét mẫu mới hiện.`
+    : "Dùng chuột hoặc ngón tay vẽ theo đường nét mờ.";
 
 const DEMO_CHARS = [
   { c: "あ", r: "a", name: "Hiragana a" },
@@ -22,7 +27,7 @@ export function HeroDemo() {
   const stage = useRef<StrokeStageHandle>(null);
   const [activeChar, setActiveChar] = useState(DEMO_CHARS[0].c);
   const [mode, setMode] = useState<PracticeMode>("TRACE");
-  const [note, setNote] = useState("Dùng chuột hoặc ngón tay vẽ theo đường nét mờ.");
+  const [note, setNote] = useState(startNote("TRACE"));
   const [tone, setTone] = useState<"" | "good" | "bad">("");
   const [score, setScore] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
@@ -34,7 +39,7 @@ export function HeroDemo() {
     setScore(null);
     setTone("");
     setCompleted(false);
-    setNote("Dùng chuột hoặc ngón tay vẽ theo đường nét mờ.");
+    setNote(startNote(mode));
     stage.current?.reset();
   };
 
@@ -76,6 +81,8 @@ export function HeroDemo() {
               setMode(m);
               setCompleted(false);
               setScore(null);
+              setTone("");
+              setNote(startNote(m));
               stage.current?.reset();
             }}
             options={[
@@ -174,7 +181,7 @@ export function HeroDemo() {
               <span>Đọc âm</span>
             </Button>
 
-            <Button
+            {(mode === "TRACE" || completed) && <Button
               size="sm"
               variant="outline"
               onClick={() => {
@@ -189,7 +196,7 @@ export function HeroDemo() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Xem mẫu</span>
-            </Button>
+            </Button>}
 
             <Button
               size="sm"

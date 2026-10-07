@@ -326,7 +326,7 @@ Các quy tắc còn lại giữ nguyên SPEC §7: một con trỏ mỗi lúc, b�
 
 ### 6.4 Chấm và phản hồi
 
-Giữ nguyên `judge` của `StrokeStage`: ngưỡng `TRACE` 58 / `TEST` 48; nét trượt được so với **mọi nét khác của chữ** (ngưỡng `max(55, score + 15)`) để báo "đó là nét số N, hãy viết nét số M trước"; trượt hai lần liền ở cùng một nét → tự phát lại hoạt ảnh. Engine trả **mã** (`StrokeFeedbackCode` + tham số), `app/l10n` dựng câu — bỏ chuỗi tiếng Việt khỏi engine để thêm tiếng Anh sau này không phải đụng engine.
+Giữ nguyên `judge` của `StrokeStage`: ngưỡng `TRACE` 58 / `TEST` 48; nét trượt được so với **mọi nét khác của chữ** (ngưỡng `max(55, score + 15)`) để báo "đó là nét số N, hãy viết nét số M trước"; trượt liền ở cùng một nét → `TRACE` 2 lần: tự phát lại hoạt ảnh; `TEST` 3 lần: hiện nét mẫu của riêng nét đó và phát hoạt ảnh (ẩn lại khi nét đạt). `TEST` mở ra là bảng trắng, không tự chạy hoạt ảnh. Engine trả **mã** (`StrokeFeedbackCode` + tham số), `app/l10n` dựng câu — bỏ chuỗi tiếng Việt khỏi engine để thêm tiếng Anh sau này không phải đụng engine.
 
 ### 6.5 Hoạt ảnh và nét mực
 
@@ -375,7 +375,7 @@ Khung viết là canvas nên trình đọc màn hình không "thấy" gì. Cần
 
 ### 6.9 Kiểm thử khung viết
 
-- Test widget bằng `WidgetTester.startGesture` / `TestPointer`: một ngón; hai ngón cùng lúc; bút sau cảm ứng; `cancel` giữa nét; nét quá ngắn; nét sai thứ tự; trượt hai lần → phát lại.
+- Test widget bằng `WidgetTester.startGesture` / `TestPointer`: một ngón; hai ngón cùng lúc; bút sau cảm ứng; `cancel` giữa nét; nét quá ngắn; nét sai thứ tự; `TRACE` trượt hai lần → phát lại; `TEST` trượt ba lần → hiện nét mẫu.
 - Golden test của khung ở trạng thái: đầu, giữa, xong, so sánh nét chuẩn.
 - Thiết bị thật (mục 12): tất cả dòng ❓ ở bảng 6.6.
 - **Phát lại nét thật**: lưu (có đồng ý) vài trăm nét của người dùng beta thành fixture cố định để mọi thay đổi ngưỡng/công thức sau này được hồi quy với dữ liệu thật, không chỉ nét tổng hợp.
@@ -419,7 +419,7 @@ Máy tính bảng / màn hình rộng: `NavigationRail` thay thanh dưới (mụ
 
 **Học → Kana.** Bảng đọc như bảng, **không phải lưới thẻ** (nguyên tắc giao diện của web): cột thẳng hàng, や行 và わ行 giữ ô trống. Mỗi ô: ký tự, romaji, con dấu 済 khi đã qua bước học, chấm vàng khi đến hạn, thanh điểm cao nhất. 5 cột trên điện thoại 360 dp (≈ 60 dp một ô). Bộ chọn Hiragana/Katakana và chip nhóm (Tất cả 104 / Cơ bản 46 / Biến âm 25 / Âm ghép 33).
 
-**Viết.** Dọc: khung viết vuông phía trên (tối đa ≈ 390 dp), hàng chấm tiến độ nét, dòng phản hồi (có `liveRegion`), điểm, rồi hàng nút: Nghe · Xem nét mẫu · Xoá làm lại · Đồ nét/Tự viết · So sánh · Hé nét 2 giây (chỉ `TEST`) · Trước/Sau. Ngang và máy tính bảng: khung bên trái, bảng điều khiển bên phải (như `lg:grid-cols` của web). **Không vuốt ngang để đổi chữ** (xung đột với viết).
+**Viết.** Dọc: khung viết vuông phía trên (tối đa ≈ 390 dp), hàng chấm tiến độ nét, dòng phản hồi (có `liveRegion`), điểm, rồi hàng nút: Nghe · Xem nét mẫu · Xoá làm lại · Đồ nét/Tự viết · So sánh · Trước/Sau. Ở `TEST`, "Xem nét mẫu" và "So sánh" chỉ hiện sau khi viết xong cả chữ. Ngang và máy tính bảng: khung bên trái, bảng điều khiển bên phải (như `lg:grid-cols` của web). **Không vuốt ngang để đổi chữ** (xung đột với viết).
 
 **Ôn tập.** Mỗi thẻ là một trong: viết (`KANA_WRITING`: dùng khung viết ở `TEST`, điểm tự quyết định lịch), hoặc "hiện đáp án" rồi 4 nút Quên / Khó / Được / Dễ (đọc kana, từ vựng). Sau mỗi thẻ hiện "ôn lại sau N ngày · độ bền trí nhớ S ngày" rồi chuyển thẻ. Giữ nguyên: hàng đợi chụp một lần cho cả phiên, khoá chống chấm đúp, mục "Vì sao thẻ này xuất hiện hôm nay?".
 
@@ -731,7 +731,7 @@ Android: máy yếu (RAM 2 GB, Android Go), tầm trung, cao cấp; Android 10 �
 
 ### 12.3 Ca kiểm thử khung viết
 
-Toàn bộ bảng 6.6; thêm: giảm chuyển động; chữ co giãn 200%; TalkBack và VoiceOver; giao diện tối; xoay màn hình; ngón thứ hai chạm giữa nét; nét viết ra ngoài rìa khung; hai lần trượt liên tiếp phát lại hoạt ảnh; app bị đưa xuống nền giữa nét.
+Toàn bộ bảng 6.6; thêm: giảm chuyển động; chữ co giãn 200%; TalkBack và VoiceOver; giao diện tối; xoay màn hình; ngón thứ hai chạm giữa nét; nét viết ra ngoài rìa khung; trượt liên tiếp hiện mẫu (`TRACE` 2 lần, `TEST` 3 lần); app bị đưa xuống nền giữa nét.
 
 ### 12.4 Ca dữ liệu
 

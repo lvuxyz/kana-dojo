@@ -413,7 +413,8 @@ score = clamp( round( 100 − fwd·4,2 − |ln(clamp(ratio, 0,05, 20))|·15 ), 0
 2. Nét đạt → ghi mực, sang nét kế. Khi đủ nét: `avgScore` = trung bình điểm các nét đạt, `strokeErrors` = mọi lỗi đã ghi nhận → `recordWriting` (§5.3).
 3. Nét trượt → so tiếp với **các nét khác của cùng chữ**; nếu khớp một nét khác trên `max(55, score + 15)` thì báo *"Nét đó là nét số 6 — hãy viết nét số 2 trước"* và ghi `OFF_PATH`.
    Viết sai thứ tự là lỗi phổ biến nhất của người mới, và biết mình sai ở đâu quan trọng hơn con điểm.
-4. Trượt 2 lần liên tiếp ở cùng một nét → tự phát lại hoạt ảnh nét đó.
+4. Trượt liên tiếp ở cùng một nét (`HINT_AFTER_MISSES`): `TRACE` 2 lần → tự phát lại hoạt ảnh nét đó; `TEST` 3 lần → hiện nét mẫu của riêng nét đó (tô đỏ, có số thứ tự) và phát hoạt ảnh, nét mẫu ẩn lại khi nét đó đạt.
+5. Chế độ `TEST` (Tự viết) là bảng trắng: không tự chạy hoạt ảnh khi mở chữ, không có nút xem mẫu / so sánh / hé nét cho tới khi viết xong cả chữ. Nét mẫu chỉ hiện theo bước 4.
 
 ---
 

@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { StrokeStage, type AttemptResult, type StrokeFeedback, type StrokeStageHandle } from "./StrokeStage";
+import { HINT_AFTER_MISSES, StrokeStage, type AttemptResult, type StrokeFeedback, type StrokeStageHandle } from "./StrokeStage";
 import { Button, Seg } from "@/components/ui";
 import { BADGES } from "@/data/badges";
 import type { KanaChar } from "@/lib/kana";
 import type { PracticeMode, WritingResult } from "@/lib/types";
+
+const startNote = (mode: PracticeMode) =>
+  mode === "TEST"
+    ? `Tự viết nét số 1 trên bảng trắng. Sai ${HINT_AFTER_MISSES.TEST} lần liên tiếp ở một nét thì nét mẫu mới hiện ra.`
+    : "Viết nét số 1 theo hướng mũi tên của nét mẫu.";
 
 interface Props {
   char: KanaChar;
@@ -25,7 +30,7 @@ export function PracticePanel({
 }: Props) {
   const stage = useRef<StrokeStageHandle>(null);
   const [done, setDone] = useState(0);
-  const [note, setNote] = useState("Viết nét số 1 theo hướng mũi tên của nét mẫu.");
+  const [note, setNote] = useState(() => startNote(mode));
   const [tone, setTone] = useState<"" | "good" | "bad">("");
   const [score, setScore] = useState<number | null>(null);
   const [result, setResult] = useState<WritingResult | null>(null);
@@ -33,7 +38,7 @@ export function PracticePanel({
   const badgeName = (code: string) => BADGES.find((b) => b.code === code)?.nameVi ?? code;
 
   useEffect(() => {
-    setDone(0); setNote("Viết nét số 1 theo hướng mũi tên của nét mẫu.");
+    setDone(0); setNote(startNote(mode));
     setTone(""); setScore(null); setResult(null);
   }, [char.c, mode]);
 
@@ -62,21 +67,23 @@ export function PracticePanel({
     setResult(onSubmit(r));
   };
 
+  const strokeTotal = char.n;
+  // Tự viết: không xem nét mẫu chủ động cho tới khi viết xong cả chữ.
+  const guidesOpen = mode === "TRACE" || done >= strokeTotal;
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       if (e.key === "Escape") onClose();
       else if (e.key === "ArrowRight") { e.preventDefault(); onNext(); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); onPrev(); }
-      else if (k === "r") { e.preventDefault(); stage.current?.replay(); }
+      else if (k === "r") { e.preventDefault(); if (guidesOpen) stage.current?.replay(); }
       else if (k === "c") { e.preventDefault(); stage.current?.reset(); }
       else if (e.key === " ") { e.preventDefault(); speak(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, onNext, onPrev, speak]);
-
-  const strokeTotal = char.n;
+  }, [guidesOpen, onClose, onNext, onPrev, speak]);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center sm:p-5">
@@ -224,20 +231,18 @@ export function PracticePanel({
             )}
 
             <div className="grid grid-cols-2 gap-2">
-              <Button onClick={() => stage.current?.replay()}>Xem nét mẫu</Button>
-              <Button onClick={() => stage.current?.reset()}>Xoá làm lại</Button>
+              {guidesOpen && <Button onClick={() => stage.current?.replay()}>Xem nét mẫu</Button>}
+              <Button className={guidesOpen ? undefined : "col-span-2"} onClick={() => stage.current?.reset()}>Xoá làm lại</Button>
               <Button onClick={onPrev}>‹ Ký tự trước</Button>
               <Button onClick={onNext}>Tiếp theo ›</Button>
-              <Button className="col-span-2" onClick={() => stage.current?.toggleCompare()}>So sánh nét chuẩn</Button>
-              {mode === "TEST" && (
-                <Button className="col-span-2" variant="ghost" onClick={() => stage.current?.peek()}>
-                  Hé nét mẫu 2 giây
-                </Button>
+              {guidesOpen && (
+                <Button className="col-span-2" onClick={() => stage.current?.toggleCompare()}>So sánh nét chuẩn</Button>
               )}
             </div>
 
             <p className="text-[11.5px] leading-relaxed text-sumi-3 pt-1">
-              Phím tắt: <kbd className="rounded border border-rule-firm border-b-2 px-1 py-0.5 text-[10.5px]">R</kbd> xem mẫu ·{" "}
+              Phím tắt:{" "}
+              {guidesOpen && <><kbd className="rounded border border-rule-firm border-b-2 px-1 py-0.5 text-[10.5px]">R</kbd> xem mẫu ·{" "}</>}
               <kbd className="rounded border border-rule-firm border-b-2 px-1 py-0.5 text-[10.5px]">C</kbd> xoá ·{" "}
               <kbd className="rounded border border-rule-firm border-b-2 px-1 py-0.5 text-[10.5px]">Space</kbd> đọc ·{" "}
               <kbd className="rounded border border-rule-firm border-b-2 px-1 py-0.5 text-[10.5px]">←</kbd>

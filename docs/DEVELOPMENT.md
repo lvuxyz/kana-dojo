@@ -243,7 +243,7 @@ Muốn thấy lại màn dựng lần đầu: xoá cả hai khoá (hoặc Cài �
 
 1. Vào `/on-tap`: người mới nhận tối đa 10 thẻ mới mỗi ngày (kana theo thứ tự dạy học)
 2. Để thấy thẻ *đến hạn*: sửa `dueAt` của một thẻ trong Local Storage về quá khứ rồi tải lại, hoặc đổi giờ máy
-3. Thẻ viết mở khung tập viết không có nét mờ; thẻ khác lật đáp án rồi tự chấm 4 mức
+3. Thẻ viết mở khung tập viết là bảng trắng (không nét mờ, không hoạt ảnh, không nút xem mẫu; trượt 3 lần liên tiếp ở một nét thì nét mẫu của nét đó mới hiện); thẻ khác lật đáp án rồi tự chấm 4 mức
 
 ### Luyện gõ
 
