@@ -122,63 +122,157 @@ export function TypingStage({
   const lowTime = config.mode === "TIME_ATTACK" && clock <= 10_000 && live.phase === "playing";
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-5">
-      {/* Thanh chỉ số */}
-      <Card className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-4 sm:grid-cols-4">
-        <Metric label={config.mode === "TIME_ATTACK" ? "Còn lại" : "Thời gian"}>
-          <span className={clsx(lowTime && "text-shu")}>{formatClock(clock)}</span>
-        </Metric>
-        <Metric label="Phím / phút">{Math.round(game.liveKpm)}</Metric>
-        <Metric label="Chính xác">{(game.liveAccuracy * 100).toFixed(1)}%</Metric>
-        <Metric label="Gõ sai">
-          <div className="flex items-center justify-between">
-            <span className={clsx(live.miss > 0 && "text-shu")}>{live.miss}</span>
-            {game.streak >= 5 && (
-              <span
-                className={clsx(
-                  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold tnum shadow-2xs",
-                  game.streak >= 50
-                    ? "border border-gold/40 bg-gold/20 text-gold animate-pulse"
-                    : game.streak >= 20
-                    ? "border border-shu/35 bg-shu/15 text-shu"
-                    : "border border-rule/80 bg-paper-sunk text-sumi-2",
-                )}
-                title={`Đang gõ đúng liên tiếp ${game.streak} phím (kỷ lục ván: ${game.maxStreak})`}
-              >
-                <span>⚡</span>
-                <span>{game.streak}</span>
-              </span>
-            )}
-          </div>
-        </Metric>
-        <div className="col-span-2 flex items-center gap-3 sm:col-span-4">
+    <div className="mx-auto flex max-w-4xl flex-col gap-3.5">
+      {/* Thanh HUD chỉ số Zen tích hợp (Unified Zen HUD) */}
+      <Card className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-5">
+        {/* Bên trái: Tiến độ hoặc thời gian */}
+        <div className="flex items-center gap-3">
           {config.mode === "PASSAGE" && (
-            <>
-              <span className="text-xs font-semibold text-sumi-3 tnum">
-                Câu {Math.min(live.records.length + 1, config.phraseCount)}/{config.phraseCount}
+            <div className="flex items-center gap-2">
+              <span className="rounded-md border border-rule-firm bg-paper-sunk px-2 py-0.5 font-japanese text-[11px] font-bold text-sumi-2">
+                文 {Math.min(live.records.length + 1, config.phraseCount)}/{config.phraseCount}
               </span>
-              <Progress value={live.records.length} max={config.phraseCount} tone="genko" className="flex-1" />
-            </>
+              <div className="w-16 sm:w-24">
+                <Progress value={live.records.length} max={config.phraseCount} tone="genko" className="h-1.5" />
+              </div>
+            </div>
           )}
           {config.mode === "TIME_ATTACK" && (
-            <>
-              <span className="text-xs font-semibold text-sumi-3 tnum">{live.records.length} câu xong</span>
-              <Progress value={limitMs - clock} max={limitMs} tone={lowTime ? "shu" : "gold"} className="flex-1" />
-            </>
+            <div className="flex items-center gap-2">
+              <span
+                className={clsx(
+                  "rounded-md border px-2 py-0.5 text-xs font-bold tnum",
+                  lowTime ? "border-shu/40 bg-shu-tint text-shu animate-pulse" : "border-gold/40 bg-gold-tint text-gold",
+                )}
+              >
+                ⏱ {formatClock(clock)}
+              </span>
+              <div className="w-16 sm:w-24">
+                <Progress value={limitMs - clock} max={limitMs} tone={lowTime ? "shu" : "gold"} className="h-1.5" />
+              </div>
+            </div>
           )}
           {config.mode === "SUDDEN_DEATH" && (
-            <span className="text-xs font-semibold text-sumi-3">
-              Sinh tử — sai một phím là kết thúc · chuỗi hiện tại <b className="tnum text-sumi">{game.correct}</b> phím
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-shu/35 bg-shu-tint/80 px-2 py-0.5 text-xs font-bold text-shu">
+              <span>命</span>
+              <span>Sinh tử: <b className="tnum">{game.correct}</b> phím</span>
             </span>
           )}
         </div>
+
+        {/* Ở giữa: Huy hiệu Liên kích Streak khi >= 5 */}
+        {game.streak >= 5 ? (
+          <div className="animate-in fade-in zoom-in-95 duration-200">
+            <span
+              className={clsx(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold transition-all shadow-xs",
+                game.streak >= 50
+                  ? "border border-gold/50 bg-gradient-to-r from-gold/25 via-shu/25 to-gold/25 text-gold animate-pulse scale-105"
+                  : game.streak >= 20
+                  ? "border border-shu/40 bg-shu/15 text-shu"
+                  : "border border-rule/80 bg-paper-sunk text-sumi-2",
+              )}
+            >
+              <span>⚡</span>
+              <span>{game.streak} 連撃</span>
+            </span>
+          </div>
+        ) : (
+          <div className="hidden sm:block" />
+        )}
+
+        {/* Bên phải: Tốc độ, Chính xác, Lỗi + Công cụ nhanh */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 text-xs font-semibold tnum text-sumi-2">
+            <span title="Tốc độ gõ phím/phút">
+              <b className="text-sumi">{Math.round(game.liveKpm)}</b> <span className="text-[10px] text-sumi-3">KPM</span>
+            </span>
+            <span className="text-rule-firm/60">·</span>
+            <span title="Độ chính xác">
+              <b className="text-sumi">{(game.liveAccuracy * 100).toFixed(1)}%</b>
+            </span>
+            <span className="text-rule-firm/60">·</span>
+            <span title="Số phím gõ sai" className={clsx(live.miss > 0 && "text-shu")}>
+              <b>{live.miss}</b> <span className="text-[10px] text-sumi-3">lỗi</span>
+            </span>
+          </div>
+
+          <div className="h-3.5 w-px bg-rule/70" />
+
+          {/* Công cụ nhanh */}
+          <div className="flex items-center gap-1">
+            {onConfigChange && !config.dictation && (
+              <button
+                type="button"
+                onClick={() => onConfigChange({ ...config, showMeaning: !config.showMeaning })}
+                className={clsx(
+                  "grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-xs font-bold transition-colors",
+                  config.showMeaning
+                    ? "bg-shu/15 text-shu font-japanese"
+                    : "text-sumi-3 opacity-50 hover:bg-paper-sunk hover:text-sumi",
+                )}
+                title={config.showMeaning ? "Đang hiện nghĩa tiếng Việt (Bấm để ẩn)" : "Đang ẩn nghĩa tiếng Việt (Bấm để hiện)"}
+                tabIndex={-1}
+              >
+                文
+              </button>
+            )}
+
+            {onConfigChange && (
+              <button
+                type="button"
+                onClick={() => {
+                  const nextTheme = config.soundTheme === "off" ? "thock" : "off";
+                  onConfigChange({ ...config, soundTheme: nextTheme });
+                  if (nextTheme !== "off") playKeySound(nextTheme, config.soundVolume);
+                }}
+                className={clsx(
+                  "grid h-7 w-7 cursor-pointer place-items-center rounded-lg transition-colors",
+                  config.soundTheme !== "off"
+                    ? "bg-gold/20 text-gold"
+                    : "text-sumi-3 opacity-50 hover:bg-paper-sunk hover:text-sumi",
+                )}
+                title={config.soundTheme !== "off" ? `Âm thanh: ${config.soundTheme} (Bấm để tắt)` : "Đang tắt âm thanh (Bấm để bật)"}
+                tabIndex={-1}
+              >
+                {config.soundTheme !== "off" ? (
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                    <line x1="23" y1="9" x2="17" y2="15" />
+                    <line x1="17" y1="9" x2="23" y2="15" />
+                  </svg>
+                )}
+              </button>
+            )}
+
+            {canSpeak && (
+              <button
+                type="button"
+                onClick={() => speak(live.phrase.text)}
+                className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-sumi-3 transition-colors hover:bg-paper-sunk hover:text-sumi"
+                title={method === "IME" ? "Nghe câu này" : "Nghe câu này (Space)"}
+                tabIndex={-1}
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z" />
+                  <path d="M15.5 9a4 4 0 0 1 0 6" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
       </Card>
 
-      {/* Câu mẫu */}
+      {/* Sân gõ câu mẫu (The Zen Altar) */}
       <Card
         variant="luxury"
         className={clsx(
-          "relative flex min-h-64 flex-col items-center justify-center gap-4 px-5 py-9 sm:px-10 transition-all duration-300",
+          "relative flex min-h-[290px] flex-col items-center justify-center gap-3.5 px-5 py-7 sm:px-12 transition-all duration-300",
           game.streak >= 50
             ? "ring-2 ring-gold/45 shadow-xl shadow-gold/10"
             : game.streak >= 20
@@ -186,27 +280,13 @@ export function TypingStage({
             : "",
         )}
       >
-        {/* Banner mốc liên kích (Streak / Combo) */}
-        {game.streak >= 10 && (
-          <div className="animate-in fade-in zoom-in-95 duration-200">
-            <div
-              className={clsx(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all",
-                game.streak >= 50
-                  ? "border border-gold/50 bg-gradient-to-r from-gold/25 via-shu/25 to-gold/25 text-gold shadow-sm shadow-gold/20 scale-105"
-                  : game.streak >= 20
-                  ? "border border-shu/35 bg-shu/15 text-shu shadow-2xs"
-                  : "border border-rule-firm bg-paper-sunk text-sumi-2",
-              )}
-            >
-              <span className={clsx(game.streak >= 20 && "animate-pulse")}>⚡</span>
-              <span>{game.streak} 連撃</span>
-              <span className="text-[10.5px] font-medium opacity-80">· Combo {game.streak}</span>
-            </div>
-          </div>
+        {live.phase === "ready" && (
+          <p className="absolute inset-x-0 top-3 text-center text-[11.5px] font-semibold text-sumi-3">
+            {method === "IME" ? "Gõ vào ô bên dưới để bắt đầu tính giờ" : "Gõ phím đầu tiên để bắt đầu tính giờ"}
+          </p>
         )}
 
-        <div key={live.missTick} className={clsx("flex w-full flex-col items-center gap-4", live.missTick > 0 && "type-shake")}>
+        <div key={live.missTick} className={clsx("flex w-full flex-col items-center gap-3", live.missTick > 0 && "type-shake")}>
           <PhraseView
             phrase={live.phrase}
             unit={method === "IME" ? "ime" : "kana"}
@@ -217,105 +297,36 @@ export function TypingStage({
             revealAt={revealAt}
           />
 
-          {/* Nghĩa tiếng Việt */}
+          {/* Bản dịch tiếng Việt */}
           {config.showMeaning && live.phrase.vi && !config.dictation && (
-            <p className="max-w-xl text-center font-sans text-sm font-medium text-sumi-3 transition-opacity">
+            <p className="max-w-xl text-center font-sans text-[13.5px] font-medium text-sumi-3/90 transition-opacity">
               {live.phrase.vi}
             </p>
           )}
 
-          {run && <PendingKeys keys={run.buf} />}
-          <div className="flex min-h-8 items-center justify-center" aria-live="polite">
+          {/* Phím đệm buffer (giữ min-height để không giật layout) */}
+          <div className="flex min-h-7 items-center justify-center">
+            {run && <PendingKeys keys={run.buf} />}
+          </div>
+
+          {/* Gợi ý khi bị kẹt */}
+          <div className="flex min-h-7 items-center justify-center" aria-live="polite">
             {keyHint && method !== "IME" && <StuckHint method={method} {...keyHint} />}
           </div>
         </div>
 
-        {live.phase === "ready" && (
-          <p className="absolute inset-x-0 top-3 text-center text-[12px] font-semibold text-sumi-3">
-            {method === "IME" ? "Gõ vào ô bên dưới để bắt đầu tính giờ" : "Gõ phím đầu tiên để bắt đầu tính giờ"}
-          </p>
+        {/* Dải xem trước câu tiếp theo (Upcoming preview) */}
+        {live.upcoming && !config.dictation && (
+          <div className="mt-2 flex w-full max-w-xl items-center justify-center gap-2 border-t border-rule/50 pt-2.5 text-xs text-sumi-3">
+            <span className="rounded bg-paper-sunk px-1.5 py-0.5 font-japanese text-[10.5px] font-bold text-sumi-3">
+              次 Câu kế
+            </span>
+            <PhraseView phrase={live.upcoming} unit="kana" pos={0} curEnd={0} size="sm" hideRuby={config.hideFurigana} />
+          </div>
         )}
-
-        {/* Thanh công cụ nhanh góc trên bên phải */}
-        <div className="absolute right-3 top-3 flex items-center gap-1">
-          {/* Nút bật/tắt nghĩa tiếng Việt */}
-          {onConfigChange && !config.dictation && (
-            <button
-              type="button"
-              onClick={() => onConfigChange({ ...config, showMeaning: !config.showMeaning })}
-              className={clsx(
-                "grid h-8 w-8 cursor-pointer place-items-center rounded-full text-xs font-bold transition-colors",
-                config.showMeaning
-                  ? "bg-shu/10 text-shu hover:bg-shu/20"
-                  : "text-sumi-3 opacity-60 hover:bg-paper-sunk hover:text-sumi",
-              )}
-              aria-label="Bật/tắt nghĩa tiếng Việt"
-              title={config.showMeaning ? "Đang hiện nghĩa tiếng Việt (Bấm để ẩn)" : "Đang ẩn nghĩa tiếng Việt (Bấm để hiện)"}
-              tabIndex={-1}
-            >
-              文
-            </button>
-          )}
-
-          {/* Nút bật/tắt âm thanh gõ */}
-          {onConfigChange && (
-            <button
-              type="button"
-              onClick={() => {
-                const nextTheme = config.soundTheme === "off" ? "thock" : "off";
-                onConfigChange({ ...config, soundTheme: nextTheme });
-                if (nextTheme !== "off") playKeySound(nextTheme, config.soundVolume);
-              }}
-              className={clsx(
-                "grid h-8 w-8 cursor-pointer place-items-center rounded-full transition-colors",
-                config.soundTheme !== "off"
-                  ? "bg-gold/15 text-gold hover:bg-gold/25"
-                  : "text-sumi-3 opacity-60 hover:bg-paper-sunk hover:text-sumi",
-              )}
-              aria-label="Bật/tắt âm thanh gõ phím"
-              title={
-                config.soundTheme !== "off"
-                  ? `Âm thanh: ${config.soundTheme} (Bấm để tắt)`
-                  : "Đang tắt âm thanh (Bấm để bật)"
-              }
-              tabIndex={-1}
-            >
-              {config.soundTheme !== "off" ? (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 5L6 9H2v6h4l5 4V5z" />
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 5L6 9H2v6h4l5 4V5z" />
-                  <line x1="23" y1="9" x2="17" y2="15" />
-                  <line x1="17" y1="9" x2="23" y2="15" />
-                </svg>
-              )}
-            </button>
-          )}
-
-          {/* Nút nghe đọc câu */}
-          {canSpeak && (
-            <button
-              type="button"
-              onClick={() => speak(live.phrase.text)}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-sumi-3 transition-colors hover:bg-paper-sunk hover:text-sumi"
-              aria-label="Nghe câu này"
-              title={method === "IME" ? "Nghe câu này" : "Nghe câu này (Space)"}
-              tabIndex={-1}
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z" />
-                <path d="M15.5 9a4 4 0 0 1 0 6" />
-                <path d="M18 6.5a7.5 7.5 0 0 1 0 11" />
-              </svg>
-            </button>
-          )}
-        </div>
       </Card>
 
+      {/* Ô gõ cho chế độ IME */}
       {method === "IME" && (
         <div className="flex flex-col gap-1.5">
           <input
@@ -341,33 +352,27 @@ export function TypingStage({
               if (e.key === "Enter" && !e.nativeEvent.isComposing) e.preventDefault();
             }}
             className={clsx(
-              "w-full rounded-2xl border bg-surface px-5 py-3.5 text-center font-japanese text-2xl text-sumi shadow-xs outline-none transition-all placeholder:font-sans placeholder:text-base placeholder:text-sumi-3",
+              "w-full rounded-2xl border bg-surface px-5 py-3 text-center font-japanese text-xl text-sumi shadow-xs outline-none transition-all placeholder:font-sans placeholder:text-sm placeholder:text-sumi-3",
               live.imeWrong ? "border-shu ring-3 ring-shu/15" : "border-rule/80 focus:border-shu focus:ring-3 focus:ring-shu/15",
             )}
           />
-          <p className={clsx("text-center text-[12px]", live.imeWrong ? "font-semibold text-shu" : "text-sumi-3")}>
+          <p className={clsx("text-center text-[11.5px]", live.imeWrong ? "font-semibold text-shu" : "text-sumi-3")}>
             {live.imeWrong
               ? "Có chữ chưa khớp — xoá phần sai (Backspace) rồi gõ lại."
-              : "Gõ cách đọc rồi nhấn Space để đổi sang kanji/katakana, Enter để chốt. Câu đúng sẽ tự chuyển."}
+              : "Gõ cách đọc rồi nhấn Space để đổi sang kanji/katakana, Enter để chốt."}
           </p>
         </div>
       )}
 
       {warning && <WarningNote kind={warning} />}
       {config.dictation && missingVoice && (
-        <p className="rounded-xl border border-gold/30 bg-gold-tint px-4 py-2.5 text-[12.5px] font-medium text-gold">
-          Máy chưa cài giọng đọc tiếng Nhật nên phần nghe có thể sai. Windows: Cài đặt → Thời gian & ngôn ngữ → Giọng nói → thêm “日本語”.
+        <p className="rounded-xl border border-gold/30 bg-gold-tint px-4 py-2 text-[12px] font-medium text-gold">
+          Máy chưa cài giọng đọc tiếng Nhật nên phần nghe có thể sai. Windows: Cài đặt → Thời gian &amp; ngôn ngữ → Giọng nói → thêm “日本語”.
         </p>
       )}
 
-      {live.upcoming && !config.dictation && (
-        <div className="flex items-center justify-center gap-3 text-sumi-3">
-          <span className="label-xs">Tiếp theo</span>
-          <PhraseView phrase={live.upcoming} unit="kana" pos={0} curEnd={0} size="sm" hideRuby={config.hideFurigana} />
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      {/* Thanh điều hướng chân trang */}
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
         <Button variant="ghost" size="sm" onClick={onExit} tabIndex={-1}>
           ‹ Chọn bài khác <kbd className="ml-1 rounded border border-rule px-1 text-[10px]">Esc</kbd>
         </Button>
@@ -381,30 +386,19 @@ export function TypingStage({
   );
 }
 
-function Metric({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="label-xs">{label}</span>
-      <span className="font-mincho text-2xl font-bold leading-none tnum">{children}</span>
-    </div>
-  );
-}
-
 function formatClock(ms: number) {
   const s = Math.max(0, ms) / 1000;
   return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 }
 
 /**
- * Phím đã gõ của cụm chưa thành chữ (ví dụ "sh" trước khi thành し, か chờ ゛) — giống ô ghép chữ
- * của IME. Chỉ phản chiếu phím người học đã bấm, không bao giờ gợi ý phím tiếp theo: màn gõ chỉ
- * có tiếng Nhật để người học tự nhớ cách gõ.
+ * Phím đã gõ của cụm chưa thành chữ (ví dụ "sh" trước khi thành し, か chờ ゛).
  */
 function PendingKeys({ keys }: { keys: string }) {
   return (
-    <p className="flex h-7 items-center justify-center font-mono text-lg text-sumi-2" aria-label="Phím đang gõ dở">
+    <p className="flex h-7 items-center justify-center font-mono text-base text-sumi-2" aria-label="Phím đang gõ dở">
       <span className="border-b-2 border-dashed border-sumi-3/60 px-0.5 empty:hidden">{keys}</span>
-      <span className="ml-0.5 inline-block h-5 w-0.5 animate-pulse rounded-full bg-shu" aria-hidden />
+      <span className="ml-0.5 inline-block h-4.5 w-0.5 animate-pulse rounded-full bg-shu" aria-hidden />
     </p>
   );
 }
@@ -422,15 +416,15 @@ function segmentAt(p: Phrase, unit: "kana" | "ime", pos: number) {
 /** Cách gõ của riêng chữ đang bị kẹt — chỉ hiện sau nhiều lần sai liên tiếp, biến mất khi gõ qua. */
 function StuckHint({ method, chunk, keys }: { method: Exclude<InputMethod, "IME">; chunk: string; keys: string }) {
   return (
-    <p className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-gold/30 bg-gold-tint px-3 py-1.5 text-[13px] text-gold">
+    <p className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-gold/30 bg-gold-tint px-3 py-1 text-[12.5px] text-gold">
       <span className="font-japanese font-semibold" lang="ja">ヒント</span>
-      <span className="font-japanese text-base text-sumi">{chunk}</span>
+      <span className="font-japanese text-sm text-sumi">{chunk}</span>
       <span aria-hidden>→</span>
       {method === "ROMAJI" ? (
-        <kbd className="rounded-md border border-gold/40 bg-surface px-1.5 font-mono text-sm text-sumi">{keys}</kbd>
+        <kbd className="rounded border border-gold/40 bg-surface px-1.5 font-mono text-xs text-sumi">{keys}</kbd>
       ) : (
         Array.from(keys, (token, i) => (
-          <kbd key={i} className="rounded-md border border-gold/40 bg-surface px-1.5 font-mono text-sm text-sumi">
+          <kbd key={i} className="rounded border border-gold/40 bg-surface px-1.5 font-mono text-xs text-sumi">
             <span className="font-japanese">{token}</span> · {kanaKeyLabel(token) ?? "?"}
           </kbd>
         ))
@@ -441,16 +435,15 @@ function StuckHint({ method, chunk, keys }: { method: Exclude<InputMethod, "IME"
 
 function WarningNote({ kind }: { kind: Exclude<Warning, null> }) {
   return (
-    <p className="rounded-xl border border-shu/30 bg-shu-tint px-4 py-3 text-[13px] font-medium text-shu-2" role="alert">
+    <p className="rounded-xl border border-shu/30 bg-shu-tint px-4 py-2.5 text-[12.5px] font-medium text-shu-2" role="alert">
       {kind === "vietnamese" ? (
         <>
           Có vẻ <b>bộ gõ tiếng Việt</b> (Unikey, EVKey…) đang bật nên phím romaji bị biến thành “â, ư, đ…”.
-          Chuyển bộ gõ sang chế độ tiếng Anh (thường là <kbd>Ctrl + Shift</kbd> hoặc <kbd>Alt + Z</kbd>) rồi gõ tiếp.
+          Chuyển sang tiếng Anh (<kbd>Ctrl + Shift</kbd> hoặc <kbd>Alt + Z</kbd>) rồi gõ tiếp.
         </>
       ) : (
         <>
-          <b>Bộ gõ tiếng Nhật (IME)</b> đang giữ phím nên bài không nhận được. Tắt IME (phím <kbd>半角/全角</kbd> hoặc{" "}
-          <kbd>Alt + `</kbd>), hoặc quay lại chọn cách nhập “Bộ gõ IME”.
+          <b>Bộ gõ tiếng Nhật (IME)</b> đang giữ phím. Tắt IME (<kbd>半角/全角</kbd> hoặc <kbd>Alt + `</kbd>), hoặc chọn cách nhập “Bộ gõ IME”.
         </>
       )}
     </p>
