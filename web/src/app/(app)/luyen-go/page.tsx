@@ -28,6 +28,9 @@ const DEFAULT_CONFIG: GameConfig = {
   hideFurigana: false,
   stuckHint: true,
   dictation: false,
+  soundTheme: "thock",
+  soundVolume: 0.6,
+  showMeaning: true,
 };
 
 /** Chỉ là tiện ích nhớ lựa chọn lần trước trên máy này — mất đi cũng không sao. */
@@ -44,6 +47,9 @@ const ALLOWED: { [K in keyof GameConfig]: readonly GameConfig[K][] } = {
   hideFurigana: [true, false],
   stuckHint: [true, false],
   dictation: [true, false],
+  soundTheme: ["thock", "clicky", "typewriter", "arcade", "off"],
+  soundVolume: [0.2, 0.4, 0.6, 0.8, 1],
+  showMeaning: [true, false],
 };
 
 /** Giá trị lưu từ phiên bản cũ hoặc bị sửa tay thì bỏ qua từng trường, giữ mặc định. */
@@ -53,6 +59,9 @@ function loadConfig(): GameConfig {
     const out: Record<string, unknown> = { ...DEFAULT_CONFIG };
     for (const key of Object.keys(ALLOWED) as (keyof GameConfig)[]) {
       if ((ALLOWED[key] as readonly unknown[]).includes(saved[key])) out[key] = saved[key];
+    }
+    if (typeof saved.soundVolume === "number" && saved.soundVolume >= 0 && saved.soundVolume <= 1) {
+      out.soundVolume = saved.soundVolume;
     }
     return out as unknown as GameConfig;
   } catch {
@@ -157,8 +166,23 @@ export default function TypingPage() {
 
   const exit = useCallback(() => go("setup"), [go]);
 
+  const updateConfig = useCallback((c: GameConfig) => {
+    storeConfig(c);
+    setConfig(c);
+    setSession((s) => (s ? { ...s, config: c } : null));
+  }, []);
+
   if (view === "play" && session) {
-    return <TypingStage key={runId} config={session.config} source={session.source} onFinish={finish} onExit={exit} />;
+    return (
+      <TypingStage
+        key={runId}
+        config={session.config}
+        source={session.source}
+        onFinish={finish}
+        onExit={exit}
+        onConfigChange={updateConfig}
+      />
+    );
   }
 
   if (view === "result" && result && session) {

@@ -82,10 +82,15 @@ export function TypingResult({
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         <Tile label="Phím / phút" value={Math.round(result.kpm)} />
         <Tile label="Kana / phút" value={Math.round(cpm)} />
         <Tile label="Chính xác" value={`${(result.accuracy * 100).toFixed(1)}%`} />
+        <Tile
+          label="Chuỗi dài nhất"
+          value={`${result.maxStreak ?? 0} phím`}
+          highlight={(result.maxStreak ?? 0) >= 20}
+        />
         <Tile label="Thời gian" value={formatDuration(result.durationMs)} />
         <Tile label="Gõ sai" value={result.missKeys} />
         <Tile label="Câu xong" value={result.phrasesCompleted} />
@@ -153,11 +158,11 @@ function RecordLine({ outcome }: { outcome: RecordOutcome }) {
   );
 }
 
-function Tile({ label, value }: { label: string; value: React.ReactNode }) {
+function Tile({ label, value, highlight = false }: { label: string; value: React.ReactNode; highlight?: boolean }) {
   return (
-    <Card className="flex flex-col gap-1.5 px-4 py-3">
-      <span className="label-xs">{label}</span>
-      <span className="text-2xl font-semibold leading-none tnum">{value}</span>
+    <Card className={clsx("flex flex-col gap-1.5 px-4 py-3", highlight && "border-gold/50 bg-gold-tint/40 shadow-xs")}>
+      <span className={clsx("label-xs", highlight && "text-gold font-bold")}>{label}</span>
+      <span className={clsx("text-2xl font-semibold leading-none tnum", highlight ? "text-gold font-bold" : "text-sumi")}>{value}</span>
     </Card>
   );
 }
@@ -184,6 +189,9 @@ function advice(r: GameResult): string {
   }
   if (r.accuracy < 0.9) {
     return "Độ chính xác dưới 90% đang kéo điểm xuống rất mạnh (điểm = tốc độ × chính xác³). Gõ chậm lại một nhịp, chắc tay rồi hẵng tăng tốc.";
+  }
+  if ((r.maxStreak ?? 0) >= 40) {
+    return `Phong độ cực kỳ ấn tượng! Chuỗi liên kích ${r.maxStreak} phím cho thấy bạn giữ nhịp thở và phản xạ rất đều.`;
   }
   if (r.kpm < 60) {
     return "Nền tảng tốt! Luyện thêm chế độ “Kana ngẫu nhiên” để thuộc vị trí phím và phản xạ nhanh hơn.";

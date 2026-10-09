@@ -10,6 +10,7 @@ import { STUCK_AFTER } from "./useTypingGame";
 import { findBest, weakList, type TypingHistory } from "@/lib/typing/history";
 import { useSpace } from "@/lib/space/hooks";
 import { userPhrases } from "@/lib/typing/phrases";
+import { SOUND_THEMES, playKeySound } from "@/lib/typing/sound";
 import type { GameConfig } from "./useTypingGame";
 
 export const METHOD_INFO: Record<InputMethod, { ja: string; label: string; hint: string }> = {
@@ -183,6 +184,12 @@ export function TypingSetup({
           <Section step="4" title="Tuỳ chọn">
             <div className="flex flex-col gap-2.5">
               <Toggle
+                checked={config.showMeaning}
+                onChange={(v) => set("showMeaning", v)}
+                label="Hiện nghĩa tiếng Việt (意味)"
+                hint="Hiện bản dịch tiếng Việt dưới câu mẫu khi đang gõ để vừa luyện gõ vừa ôn nghĩa từ."
+              />
+              <Toggle
                 checked={config.hideFurigana}
                 onChange={(v) => set("hideFurigana", v)}
                 label="Ẩn furigana (ふりがな)"
@@ -201,6 +208,58 @@ export function TypingSetup({
                 label="Nghe chép (聞き取り)"
                 hint="Che chữ và đọc to từng câu: nghe rồi gõ lại. Nhấn Space để nghe lại."
               />
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-rule/80 bg-paper-sunk/40 p-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[12.5px] font-bold text-sumi">Âm thanh gõ phím</span>
+                <span className="text-[11px] text-sumi-3">Web Audio API · Không độ trễ</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+                {SOUND_THEMES.map((st) => (
+                  <button
+                    key={st.value}
+                    type="button"
+                    onClick={() => {
+                      set("soundTheme", st.value);
+                      if (st.value !== "off") playKeySound(st.value, config.soundVolume);
+                    }}
+                    className={clsx(
+                      "flex flex-col items-center rounded-xl border p-2 text-center transition-all cursor-pointer",
+                      config.soundTheme === st.value
+                        ? "border-shu bg-shu/10 text-shu shadow-xs font-semibold ring-1 ring-shu/20"
+                        : "border-rule/80 bg-surface text-sumi-2 hover:border-rule-firm hover:text-sumi",
+                    )}
+                  >
+                    <span className="text-[12px]">{st.label}</span>
+                    <span className="font-japanese text-[10.5px] opacity-75">{st.ja}</span>
+                  </button>
+                ))}
+              </div>
+              {config.soundTheme !== "off" && (
+                <div className="mt-1 flex flex-wrap items-center gap-2 pt-1 border-t border-rule/50">
+                  <span className="text-[11.5px] font-medium text-sumi-3">Âm lượng</span>
+                  {[0.2, 0.4, 0.6, 0.8, 1.0].map((vol) => (
+                    <button
+                      key={vol}
+                      type="button"
+                      onClick={() => {
+                        set("soundVolume", vol);
+                        playKeySound(config.soundTheme, vol);
+                      }}
+                      className={clsx(
+                        "h-6 w-9 rounded-md text-[11px] font-medium transition-colors cursor-pointer",
+                        Math.abs(config.soundVolume - vol) < 0.05
+                          ? "bg-sumi text-paper"
+                          : "bg-rule/40 text-sumi-2 hover:bg-rule/70 hover:text-sumi",
+                      )}
+                    >
+                      {Math.round(vol * 100)}%
+                    </button>
+                  ))}
+                  <span className="ml-auto text-[11px] text-sumi-3 italic">Bấm để nghe thử</span>
+                </div>
+              )}
             </div>
           </Section>
 
