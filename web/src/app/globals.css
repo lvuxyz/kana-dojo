@@ -126,8 +126,7 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    max-width: 100vw;
-    overflow-x: hidden;
+    /* Không đặt overflow cho body: html đã có overflow-x nên body sẽ thành khung cuộn riêng và mọi header sticky trôi mất. */
     min-height: 100dvh;
   }
   button, [role="button"], a, input, select, textarea {

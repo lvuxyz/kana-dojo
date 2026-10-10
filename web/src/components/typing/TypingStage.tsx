@@ -16,6 +16,10 @@ type Warning = "ime" | "vietnamese" | null;
 /** Phím romaji hợp lệ: chữ Latin, số và vài dấu dùng trong bảng (ー = "-", ん = "n'"). */
 const ROMAJI_KEY = /^[a-z0-9\-',.!?[\]/~]$/;
 
+/** Nút công cụ trong lúc gõ không được lấy focus khi bấm: tabIndex={-1} không chặn được cú click, và ở chế độ IME
+ *  ô nhập mất focus thì người học phải chạm lại vào ô (trên điện thoại bàn phím còn sập xuống). */
+const keepFocus = { onMouseDown: (e: React.MouseEvent) => e.preventDefault() };
+
 export function TypingStage({
   config,
   source,
@@ -204,6 +208,7 @@ export function TypingStage({
             {onConfigChange && !config.dictation && (
               <button
                 type="button"
+                {...keepFocus}
                 onClick={() => onConfigChange({ ...config, showMeaning: !config.showMeaning })}
                 className={clsx(
                   "grid h-6.5 w-6.5 sm:h-7 sm:w-7 cursor-pointer place-items-center rounded-lg text-xs font-bold transition-colors",
@@ -221,6 +226,7 @@ export function TypingStage({
             {onConfigChange && (
               <button
                 type="button"
+                {...keepFocus}
                 onClick={() => {
                   const nextTheme = config.soundTheme === "off" ? "thock" : "off";
                   onConfigChange({ ...config, soundTheme: nextTheme });
@@ -253,6 +259,7 @@ export function TypingStage({
             {canSpeak && (
               <button
                 type="button"
+                {...keepFocus}
                 onClick={() => speak(live.phrase.text)}
                 className="grid h-6.5 w-6.5 sm:h-7 sm:w-7 cursor-pointer place-items-center rounded-lg text-sumi-3 transition-colors hover:bg-paper-sunk hover:text-sumi"
                 title={method === "IME" ? "Nghe câu này" : "Nghe câu này (Space)"}

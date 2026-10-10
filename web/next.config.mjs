@@ -7,8 +7,14 @@ const nextConfig = {
   output: "export",
   // Lint chạy riêng bằng `npm run lint` (ESLint 9 CLI); không chạy lại trong `next build`.
   eslint: { ignoreDuringBuilds: true },
-  // Cho phép truy cập từ điện thoại qua mạng LAN nội bộ khi dev mà không bị cảnh báo CORS
-  allowedDevOrigins: ["192.168.*", "10.*", "172.16.*"],
+  // Cho phép mở bản dev từ điện thoại trong mạng LAN (dải IP riêng). Next so khớp từ phải sang và mỗi `*` chỉ thay
+  // MỘT đoạn, nên phải viết đủ 4 đoạn — "192.168.*" không khớp 192.168.1.5. Đã khai báo mục này thì Next CHẶN (403)
+  // mọi origin khác thay vì chỉ cảnh báo, kể cả websocket HMR. Kiểm thử: next.config.test.mjs.
+  allowedDevOrigins: [
+    "192.168.*.*",
+    "10.*.*.*",
+    ...Array.from({ length: 16 }, (_, i) => `172.${16 + i}.*.*`),
+  ],
 };
 
 export default nextConfig;
