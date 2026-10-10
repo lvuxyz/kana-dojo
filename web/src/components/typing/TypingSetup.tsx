@@ -288,8 +288,8 @@ export function TypingSetup({
                 <span className="text-[12.5px] font-bold text-sumi">Âm thanh gõ phím</span>
                 <span className="text-[11px] text-sumi-3">Web Audio API · Không độ trễ</span>
               </div>
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-                {SOUND_THEMES.map((st) => (
+              <div className="grid grid-cols-2 min-[420px]:grid-cols-3 sm:grid-cols-5 gap-1.5">
+                {SOUND_THEMES.map((st, idx) => (
                   <button
                     key={st.value}
                     type="button"
@@ -299,6 +299,7 @@ export function TypingSetup({
                     }}
                     className={clsx(
                       "flex flex-col items-center rounded-xl border p-2 text-center transition-all cursor-pointer",
+                      idx === 4 && "col-span-2 min-[420px]:col-span-1",
                       config.soundTheme === st.value
                         ? "border-shu bg-shu/10 text-shu shadow-xs font-semibold ring-1 ring-shu/25"
                         : "border-rule/80 bg-surface text-sumi-2 hover:border-rule-firm hover:text-sumi",
@@ -312,25 +313,27 @@ export function TypingSetup({
               {config.soundTheme !== "off" && (
                 <div className="mt-0.5 flex flex-wrap items-center gap-2 border-t border-rule/50 pt-2">
                   <span className="text-[11.5px] font-medium text-sumi-3">Âm lượng</span>
-                  {[0.2, 0.4, 0.6, 0.8, 1.0].map((vol) => (
-                    <button
-                      key={vol}
-                      type="button"
-                      onClick={() => {
-                        set("soundVolume", vol);
-                        playKeySound(config.soundTheme, vol);
-                      }}
-                      className={clsx(
-                        "h-6 w-9 rounded-md text-[11px] font-medium transition-colors cursor-pointer",
-                        Math.abs(config.soundVolume - vol) < 0.05
-                          ? "bg-sumi text-paper"
-                          : "bg-rule/40 text-sumi-2 hover:bg-rule/70 hover:text-sumi",
-                      )}
-                    >
-                      {Math.round(vol * 100)}%
-                    </button>
-                  ))}
-                  <span className="ml-auto text-[11px] text-sumi-3 italic">Bấm để nghe thử</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[0.2, 0.4, 0.6, 0.8, 1.0].map((vol) => (
+                      <button
+                        key={vol}
+                        type="button"
+                        onClick={() => {
+                          set("soundVolume", vol);
+                          playKeySound(config.soundTheme, vol);
+                        }}
+                        className={clsx(
+                          "h-6 w-9 rounded-md text-[11px] font-medium transition-colors cursor-pointer",
+                          Math.abs(config.soundVolume - vol) < 0.05
+                            ? "bg-sumi text-paper"
+                            : "bg-rule/40 text-sumi-2 hover:bg-rule/70 hover:text-sumi",
+                        )}
+                      >
+                        {Math.round(vol * 100)}%
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[11px] text-sumi-3 italic sm:ml-auto">Bấm để nghe thử</span>
                 </div>
               )}
             </div>

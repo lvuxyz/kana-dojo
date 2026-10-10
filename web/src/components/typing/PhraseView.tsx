@@ -57,7 +57,7 @@ export function PhraseView({
     <p
       className={clsx(
         "flex flex-wrap items-end justify-center font-japanese leading-none",
-        size === "lg" ? "gap-y-3 text-[34px] sm:text-5xl" : "text-lg",
+        size === "lg" ? "gap-y-2 sm:gap-y-3 text-[26px] sm:text-4xl md:text-5xl" : "text-base sm:text-lg",
       )}
       lang="ja"
     >
@@ -65,7 +65,7 @@ export function PhraseView({
         const { start, len } = span(s);
         const st = statusOf(start, len);
 
-        if (!s.text.trim()) return <span key={i} className={size === "lg" ? "w-4 sm:w-6" : "w-2"} />;
+        if (!s.text.trim()) return <span key={i} className={size === "lg" ? "w-3 sm:w-6" : "w-2"} />;
 
         if (!s.ruby) {
           return (
@@ -87,7 +87,7 @@ export function PhraseView({
             <rt
               className={clsx(
                 "pb-1 font-sans font-medium tracking-wider",
-                size === "lg" ? "text-[13px] sm:text-[15px]" : "text-[9px]",
+                size === "lg" ? "text-[11px] sm:text-[14px]" : "text-[9px]",
                 !rubyShown && "invisible",
               )}
             >

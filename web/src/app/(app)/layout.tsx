@@ -47,8 +47,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </aside>
 
         <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-30 -mx-4 mb-7 flex items-center gap-4 border-b border-rule/70 bg-paper/85 px-4 py-3.5 backdrop-blur-xl lg:mx-0 lg:px-0">
-            <div className="lg:hidden">
+          <header className="sticky top-0 z-30 -mx-4 mb-7 flex items-center gap-2 sm:gap-4 border-b border-rule/70 bg-paper/85 px-4 py-3 backdrop-blur-xl lg:mx-0 lg:px-0 sm:py-3.5">
+            <div className="shrink-0 lg:hidden">
               <Brand href="/bang-dieu-khien" compact />
             </div>
 
@@ -56,23 +56,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <>
                 {/* Chuỗi ngày Streak rực lửa */}
                 <div
-                  className="flex items-center gap-2 rounded-full border border-shu/25 bg-shu-tint/80 px-3 py-1 text-xs font-bold text-shu shadow-xs backdrop-blur-xs"
+                  className="flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border border-shu/25 bg-shu-tint/80 px-2 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-bold text-shu shadow-xs backdrop-blur-xs"
                   title={`Chuỗi ${stats.currentStreak} ngày liên tục`}
                 >
                   <span className="text-shu animate-pulse">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <svg viewBox="0 0 24 24" width="14" height="14" className="sm:h-4 sm:w-4" fill="currentColor">
                       <path d="M12 2.5c.4 3.2-1.5 4.6-2.9 6C7.4 10 6 11.4 6 14a6 6 0 0 0 12 0c0-2.6-1.3-4.4-2.6-6.2-.5 1-1.2 1.6-2 1.8.5-2.6-.3-5.3-1.4-7.1Z" />
                     </svg>
                   </span>
-                  <span className="tnum font-extrabold">{stats.currentStreak} ngày</span>
+                  <span className="tnum font-extrabold">{stats.currentStreak}<span className="hidden xs:inline"> ngày</span></span>
                 </div>
 
                 {/* Thanh tiến độ XP trong ngày */}
-                <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                   <span className="hidden whitespace-nowrap text-xs font-semibold text-sumi-2 sm:inline">
                     Mục tiêu <b className="tnum text-sumi">{stats.todayXp}</b>/{stats.dailyGoalXp} XP
                   </span>
-                  <Progress value={stats.todayXp} max={stats.dailyGoalXp} tone="shu" className="min-w-16 flex-1" />
+                  <Progress value={stats.todayXp} max={stats.dailyGoalXp} tone="shu" className="min-w-8 flex-1 sm:min-w-16" />
                 </div>
 
                 {/* Huy hiệu Cấp độ / Đẳng cấp Dōjō */}
@@ -84,7 +84,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="flex-1" />
             )}
 
-            <ThemeToggle />
+            <div className="shrink-0">
+              <ThemeToggle />
+            </div>
           </header>
 
           {!persistent && (

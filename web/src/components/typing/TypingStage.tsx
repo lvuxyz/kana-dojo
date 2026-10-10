@@ -124,36 +124,36 @@ export function TypingStage({
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-3.5">
       {/* Thanh HUD chỉ số Zen tích hợp (Unified Zen HUD) */}
-      <Card className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-5">
+      <Card className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 px-3 py-2 sm:px-5 sm:py-2.5">
         {/* Bên trái: Tiến độ hoặc thời gian */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {config.mode === "PASSAGE" && (
-            <div className="flex items-center gap-2">
-              <span className="rounded-md border border-rule-firm bg-paper-sunk px-2 py-0.5 font-japanese text-[11px] font-bold text-sumi-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="rounded-md border border-rule-firm bg-paper-sunk px-1.5 py-0.5 sm:px-2 font-japanese text-[10.5px] sm:text-[11px] font-bold text-sumi-2">
                 文 {Math.min(live.records.length + 1, config.phraseCount)}/{config.phraseCount}
               </span>
-              <div className="w-16 sm:w-24">
+              <div className="w-12 sm:w-24">
                 <Progress value={live.records.length} max={config.phraseCount} tone="genko" className="h-1.5" />
               </div>
             </div>
           )}
           {config.mode === "TIME_ATTACK" && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <span
                 className={clsx(
-                  "rounded-md border px-2 py-0.5 text-xs font-bold tnum",
+                  "rounded-md border px-1.5 py-0.5 sm:px-2 text-[11px] sm:text-xs font-bold tnum",
                   lowTime ? "border-shu/40 bg-shu-tint text-shu animate-pulse" : "border-gold/40 bg-gold-tint text-gold",
                 )}
               >
                 ⏱ {formatClock(clock)}
               </span>
-              <div className="w-16 sm:w-24">
+              <div className="w-12 sm:w-24">
                 <Progress value={limitMs - clock} max={limitMs} tone={lowTime ? "shu" : "gold"} className="h-1.5" />
               </div>
             </div>
           )}
           {config.mode === "SUDDEN_DEATH" && (
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-shu/35 bg-shu-tint/80 px-2 py-0.5 text-xs font-bold text-shu">
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 rounded-md border border-shu/35 bg-shu-tint/80 px-2 py-0.5 text-xs font-bold text-shu">
               <span>命</span>
               <span>Sinh tử: <b className="tnum">{game.correct}</b> phím</span>
             </span>
@@ -165,7 +165,7 @@ export function TypingStage({
           <div className="animate-in fade-in zoom-in-95 duration-200">
             <span
               className={clsx(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold transition-all shadow-xs",
+                "inline-flex items-center gap-1 sm:gap-1.5 rounded-full px-2 sm:px-2.5 py-0.5 text-[11px] sm:text-xs font-bold transition-all shadow-xs",
                 game.streak >= 50
                   ? "border border-gold/50 bg-gradient-to-r from-gold/25 via-shu/25 to-gold/25 text-gold animate-pulse scale-105"
                   : game.streak >= 20
@@ -182,8 +182,8 @@ export function TypingStage({
         )}
 
         {/* Bên phải: Tốc độ, Chính xác, Lỗi + Công cụ nhanh */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-2 text-xs font-semibold tnum text-sumi-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold tnum text-sumi-2">
             <span title="Tốc độ gõ phím/phút">
               <b className="text-sumi">{Math.round(game.liveKpm)}</b> <span className="text-[10px] text-sumi-3">KPM</span>
             </span>
@@ -197,16 +197,16 @@ export function TypingStage({
             </span>
           </div>
 
-          <div className="h-3.5 w-px bg-rule/70" />
+          <div className="h-3.5 w-px bg-rule/70 hidden sm:block" />
 
           {/* Công cụ nhanh */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1">
             {onConfigChange && !config.dictation && (
               <button
                 type="button"
                 onClick={() => onConfigChange({ ...config, showMeaning: !config.showMeaning })}
                 className={clsx(
-                  "grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-xs font-bold transition-colors",
+                  "grid h-6.5 w-6.5 sm:h-7 sm:w-7 cursor-pointer place-items-center rounded-lg text-xs font-bold transition-colors",
                   config.showMeaning
                     ? "bg-shu/15 text-shu font-japanese"
                     : "text-sumi-3 opacity-50 hover:bg-paper-sunk hover:text-sumi",
@@ -227,7 +227,7 @@ export function TypingStage({
                   if (nextTheme !== "off") playKeySound(nextTheme, config.soundVolume);
                 }}
                 className={clsx(
-                  "grid h-7 w-7 cursor-pointer place-items-center rounded-lg transition-colors",
+                  "grid h-6.5 w-6.5 sm:h-7 sm:w-7 cursor-pointer place-items-center rounded-lg transition-colors",
                   config.soundTheme !== "off"
                     ? "bg-gold/20 text-gold"
                     : "text-sumi-3 opacity-50 hover:bg-paper-sunk hover:text-sumi",
@@ -254,7 +254,7 @@ export function TypingStage({
               <button
                 type="button"
                 onClick={() => speak(live.phrase.text)}
-                className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-sumi-3 transition-colors hover:bg-paper-sunk hover:text-sumi"
+                className="grid h-6.5 w-6.5 sm:h-7 sm:w-7 cursor-pointer place-items-center rounded-lg text-sumi-3 transition-colors hover:bg-paper-sunk hover:text-sumi"
                 title={method === "IME" ? "Nghe câu này" : "Nghe câu này (Space)"}
                 tabIndex={-1}
               >
@@ -272,7 +272,7 @@ export function TypingStage({
       <Card
         variant="luxury"
         className={clsx(
-          "relative flex min-h-[290px] flex-col items-center justify-center gap-3.5 px-5 py-7 sm:px-12 transition-all duration-300",
+          "relative flex min-h-[220px] sm:min-h-[290px] flex-col items-center justify-center gap-3 sm:gap-3.5 px-3.5 py-5 sm:px-12 sm:py-7 transition-all duration-300",
           game.streak >= 50
             ? "ring-2 ring-gold/45 shadow-xl shadow-gold/10"
             : game.streak >= 20
