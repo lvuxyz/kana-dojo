@@ -3,29 +3,46 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { HINT_AFTER_MISSES, StrokeStage, type AttemptResult } from "@/components/kana/StrokeStage";
-import { Button, Card, Empty, Progress, Spinner } from "@/components/ui";
+import { useSpeech } from "@/components/typing/useSpeech";
+import { Button, Card, Empty, Kbd, Notice, Progress, SpeakButton, Spinner } from "@/components/ui";
 import { KANA } from "@/lib/kana";
 import { useLearnContext, useProgress } from "@/lib/learning/hooks";
 import { createReviewQueue, gradeReviewCard, recordWritingAttempt } from "@/lib/learning/store";
+import { DEFAULT_GRADE, reviewKeyAction, spokenText, type KeyTarget } from "@/lib/review-keys";
 import type { Grade, GradeResult, ItemType, ReviewQueue, ReviewQueueItem } from "@/lib/types";
 
 /** Thẻ đã quy về dạng hỏi–đáp để hiển thị, bất kể là thẻ kana hay từ vựng. */
 interface ReviewCard {
   cardKey: string; itemType: ItemType; itemId: string;
   prompt: string; answer: string; hint: string | null;
+  /** Mặt có chữ tiếng Nhật để đọc thành tiếng; null nếu thẻ không có (thẻ tự soạn toàn tiếng Việt). */
+  speak: string | null;
 }
 
 function toCard(item: ReviewQueueItem): ReviewCard {
   const base = { cardKey: item.cardKey, itemType: item.itemType, itemId: item.itemId };
-  switch (item.itemType) {
-    case "VOCAB_MEANING":
-      return { ...base, prompt: item.word ?? "", answer: item.meaningVi ?? "", hint: item.reading };
-    case "VOCAB_READING":
-      return { ...base, prompt: item.word ?? "", answer: item.reading ?? "", hint: item.meaningVi };
-    default:
-      return { ...base, prompt: item.character ?? "", answer: item.romaji ?? "", hint: item.readingVi };
-  }
+  const sides = (() => {
+    switch (item.itemType) {
+      case "VOCAB_MEANING":
+        return { prompt: item.word ?? "", answer: item.meaningVi ?? "", hint: item.reading };
+      case "VOCAB_READING":
+        return { prompt: item.word ?? "", answer: item.reading ?? "", hint: item.meaningVi };
+      default:
+        return { prompt: item.character ?? "", answer: item.romaji ?? "", hint: item.readingVi };
+    }
+  })();
+  return { ...base, ...sides, speak: spokenText(sides.prompt, sides.answer, sides.hint) };
 }
+
+/** Phân loại chỗ đang có focus cho phím tắt (xem `KeyTarget`). */
+function keyTarget(t: EventTarget | null): KeyTarget {
+  if (!(t instanceof HTMLElement)) return "none";
+  if (t.isContentEditable || t.closest("input, textarea, select")) return "editable";
+  if (t.closest("button, a[href], summary, [role=button]")) return "control";
+  return "none";
+}
+
+const SPEECH_RATE = 0.8;
 
 const GRADE_LABEL: Record<Grade, { text: string; hint: string; tone: string }> = {
   1: { text: "Quên rồi", hint: "gặp lại sau ~1 phút", tone: "border-shu/50 text-shu hover:bg-shu-tint" },
@@ -69,6 +86,15 @@ export default function ReviewPage() {
     () => (card ? KANA.chars.find((c) => c.c === card.prompt) ?? null : null),
     [card],
   );
+  const isWriting = card?.itemType === "KANA_WRITING" && kanaChar;
+
+  const { speak, speaking, supported: canSpeak, missingVoice } = useSpeech();
+  const [speechError, setSpeechError] = useState(false);
+  const speakCard = () => {
+    if (!card?.speak) return;
+    if (!canSpeak) return setSpeechError(true);
+    speak(card.speak, { rate: SPEECH_RATE, key: card.cardKey });
+  };
 
   /** Hiện kết quả một lát rồi sang thẻ kế. Trong lúc chờ, `locked` khoá việc chấm để không chấm đúp một thẻ. */
   const showThenAdvance = (res: GradeResult, delayMs: number) => {
@@ -104,6 +130,30 @@ export default function ReviewPage() {
     }
   };
 
+  // Phím tắt kiểu Anki (bảng phím trong lib/review-keys.ts). Không có mảng phụ thuộc: đăng ký lại sau mỗi
+  // lần render để handler luôn thấy thẻ và trạng thái lật mới nhất; trang này render rất ít nên rẻ.
+  useEffect(() => {
+    if (!card) return;
+    const onKey = (e: KeyboardEvent) => {
+      const action = reviewKeyAction(
+        {
+          key: e.key, code: e.code, repeat: e.repeat,
+          modified: e.ctrlKey || e.metaKey || e.altKey,
+          composing: e.isComposing || e.keyCode === 229,
+          target: keyTarget(e.target),
+        },
+        { revealed, writing: !!isWriting, speakable: card.speak !== null },
+      );
+      if (!action) return;
+      e.preventDefault(); // Space không cuộn trang
+      if (action.type === "reveal") setRevealed(true);
+      else if (action.type === "grade") grade(action.grade);
+      else speakCard();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   if (!queue) return <Spinner label="Đang dựng hàng đợi ôn tập" />;
 
   if (cards.length === 0) {
@@ -130,8 +180,6 @@ export default function ReviewPage() {
       />
     );
   }
-
-  const isWriting = card.itemType === "KANA_WRITING" && kanaChar;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
@@ -169,9 +217,24 @@ export default function ReviewPage() {
             <>
               <p className="text-lg">{card.answer}</p>
               {card.hint && <p className="text-sm text-sumi-3">{card.hint}</p>}
+              {card.speak && (
+                <span className="inline-flex items-center gap-1 text-sumi-3">
+                  <SpeakButton
+                    active={speaking === card.cardKey}
+                    label={`Phát âm “${card.speak}”`}
+                    aria-keyshortcuts="R"
+                    onClick={speakCard}
+                    // Bấm chuột không giữ focus trên nút loa, để Space ngay sau đó vẫn chấm thẻ thay vì đọc lại.
+                    onMouseDown={(e) => e.preventDefault()}
+                  />
+                  <Kbd>R</Kbd>
+                </span>
+              )}
             </>
           ) : (
-            <Button variant="solid" size="lg" onClick={() => setRevealed(true)}>Hiện đáp án</Button>
+            <Button variant="solid" size="lg" aria-keyshortcuts="Space Enter" onClick={() => setRevealed(true)}>
+              Hiện đáp án <Kbd>Space</Kbd>
+            </Button>
           )}
         </Card>
       )}
@@ -183,13 +246,22 @@ export default function ReviewPage() {
               key={g}
               disabled={!!last}
               onClick={() => grade(g)}
-              className={`flex flex-col items-center gap-0.5 rounded-lg border bg-surface px-3 py-2.5 transition-colors disabled:opacity-50 ${GRADE_LABEL[g].tone}`}
+              aria-keyshortcuts={g === DEFAULT_GRADE ? `${g} Space Enter` : String(g)}
+              className={`relative flex flex-col items-center gap-0.5 rounded-lg border bg-surface px-3 py-2.5 transition-colors disabled:opacity-50 ${GRADE_LABEL[g].tone}`}
             >
+              <Kbd className="absolute right-1.5 top-1">{g}</Kbd>
               <span className="text-sm font-medium">{GRADE_LABEL[g].text}</span>
               <span className="text-[10.5px] text-sumi-3">{GRADE_LABEL[g].hint}</span>
             </button>
           ))}
         </div>
+      )}
+
+      {!isWriting && revealed && card.speak && speechError && (
+        <Notice tone="err">Trình duyệt này không hỗ trợ đọc thành tiếng.</Notice>
+      )}
+      {!isWriting && revealed && card.speak && missingVoice && (
+        <Notice tone="err">Máy chưa cài giọng tiếng Nhật — âm thanh phát âm có thể sai.</Notice>
       )}
 
       {last && (

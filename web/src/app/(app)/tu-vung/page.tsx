@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import clsx from "clsx";
 import { useSpeech } from "@/components/typing/useSpeech";
-import { Button, Card, Chip, Empty, Notice, Select } from "@/components/ui";
+import { Button, Card, Chip, Empty, Notice, Select, SpeakButton } from "@/components/ui";
 import { addCards, addDeck, type CardDraft } from "@/lib/space/library";
 import { useSpace } from "@/lib/space/hooks";
 import { updateSpace } from "@/lib/space/store";
@@ -22,31 +21,6 @@ const toDraft = (v: Vocabulary): CardDraft => ({
 });
 
 const SPEECH_RATE = 0.8;
-
-/** Nút loa nhỏ: đổi màu và nhấp nháy sóng âm khi đang đọc đúng đoạn này. */
-function SpeakButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title="Phát âm"
-      aria-label={label}
-      aria-pressed={active}
-      className={clsx(
-        "grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-lg transition-colors hover:bg-paper-sunk",
-        active ? "text-genko" : "text-sumi-3 hover:text-sumi",
-      )}
-    >
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
-        <g className={clsx(active && "animate-pulse motion-reduce:animate-none")}>
-          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-          {active && <path d="M18.5 5.5a9 9 0 0 1 0 13" />}
-        </g>
-      </svg>
-    </button>
-  );
-}
 
 export default function VocabPage() {
   const { space } = useSpace();
