@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import clsx from "clsx";
+import { useSpeech } from "@/components/typing/useSpeech";
 import { Button, Card, Chip, Empty, Notice, Select } from "@/components/ui";
 import { addCards, addDeck, type CardDraft } from "@/lib/space/library";
 import { useSpace } from "@/lib/space/hooks";
@@ -19,12 +21,46 @@ const toDraft = (v: Vocabulary): CardDraft => ({
   hint: v.reading !== v.word ? v.reading : v.romaji,
 });
 
+const SPEECH_RATE = 0.8;
+
+/** Nút loa nhỏ: đổi màu và nhấp nháy sóng âm khi đang đọc đúng đoạn này. */
+function SpeakButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Phát âm"
+      aria-label={label}
+      aria-pressed={active}
+      className={clsx(
+        "grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-lg transition-colors hover:bg-paper-sunk",
+        active ? "text-genko" : "text-sumi-3 hover:text-sumi",
+      )}
+    >
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
+        <g className={clsx(active && "animate-pulse motion-reduce:animate-none")}>
+          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+          {active && <path d="M18.5 5.5a9 9 0 0 1 0 13" />}
+        </g>
+      </svg>
+    </button>
+  );
+}
+
 export default function VocabPage() {
   const { space } = useSpace();
   const [level, setLevel] = useState(VOCAB_LEVELS[0]);
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+
+  const { speak: speakJa, speaking, supported: canSpeak, missingVoice } = useSpeech();
+  // Nút loa luôn hiển thị (tránh lệch HTML giữa server và client), trình duyệt không hỗ trợ thì báo khi bấm.
+  const speak = (text: string, key: string) => {
+    if (!canSpeak) return setMsg({ tone: "err", text: "Trình duyệt này không hỗ trợ đọc thành tiếng." });
+    speakJa(text, { rate: SPEECH_RATE, key });
+  };
 
   const words = useMemo(() => searchVocabulary(level, q), [level, q]);
 
@@ -93,21 +129,36 @@ export default function VocabPage() {
         <Link href="/thu-vien?tab=decks" className="ml-auto text-[12.5px] text-sumi-3 underline">Quản lý bộ thẻ</Link>
       </Card>
       {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
+      {missingVoice && <Notice tone="err">Máy chưa cài giọng tiếng Nhật — âm thanh phát âm có thể sai.</Notice>}
 
       {words.length === 0 && <Empty title="Không có từ nào khớp" hint="Thử đổi cấp độ JLPT hoặc từ khoá khác." />}
 
       <div className="grid gap-2.5 sm:grid-cols-2">
         {words.map((v) => (
           <Card key={v.id} className="px-4 py-3">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="font-mincho text-xl">{v.word}</span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-1">
+                <span className="font-mincho text-xl">{v.word}</span>
+                <SpeakButton
+                  active={speaking === `w${v.id}`}
+                  label={`Phát âm từ “${v.word}” (${v.reading})`}
+                  onClick={() => speak(v.word, `w${v.id}`)}
+                />
+              </span>
               {v.jlptLevel && <span className="rounded border border-rule px-1.5 text-[10.5px] text-sumi-3">N{v.jlptLevel}</span>}
             </div>
             <div className="mt-0.5 text-[12.5px] text-sumi-3">{v.reading} · {v.romaji}</div>
             <div className="mt-1 text-sm">{v.meaningVi}</div>
             {v.exampleJa && (
               <div className="mt-2 border-l-2 border-genko/40 pl-2.5 text-[12.5px] text-sumi-2">
-                <div className="font-mincho">{v.exampleJa}</div>
+                <div className="flex items-start gap-1">
+                  <span className="font-mincho pt-1">{v.exampleJa}</span>
+                  <SpeakButton
+                    active={speaking === `e${v.id}`}
+                    label={`Phát âm câu ví dụ: ${v.exampleJa}`}
+                    onClick={() => speak(v.exampleJa ?? "", `e${v.id}`)}
+                  />
+                </div>
                 {v.exampleVi && <div className="text-sumi-3">{v.exampleVi}</div>}
               </div>
             )}
