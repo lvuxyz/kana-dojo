@@ -102,14 +102,13 @@ export default async function KanaTablePage({ params }: { params: Promise<{ scri
                     <span className="h-px flex-1 bg-gradient-to-r from-rule via-rule/60 to-transparent" />
                   </h2>
                 )}
-                <section className="grid items-start gap-4 border-t border-rule/70 py-3 sm:grid-cols-[90px_1fr]">
+                <section className="grid items-start gap-2.5 sm:gap-4 border-t border-rule/70 py-2.5 sm:py-3 sm:grid-cols-[85px_1fr]">
                   <div className="flex items-baseline gap-2 pt-0 sm:block sm:pt-2">
-                    <span className="block font-mincho text-[15px] font-bold text-genko">{r.label}</span>
-                    <span className="text-[11px] font-semibold tracking-wider text-sumi-3 uppercase">{r.row}</span>
+                    <span className="block font-mincho text-sm sm:text-[15px] font-bold text-genko">{r.label}</span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold tracking-wider text-sumi-3 uppercase">{r.row}</span>
                   </div>
                   <div
-                    className="grid justify-start gap-2 sm:gap-2.5"
-                    style={{ gridTemplateColumns: `repeat(${r.cols}, minmax(0, 114px))` }}
+                    className="grid w-full grid-cols-5 gap-1.5 sm:gap-2.5 max-w-[calc(5*114px+4*10px)]"
                   >
                     {r.slots.map((c, i) =>
                       c ? (
@@ -117,18 +116,18 @@ export default async function KanaTablePage({ params }: { params: Promise<{ scri
                           key={c.c}
                           href={`/luyen-viet?c=${encodeURIComponent(c.c)}`}
                           title={`${c.c} — ${c.r}, đọc gần như "${c.vn}", ${c.n} nét`}
-                          className="group relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl border border-rule/85 bg-surface p-1.5 shadow-2xs transition-all duration-200 hover:z-10 hover:-translate-y-1 hover:border-genko hover:shadow-lg"
+                          className="group relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl sm:rounded-2xl border border-rule/85 bg-surface p-1 sm:p-1.5 shadow-2xs transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:border-genko hover:shadow-lg active:scale-95"
                         >
-                          <span className="font-mincho text-[clamp(26px,4.5vw,36px)] leading-none text-sumi transition-transform duration-200 group-hover:scale-105">
+                          <span className="font-mincho text-[clamp(21px,5.8vw,36px)] leading-none text-sumi transition-transform duration-200 group-hover:scale-105">
                             {c.c}
                           </span>
-                          <span className="text-[11.5px] font-semibold text-sumi-3">{c.r}</span>
-                          <span className="text-[10px] font-medium text-sumi-3 tnum">{c.n} nét</span>
+                          <span className="text-[10px] sm:text-[11.5px] font-semibold text-sumi-3 leading-none">{c.r}</span>
+                          <span className="text-[9px] sm:text-[10px] font-medium text-sumi-3/80 tnum leading-none">{c.n} nét</span>
                         </Link>
                       ) : (
                         <div
                           key={`v${i}`}
-                          className="aspect-square rounded-xl border border-dashed border-rule/60 opacity-40 bg-paper-sunk/20"
+                          className="aspect-square rounded-xl sm:rounded-2xl border border-dashed border-rule/60 opacity-40 bg-paper-sunk/20"
                         />
                       ),
                     )}

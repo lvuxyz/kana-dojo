@@ -59,14 +59,14 @@ function WritingRoom() {
   if (!ready) return <Spinner label="Đang mở phòng luyện viết" />;
 
   return (
-    <div className="flex flex-col gap-6" style={{ ["--cell" as string]: "116px" }}>
+    <div className="flex flex-col gap-5 sm:gap-6">
       {/* Tiêu đề trang & Bộ chọn bảng chữ cái */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule/60 pb-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 border-b border-rule/60 pb-3.5 sm:pb-4">
         <div>
           <h1 className="font-mincho text-2xl font-bold sm:text-3xl text-sumi">
             Phòng Luyện Viết
           </h1>
-          <p className="mt-1 text-sm font-medium text-sumi-3">
+          <p className="mt-1 text-xs sm:text-sm font-medium text-sumi-3">
             Bấm vào bất kỳ ký tự nào để bắt đầu viết. Máy chấm điểm từng nét và tự xếp lịch ôn lại cho bạn.
           </p>
         </div>
@@ -81,20 +81,20 @@ function WritingRoom() {
       </div>
 
       {/* Thẻ thống kê 3 chỉ số */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card variant="interactive" className="p-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card variant="interactive" className="p-4 sm:p-5">
           <Stat label="Đã rèn luyện" value={learned} sub={`trên tổng số ${charsOf(script, "all").length} ký tự`} tone="genko" />
         </Card>
-        <Card variant="interactive" className="p-5">
+        <Card variant="interactive" className="p-4 sm:p-5">
           <Stat label="Đã thuộc" value={mastered} sub="Đã qua bước học, vào lịch ôn FSRS" tone="shu" />
         </Card>
-        <Card variant="interactive" className="p-5">
+        <Card variant="interactive" className="p-4 sm:p-5">
           <Stat label="Đến hạn cần ôn" value={due} sub={due > 0 ? "Ưu tiên ôn tập hôm nay" : "Không còn thẻ tồn đọng"} tone="gold" />
         </Card>
       </div>
 
       {/* Bộ lọc nhóm chữ */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         {GROUPS.map((g) => (
           <Chip key={g.value} active={group === g.value} onClick={() => setGroup(g.value)}>
             <span>{g.label}</span>

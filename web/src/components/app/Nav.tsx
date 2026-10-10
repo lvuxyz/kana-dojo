@@ -73,8 +73,8 @@ export function SideNav() {
   );
 }
 
-/** Quá nhiều mục thì thanh dưới không đủ chỗ: giữ MAX_BAR mục đầu (do người học xếp), phần còn lại vào "Thêm". */
-const MAX_BAR = 6;
+/** Quá nhiều mục thì thanh dưới không đủ chỗ: trên mobile chuẩn là 5 mục (4 mục + Thêm). */
+const MAX_BAR = 5;
 
 /** Trên điện thoại thanh điều hướng nằm dưới cùng — kính mờ cao cấp với điểm nhấn triện son */
 export function BottomNav() {
@@ -95,7 +95,7 @@ export function BottomNav() {
         href={item.href}
         aria-current={active ? "page" : undefined}
         className={clsx(
-          "relative flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium whitespace-nowrap transition-all duration-150",
+          "relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-2 text-[10px] sm:text-[11px] font-medium transition-all duration-150",
           active ? "text-shu font-bold" : "text-sumi-3 hover:text-sumi",
         )}
       >
@@ -103,7 +103,7 @@ export function BottomNav() {
         <span className={clsx("transition-transform duration-200", active && "scale-110")}>
           <Icon name={item.icon} />
         </span>
-        <span>{item.label}</span>
+        <span className="truncate max-w-full text-center leading-tight">{item.label}</span>
       </Link>
     );
   };
@@ -111,15 +111,17 @@ export function BottomNav() {
   return (
     <>
       {open && rest.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 lg:hidden" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-30 bg-sumi/40 backdrop-blur-xs lg:hidden" onClick={() => setOpen(false)}>
           <ul
-            className="absolute inset-x-3 flex flex-col gap-1 rounded-2xl border border-rule/80 bg-surface p-2 shadow-lg"
-            style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.25rem)" }}
+            className="absolute inset-x-3 flex flex-col gap-1 rounded-2xl border border-rule/80 bg-surface p-2 shadow-2xl"
+            style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.25rem)" }}
+            onClick={(e) => e.stopPropagation()}
           >
             {rest.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onClick={() => setOpen(false)}
                   aria-current={path.startsWith(item.href) ? "page" : undefined}
                   className={clsx(
                     "flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium",
@@ -137,7 +139,7 @@ export function BottomNav() {
       <nav
         aria-label="Điều hướng chính"
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-rule/80 bg-surface/90 shadow-lg backdrop-blur-xl lg:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         {bar.map(tab)}
         {overflow && (
@@ -147,13 +149,13 @@ export function BottomNav() {
             aria-haspopup="true"
             onClick={() => setOpen((v) => !v)}
             className={clsx(
-              "relative flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1 py-2.5 text-[10px] font-medium whitespace-nowrap transition-all duration-150",
+              "relative flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1 px-1 py-2 text-[10px] sm:text-[11px] font-medium transition-all duration-150",
               open || restActive ? "text-shu font-bold" : "text-sumi-3 hover:text-sumi",
             )}
           >
             {restActive && <span className="absolute top-0 h-0.5 w-6 rounded-full bg-shu shadow-xs shadow-shu" />}
             <Icon name="more" />
-            <span>Thêm</span>
+            <span className="truncate max-w-full text-center leading-tight">Thêm</span>
           </button>
         )}
       </nav>

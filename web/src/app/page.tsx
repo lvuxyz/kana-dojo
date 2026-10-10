@@ -101,10 +101,10 @@ export default function Landing() {
 
       {/* ------------------------------------------------------------- HEADER */}
       <header className="sticky top-0 z-50 border-b border-rule/70 bg-paper/85 backdrop-blur-xl transition-colors">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 sm:px-5 py-3">
           <Brand />
 
-          <nav className="flex items-center gap-2 sm:gap-3">
+          <nav className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div className="hidden md:flex items-center gap-1.5 mr-2">
               <Link
                 href="/bang-chu-cai/hiragana"
@@ -140,14 +140,14 @@ export default function Landing() {
 
             <ThemeToggle />
 
-            <Link href="/bang-dieu-khien">
-              <Button size="sm" variant="outline" className="hidden sm:inline-flex">
+            <Link href="/bang-dieu-khien" className="hidden sm:inline-flex">
+              <Button size="sm" variant="outline">
                 Dōjō của tôi
               </Button>
             </Link>
             <Link href="/luyen-viet">
-              <Button size="sm" variant="solid">
-                Bắt đầu học
+              <Button size="sm" variant="solid" className="px-3 sm:px-4 text-xs sm:text-sm">
+                Vào học
               </Button>
             </Link>
           </nav>
@@ -156,21 +156,21 @@ export default function Landing() {
 
       <main className="relative z-10">
         {/* ------------------------------------------------------------- HERO SECTION */}
-        <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-10 pb-16 lg:grid-cols-[1.1fr_1fr] lg:pt-16 lg:pb-24">
-          <div className="flex flex-col gap-6 text-left">
+        <section className="mx-auto grid max-w-6xl items-center gap-8 lg:gap-12 px-4 sm:px-5 pt-8 pb-12 sm:pt-16 sm:pb-24 lg:grid-cols-[1.1fr_1fr]">
+          <div className="flex flex-col gap-5 sm:gap-6 text-left min-w-0">
             {/* Imperial pill badge */}
-            <div className="inline-flex w-fit items-center gap-2.5 rounded-full border border-shu/30 bg-shu-tint/90 px-4 py-1.5 shadow-xs backdrop-blur-md">
-              <span className="relative flex h-2 w-2">
+            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-shu/30 bg-shu-tint/90 px-3 sm:px-4 py-1.5 shadow-xs backdrop-blur-md">
+              <span className="relative flex h-2 w-2 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-shu opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-shu shadow-xs shadow-shu" />
               </span>
-              <span className="font-sans text-xs font-bold tracking-wide text-shu-2">
-                Chuẩn 208 ký tự · KanjiVG Vector · FSRS-6 Spaced Repetition
+              <span className="font-sans text-[11px] sm:text-xs font-bold tracking-wide text-shu-2 leading-none">
+                Chuẩn 208 ký tự · KanjiVG Vector · FSRS-6
               </span>
             </div>
 
             {/* Main Headline */}
-            <h1 className="font-mincho text-4xl font-bold leading-[1.2] tracking-tight text-sumi sm:text-5xl lg:text-[56px]">
+            <h1 className="font-mincho text-[30px] sm:text-4xl lg:text-[56px] font-bold leading-[1.2] tracking-tight text-sumi">
               Học viết tiếng Nhật{" "}
               <span className="relative inline-block">
                 <span className="bg-gradient-to-r from-shu via-shu to-shu-2 bg-clip-text text-transparent">
@@ -196,20 +196,20 @@ export default function Landing() {
             </h1>
 
             {/* Description */}
-            <p className="max-w-[54ch] text-base leading-relaxed text-sumi-2 sm:text-[17px]">
+            <p className="max-w-[54ch] text-sm sm:text-base leading-relaxed text-sumi-2 sm:text-[17px]">
               Hầu hết ứng dụng chỉ dạy bạn <em>nhận mặt chữ thụ động qua trắc nghiệm</em>. Kana Dōjō đưa bạn vào không gian
               rèn luyện thực thụ: cầm bút vẽ từng nét trên giấy ô vuông Nhật Bản — máy chấm điểm tức thì, phát hiện vẽ ngược chiều
               hay sai thứ tự để khắc phục ngay.
             </p>
-            <p className="max-w-[54ch] text-base leading-relaxed text-sumi-2 sm:text-[17px]">
+            <p className="max-w-[54ch] text-sm sm:text-base leading-relaxed text-sumi-2 sm:text-[17px]">
               Và mỗi người mở trang này có <b>một dōjō của riêng mình</b>: bạn chọn công cụ nào hiện ra, tự soạn ghi chú, bộ thẻ và
               câu luyện gõ, rồi quyết định học theo cách của bạn — mọi thứ nằm ngay trong trình duyệt, không cần tài khoản.
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-wrap items-center gap-3.5 pt-1">
-              <Link href="/bang-dieu-khien">
-                <Button variant="solid" size="lg" className="group text-[15px] px-7 shadow-lg shadow-shu/25">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+              <Link href="/bang-dieu-khien" className="w-full sm:w-auto">
+                <Button variant="solid" size="lg" className="w-full sm:w-auto justify-center group text-[15px] px-6 sm:px-7 shadow-lg shadow-shu/25">
                   <span>Dựng dōjō của tôi</span>
                   <svg
                     className="h-4 w-4 transition-transform group-hover:translate-x-1"
@@ -221,22 +221,22 @@ export default function Landing() {
                   </svg>
                 </Button>
               </Link>
-              <Link href="/bang-chu-cai/hiragana">
-                <Button size="lg" variant="outline" className="font-semibold text-[15px] px-6">
+              <Link href="/bang-chu-cai/hiragana" className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto justify-center font-semibold text-[15px] px-6">
                   Xem bảng Hiragana
                 </Button>
               </Link>
             </div>
 
             {/* Floating Metric Pills */}
-            <div className="grid grid-cols-2 gap-2.5 pt-3 sm:flex sm:flex-wrap">
+            <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap">
               {METRIC_PILLS.map((pill, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 rounded-xl border border-rule/80 bg-surface/70 px-3 py-1.5 text-xs font-semibold text-sumi-2 backdrop-blur-xs shadow-2xs"
+                  className="flex items-center gap-2 rounded-xl border border-rule/80 bg-surface/70 px-3 py-2 sm:py-1.5 text-xs font-semibold text-sumi-2 backdrop-blur-xs shadow-2xs"
                 >
-                  <span>{pill.icon}</span>
-                  <span>{pill.label}</span>
+                  <span className="shrink-0">{pill.icon}</span>
+                  <span className="leading-snug">{pill.label}</span>
                 </div>
               ))}
             </div>
@@ -385,6 +385,14 @@ export default function Landing() {
             </p>
           </div>
 
+          {/* Swipe indicator on mobile */}
+          <div className="flex items-center justify-end gap-1.5 pb-2 text-[11.5px] font-medium text-sumi-3 sm:hidden">
+            <svg className="h-3.5 w-3.5 animate-pulse text-shu" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+            <span>Vuốt ngang để so sánh</span>
+          </div>
+
           <div className="overflow-x-auto rounded-3xl border border-rule/80 bg-surface/90 shadow-lg shadow-sumi/5 backdrop-blur-xl">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
@@ -496,20 +504,20 @@ export default function Landing() {
                 Không cần tài khoản, không thẻ tín dụng, không quảng cáo làm phiền. Mở trình duyệt và cầm bút luyện nét ngay bây giờ.
               </p>
 
-              <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-                <Link href="/luyen-viet">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 pt-2 w-full max-w-md sm:max-w-none">
+                <Link href="/luyen-viet" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="bg-white text-shu hover:bg-white/95 hover:scale-[1.02] shadow-xl font-bold text-base px-9 py-4 cursor-pointer"
+                    className="w-full sm:w-auto justify-center bg-white text-shu hover:bg-white/95 hover:scale-[1.02] shadow-xl font-bold text-base px-8 sm:px-9 py-3.5 sm:py-4 cursor-pointer"
                   >
                     Vào luyện viết ngay
                   </Button>
                 </Link>
-                <Link href="/bang-chu-cai/hiragana">
+                <Link href="/bang-chu-cai/hiragana" className="w-full sm:w-auto">
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white/40 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md text-base px-7 py-4"
+                    className="w-full sm:w-auto justify-center border-white/40 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md text-base px-6 sm:px-7 py-3.5 sm:py-4"
                   >
                     Khám phá bảng chữ cái
                   </Button>

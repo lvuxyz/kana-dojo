@@ -7,6 +7,8 @@ const nextConfig = {
   output: "export",
   // Lint chạy riêng bằng `npm run lint` (ESLint 9 CLI); không chạy lại trong `next build`.
   eslint: { ignoreDuringBuilds: true },
+  // Cho phép truy cập từ điện thoại qua mạng LAN nội bộ khi dev mà không bị cảnh báo CORS
+  allowedDevOrigins: ["192.168.*", "10.*", "172.16.*"],
 };
 
 export default nextConfig;

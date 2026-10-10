@@ -57,18 +57,18 @@ export function HeroDemo() {
   return (
     <div className="relative mx-auto w-full max-w-[480px]">
       {/* Hiệu ứng hào quang nền đa sắc (Ambient Glow & Urushi Lacquer depth) */}
-      <div className="absolute -inset-3 rounded-[32px] bg-gradient-to-tr from-shu/20 via-gold/15 to-genko/20 blur-2xl opacity-80 dark:opacity-50 pointer-events-none" />
+      <div className="absolute inset-0 rounded-2xl sm:rounded-[32px] bg-gradient-to-tr from-shu/20 via-gold/15 to-genko/20 blur-xl opacity-80 dark:opacity-50 pointer-events-none" />
 
-      <div className="glass-luxury relative flex flex-col gap-4.5 rounded-[28px] p-5.5 sm:p-6 transition-all duration-300">
+      <div className="glass-luxury relative flex flex-col gap-3.5 sm:gap-4.5 rounded-2xl sm:rounded-[28px] p-4 sm:p-6 transition-all duration-300">
         {/* Header của khung demo */}
-        <div className="flex items-center justify-between gap-3 border-b border-rule/70 pb-3.5">
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-2.5 w-2.5">
+        <div className="flex items-center justify-between gap-2.5 sm:gap-3 border-b border-rule/70 pb-3 sm:pb-3.5">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-shu opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-shu shadow-xs shadow-shu" />
+              <span className="relative inline-flex h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-shu shadow-xs shadow-shu" />
             </span>
             <div className="flex items-center gap-1.5 font-sans text-xs font-bold tracking-wider uppercase text-sumi">
-              <span>Studio Trải Nghiệm</span>
+              <span className="text-[11px] sm:text-xs">Studio Trải Nghiệm</span>
               <span className="rounded bg-shu-tint px-1.5 py-0.2 font-mincho text-[10px] font-bold text-shu">
                 試筆
               </span>
@@ -112,7 +112,7 @@ export function HeroDemo() {
         </div>
 
         {/* Khung Canvas StrokeStage với phong cách khung tranh Washi */}
-        <div className="relative mx-auto w-full max-w-[340px] rounded-2xl border-2 border-rule-firm/60 bg-paper-sunk/40 p-2.5 shadow-inner backdrop-blur-xs">
+        <div className="relative mx-auto w-full max-w-[340px] rounded-2xl border-2 border-rule-firm/60 bg-paper-sunk/40 p-2 sm:p-2.5 shadow-inner backdrop-blur-xs">
           {/* Góc trang trí truyền thống */}
           <span className="absolute top-1.5 left-1.5 h-2 w-2 border-t-2 border-l-2 border-genko/50 rounded-tl-sm pointer-events-none" />
           <span className="absolute top-1.5 right-1.5 h-2 w-2 border-t-2 border-r-2 border-genko/50 rounded-tr-sm pointer-events-none" />
@@ -154,7 +154,7 @@ export function HeroDemo() {
 
         {/* Hộp phản hồi trạng thái nét viết với phong cách thanh lịch */}
         <div
-          className={`flex min-h-[48px] items-center justify-center rounded-xl px-3.5 py-2 text-center text-[13px] font-semibold leading-snug transition-all duration-200 ${
+          className={`flex min-h-[44px] sm:min-h-[48px] items-center justify-center rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2 text-center text-xs sm:text-[13px] font-semibold leading-snug transition-all duration-200 ${
             tone === "bad"
               ? "bg-shu-tint text-shu-2 border border-shu/30 shadow-xs shadow-shu/10"
               : tone === "good"
@@ -166,13 +166,13 @@ export function HeroDemo() {
         </div>
 
         {/* Thanh công cụ hành động trực quan */}
-        <div className="flex items-center justify-between gap-2 pt-0.5">
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <Button
               size="sm"
               variant="outline"
               onClick={speak}
-              className="text-xs"
+              className="px-2.5 sm:px-3 text-xs"
               title="Phát âm chuẩn tiếng Nhật"
             >
               <svg className="w-3.5 h-3.5 text-shu" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -188,7 +188,7 @@ export function HeroDemo() {
                 setCompleted(false);
                 stage.current?.replay();
               }}
-              className="text-xs"
+              className="px-2.5 sm:px-3 text-xs"
               title="Xem hoạt ảnh mẫu thứ tự nét"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -206,7 +206,7 @@ export function HeroDemo() {
                 setScore(null);
                 stage.current?.reset();
               }}
-              className="text-xs"
+              className="px-2.5 sm:px-3 text-xs"
               title="Xoá để vẽ lại từ đầu"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -216,20 +216,18 @@ export function HeroDemo() {
             </Button>
           </div>
 
-          <div className="flex items-center gap-2">
-            {score !== null && (
-              <div className="flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 border border-rule/80 shadow-xs">
-                <span className="text-[11px] font-bold text-sumi-3 uppercase tracking-wider">Điểm:</span>
-                <span
-                  className={`font-mincho text-xl font-bold tnum ${
-                    score >= 80 ? "text-genko" : score >= 58 ? "text-gold" : "text-shu"
-                  }`}
-                >
-                  {score}
-                </span>
-              </div>
-            )}
-          </div>
+          {score !== null && (
+            <div className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface px-2.5 py-1 sm:px-3 sm:py-1.5 border border-rule/80 shadow-xs">
+              <span className="text-[10px] sm:text-[11px] font-bold text-sumi-3 uppercase tracking-wider">Điểm:</span>
+              <span
+                className={`font-mincho text-lg sm:text-xl font-bold tnum ${
+                  score >= 80 ? "text-genko" : score >= 58 ? "text-gold" : "text-shu"
+                }`}
+              >
+                {score}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

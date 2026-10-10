@@ -6,6 +6,15 @@ import { TypingRun, type InputMethod } from "@/lib/typing/engine";
 import { compareIme, imeProgress, normalizeIme } from "@/lib/typing/ime";
 import { createFeed, type ContentType, type DrillGroup, type Phrase } from "@/lib/typing/phrases";
 import { accuracy, kpm, typingScore, type TypingMode } from "@/lib/typing/score";
+import {
+  playKeySound,
+  playMissSound,
+  playSentenceCompleteSound,
+  playStreakMilestoneSound,
+  type SoundTheme,
+} from "@/lib/typing/sound";
+
+export type { SoundTheme } from "@/lib/typing/sound";
 
 export interface GameConfig {
   content: ContentType;
@@ -23,6 +32,12 @@ export interface GameConfig {
   stuckHint: boolean;
   /** Nghe chép: che chữ, đọc câu thành tiếng */
   dictation: boolean;
+  /** Kiểu âm thanh gõ phím cơ học */
+  soundTheme: SoundTheme;
+  /** Âm lượng hiệu ứng âm thanh (0.0 đến 1.0) */
+  soundVolume: number;
+  /** Hiện nghĩa tiếng Việt dưới câu mẫu khi gõ */
+  showMeaning: boolean;
 }
 
 /** Nguồn câu đặc biệt của một ván: danh sách cố định (luyện lại câu có lỗi) hoặc chữ hay sai. */
@@ -59,6 +74,8 @@ export interface GameResult {
   kpm: number;
   accuracy: number;
   score: number;
+  /** Chuỗi gõ đúng liên tiếp dài nhất */
+  maxStreak: number;
   /** Mọi cụm kana gõ sai trong lượt, nhiều nhất trước */
   weakKana: [string, number][];
   /** Phím lẽ ra phải bấm ở những lần sai */
@@ -87,6 +104,10 @@ interface Live {
   chars: number;
   phraseKeys: number;
   phraseMisses: number;
+  /** Chuỗi phím đúng liên tiếp hiện tại */
+  streak: number;
+  /** Chuỗi phím đúng dài nhất trong ván */
+  maxStreak: number;
   missKana: Map<string, number>;
   missKeys: Map<string, number>;
   records: PhraseRecord[];
@@ -148,6 +169,8 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
       chars: 0,
       phraseKeys: 0,
       phraseMisses: 0,
+      streak: 0,
+      maxStreak: 0,
       missKana: new Map(),
       missKeys: new Map(),
       records: [],
@@ -192,6 +215,7 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
         kpm: kpm(correct, durationMs),
         accuracy: accuracy(correct, l.miss),
         score: typingScore(config.mode, correct, l.miss, durationMs),
+        maxStreak: l.maxStreak,
         weakKana: sorted(l.missKana),
         weakKeys: sorted(l.missKeys),
         hinted: sorted(l.hinted),
@@ -242,6 +266,8 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
     l.miss += 1;
     l.phraseMisses += 1;
     l.missTick += 1;
+    l.streak = 0;
+    playMissSound(config.soundVolume);
     bump(l.missKana, kana);
     bump(l.missKeys, key);
     if (l.stuckAt !== pos) {
@@ -273,7 +299,22 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
         l.correct += 1;
         l.phraseKeys += 1;
         l.chars += run.pos - before;
-        if (res.finished) completePhrase(at, l.phraseKeys);
+        l.streak += 1;
+        if (l.streak > l.maxStreak) l.maxStreak = l.streak;
+        playKeySound(config.soundTheme, config.soundVolume);
+        if (
+          l.streak === 10 ||
+          l.streak === 25 ||
+          l.streak === 50 ||
+          l.streak === 100 ||
+          (l.streak > 100 && l.streak % 50 === 0)
+        ) {
+          playStreakMilestoneSound(l.streak, config.soundVolume);
+        }
+        if (res.finished) {
+          playSentenceCompleteSound(config.soundVolume);
+          completePhrase(at, l.phraseKeys);
+        }
       }
       rerender();
     },
@@ -299,6 +340,21 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
       const { matched, wrong } = compareIme(normalizeIme(value), target);
 
       if (wrong && !l.imeWrong) registerMiss(at, matched, target[matched] ?? target.at(-1), undefined);
+      if (!wrong && matched > l.imeMatched) {
+        const diff = matched - l.imeMatched;
+        l.streak += diff;
+        if (l.streak > l.maxStreak) l.maxStreak = l.streak;
+        playKeySound(config.soundTheme, config.soundVolume);
+        if (
+          l.streak === 10 ||
+          l.streak === 25 ||
+          l.streak === 50 ||
+          l.streak === 100 ||
+          (l.streak > 100 && l.streak % 50 === 0)
+        ) {
+          playStreakMilestoneSound(l.streak, config.soundVolume);
+        }
+      }
       l.imeWrong = wrong;
       l.imeMatched = matched;
       // registerMiss có thể vừa kết thúc ván (chế độ sinh tử) — TS không thấy được thay đổi đó.
@@ -311,6 +367,7 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
         const whole = imeProgress(l.phrase, target.length);
         l.correct += whole.keys;
         l.chars += whole.chars;
+        playSentenceCompleteSound(config.soundVolume);
         completePhrase(at, whole.keys);
         rerender();
         return true;
@@ -350,6 +407,8 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
     liveKpm: kpm(correct, elapsed),
     liveAccuracy: accuracy(correct, live.miss),
     correct,
+    streak: live.streak,
+    maxStreak: live.maxStreak,
     /** Số lần sai liên tiếp ở đúng chỗ đang gõ (0 nếu vừa tiến lên) */
     stuckMisses: live.stuckAt === here ? live.stuckMisses : 0,
     press,

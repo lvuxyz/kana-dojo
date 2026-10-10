@@ -34,7 +34,7 @@ export function Brand({
               道場
             </span>
           </span>
-          <span title={tagline} className="max-w-52 truncate font-sans text-[11.5px] font-medium tracking-normal text-sumi-3">
+          <span title={tagline} className="hidden sm:block max-w-52 truncate font-sans text-[11.5px] font-medium tracking-normal text-sumi-3">
             {tagline}
           </span>
         </span>

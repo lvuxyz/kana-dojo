@@ -29,19 +29,18 @@ export function KanaGrid({
               </div>
             )}
 
-            <section className="grid items-start gap-4 border-t border-rule/70 py-3 sm:grid-cols-[90px_1fr]">
+            <section className="grid items-start gap-2.5 sm:gap-4 border-t border-rule/70 py-2.5 sm:py-3 sm:grid-cols-[85px_1fr]">
               <div className="flex items-baseline gap-2 pt-0 sm:block sm:pt-2">
-                <span className="block font-mincho text-[15.5px] font-bold leading-tight text-genko">{r.label}</span>
-                <span className="text-[11px] font-semibold tracking-wider text-sumi-3 uppercase">{r.row}</span>
+                <span className="block font-mincho text-sm sm:text-[15.5px] font-bold leading-tight text-genko">{r.label}</span>
+                <span className="text-[10px] sm:text-[11px] font-semibold tracking-wider text-sumi-3 uppercase">{r.row}</span>
               </div>
 
               <div
-                className="grid justify-start gap-2 sm:gap-2.5"
-                style={{ gridTemplateColumns: `repeat(${r.cols}, minmax(0, var(--cell, 116px)))` }}
+                className="grid w-full grid-cols-5 gap-1.5 sm:gap-2.5 max-w-[calc(5*116px+4*10px)]"
               >
                 {r.slots.map((c, i) =>
                   c ? <Cell key={c.c} char={c} state={states.get(c.c)} onPick={onPick} />
-                    : <div key={`v${i}`} className="aspect-square rounded-xl border border-dashed border-rule/60 opacity-40 bg-paper-sunk/20" />,
+                    : <div key={`v${i}`} className="aspect-square rounded-xl sm:rounded-2xl border border-dashed border-rule/60 opacity-40 bg-paper-sunk/20" />,
                 )}
               </div>
             </section>
@@ -59,8 +58,8 @@ function Cell({ char, state, onPick }: { char: KanaChar; state?: CellState; onPi
       onClick={() => onPick(char)}
       aria-label={`${char.c} — ${char.r}, ${char.n} nét`}
       className={clsx(
-        "group relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl border bg-surface p-1.5 cursor-pointer select-none",
-        "transition-all duration-200 hover:z-10 hover:-translate-y-1 hover:shadow-lg hover:border-genko",
+        "group relative flex aspect-square flex-col items-center justify-center rounded-xl sm:rounded-2xl border bg-surface p-1 sm:p-1.5 cursor-pointer select-none",
+        "transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:shadow-lg hover:border-genko active:scale-95",
         level === 2
           ? "border-shu/40 shadow-xs shadow-shu/10"
           : level === 1
@@ -68,14 +67,14 @@ function Cell({ char, state, onPick }: { char: KanaChar; state?: CellState; onPi
           : "border-rule/85 shadow-2xs",
       )}
     >
-      <span className="font-mincho text-[clamp(26px,4.5vw,36px)] leading-none tracking-tight text-sumi transition-transform duration-200 group-hover:scale-105">
+      <span className="font-mincho text-[clamp(21px,5.8vw,36px)] leading-none tracking-tight text-sumi transition-transform duration-200 group-hover:scale-105">
         {char.c}
       </span>
-      <span className="text-[11.5px] font-semibold text-sumi-3">{char.r}</span>
+      <span className="mt-0.5 text-[10px] sm:text-[11.5px] font-semibold text-sumi-3 leading-none">{char.r}</span>
 
       {/* Con dấu triện son 済 — đóng dấu bài đạt */}
       {level === 2 && (
-        <span className="absolute right-1.5 top-1.5 grid h-4 w-4 place-items-center rounded-[3px] bg-shu font-mincho text-[9.5px] font-bold text-white shadow-2xs shadow-shu">
+        <span className="absolute right-1 top-1 grid h-3.5 w-3.5 sm:h-4 sm:w-4 place-items-center rounded-[3px] bg-shu font-mincho text-[8.5px] sm:text-[9.5px] font-bold text-white shadow-2xs shadow-shu">
           済
         </span>
       )}
@@ -83,14 +82,14 @@ function Cell({ char, state, onPick }: { char: KanaChar; state?: CellState; onPi
       {/* Chấm vàng nhắc đến hạn ôn FSRS */}
       {state?.due && level > 0 && (
         <span
-          className="absolute left-1.5 top-1.5 h-2 w-2 rounded-full bg-gold ring-2 ring-surface shadow-xs animate-pulse"
+          className="absolute left-1 top-1 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-gold ring-1.5 sm:ring-2 ring-surface shadow-xs animate-pulse"
           title="Đến hạn ôn tập"
         />
       )}
 
       {/* Thanh đo điểm cao nhất */}
       {level > 0 && (
-        <span className="absolute inset-x-2.5 bottom-1.5 h-1 overflow-hidden rounded-full bg-rule/70">
+        <span className="absolute inset-x-2 bottom-1 h-0.5 sm:h-1 overflow-hidden rounded-full bg-rule/70">
           <i
             className={clsx("block h-full rounded-full transition-all duration-300", level === 2 ? "bg-shu" : "bg-genko")}
             style={{ width: `${Math.min(100, state?.bestScore ?? 0)}%` }}
