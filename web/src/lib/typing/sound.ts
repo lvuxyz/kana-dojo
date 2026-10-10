@@ -20,6 +20,32 @@ export const SOUND_THEMES: SoundThemeInfo[] = [
   { value: "off", label: "Tắt tiếng", ja: "消音", hint: "Không phát âm thanh khi gõ phím" },
 ];
 
+/** Âm lượng thực của mọi hiệu ứng trong ván: kiểu "off" tắt hẳn — cả tiếng gõ sai, chuông hết câu và mốc combo. */
+export function effectVolume(theme: SoundTheme, volume: number): number {
+  return theme === "off" ? 0 : Math.min(1, Math.max(0, volume));
+}
+
+const STREAK_MILESTONES = [10, 25, 50, 100];
+/** Trên 100 thì cứ mỗi bội số này là một mốc. */
+const STREAK_STEP_AFTER_100 = 50;
+
+/**
+ * Mốc combo (10, 25, 50, 100, 150, 200…) vừa vượt qua khi chuỗi tăng từ `prev` lên `next`, hoặc null.
+ * So theo khoảng chứ không so bằng: ở chế độ IME một lần chốt chữ có thể cộng nhiều ký tự cùng lúc.
+ */
+export function streakMilestoneCrossed(prev: number, next: number): number | null {
+  if (next <= prev) return null;
+  if (next >= 100) {
+    const top = Math.floor(next / STREAK_STEP_AFTER_100) * STREAK_STEP_AFTER_100;
+    if (top > prev) return top;
+  }
+  for (let i = STREAK_MILESTONES.length - 1; i >= 0; i--) {
+    const m = STREAK_MILESTONES[i];
+    if (prev < m && m <= next) return m;
+  }
+  return null;
+}
+
 let cachedCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {

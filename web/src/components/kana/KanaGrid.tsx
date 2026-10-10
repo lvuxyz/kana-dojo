@@ -82,7 +82,7 @@ function Cell({ char, state, onPick }: { char: KanaChar; state?: CellState; onPi
       {/* Chấm vàng nhắc đến hạn ôn FSRS */}
       {state?.due && level > 0 && (
         <span
-          className="absolute left-1 top-1 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-gold ring-1.5 sm:ring-2 ring-surface shadow-xs animate-pulse"
+          className="absolute left-1 top-1 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-gold ring-[1.5px] sm:ring-2 ring-surface shadow-xs animate-pulse"
           title="Đến hạn ôn tập"
         />
       )}

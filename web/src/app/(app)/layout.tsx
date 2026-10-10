@@ -64,7 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       <path d="M12 2.5c.4 3.2-1.5 4.6-2.9 6C7.4 10 6 11.4 6 14a6 6 0 0 0 12 0c0-2.6-1.3-4.4-2.6-6.2-.5 1-1.2 1.6-2 1.8.5-2.6-.3-5.3-1.4-7.1Z" />
                     </svg>
                   </span>
-                  <span className="tnum font-extrabold">{stats.currentStreak}<span className="hidden xs:inline"> ngày</span></span>
+                  <span className="tnum font-extrabold">{stats.currentStreak}<span className="hidden sm:inline"> ngày</span></span>
                 </div>
 
                 {/* Thanh tiến độ XP trong ngày */}

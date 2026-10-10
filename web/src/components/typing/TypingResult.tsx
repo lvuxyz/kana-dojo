@@ -88,7 +88,7 @@ export function TypingResult({
         <Tile label="Chính xác" value={`${(result.accuracy * 100).toFixed(1)}%`} />
         <Tile
           label="Chuỗi dài nhất"
-          value={`${result.maxStreak ?? 0} phím`}
+          value={`${result.maxStreak ?? 0} ${streakUnit(result)}`}
           highlight={(result.maxStreak ?? 0) >= 20}
         />
         <Tile label="Thời gian" value={formatDuration(result.durationMs)} />
@@ -158,6 +158,11 @@ function RecordLine({ outcome }: { outcome: RecordOutcome }) {
   );
 }
 
+/** Bộ gõ IME không cho đếm phím, nên chuỗi ở chế độ đó tính theo ký tự đã chốt. */
+function streakUnit(r: GameResult) {
+  return r.config.method === "IME" ? "chữ" : "phím";
+}
+
 function Tile({ label, value, highlight = false }: { label: string; value: React.ReactNode; highlight?: boolean }) {
   return (
     <Card className={clsx("flex flex-col gap-1.5 px-4 py-3", highlight && "border-gold/50 bg-gold-tint/40 shadow-xs")}>
@@ -191,7 +196,7 @@ function advice(r: GameResult): string {
     return "Độ chính xác dưới 90% đang kéo điểm xuống rất mạnh (điểm = tốc độ × chính xác³). Gõ chậm lại một nhịp, chắc tay rồi hẵng tăng tốc.";
   }
   if ((r.maxStreak ?? 0) >= 40) {
-    return `Phong độ cực kỳ ấn tượng! Chuỗi liên kích ${r.maxStreak} phím cho thấy bạn giữ nhịp thở và phản xạ rất đều.`;
+    return `Phong độ cực kỳ ấn tượng! Chuỗi liên kích ${r.maxStreak} ${streakUnit(r)} cho thấy bạn giữ nhịp thở và phản xạ rất đều.`;
   }
   if (r.kpm < 60) {
     return "Nền tảng tốt! Luyện thêm chế độ “Kana ngẫu nhiên” để thuộc vị trí phím và phản xạ nhanh hơn.";

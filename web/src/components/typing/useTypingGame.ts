@@ -7,10 +7,12 @@ import { compareIme, imeProgress, normalizeIme } from "@/lib/typing/ime";
 import { createFeed, type ContentType, type DrillGroup, type Phrase } from "@/lib/typing/phrases";
 import { accuracy, kpm, typingScore, type TypingMode } from "@/lib/typing/score";
 import {
+  effectVolume,
   playKeySound,
   playMissSound,
   playSentenceCompleteSound,
   playStreakMilestoneSound,
+  streakMilestoneCrossed,
   type SoundTheme,
 } from "@/lib/typing/sound";
 
@@ -74,7 +76,7 @@ export interface GameResult {
   kpm: number;
   accuracy: number;
   score: number;
-  /** Chuỗi gõ đúng liên tiếp dài nhất */
+  /** Chuỗi gõ đúng liên tiếp dài nhất — tính theo phím, riêng chế độ IME tính theo ký tự */
   maxStreak: number;
   /** Mọi cụm kana gõ sai trong lượt, nhiều nhất trước */
   weakKana: [string, number][];
@@ -141,6 +143,7 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
   const [now, setNow] = useState(() => performance.now());
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
+  const sfxVolume = effectVolume(config.soundTheme, config.soundVolume);
 
   const feedRef = useRef<(() => Phrase) | null>(null);
   const liveRef = useRef<Live | null>(null);
@@ -260,6 +263,16 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
     l.stuckMisses = 0;
   };
 
+  /** Nối dài chuỗi đúng liên tiếp; vượt qua mốc combo nào thì phát tiếng mừng của mốc đó. */
+  const extendStreak = (by: number) => {
+    const l = liveRef.current!;
+    const prev = l.streak;
+    l.streak += by;
+    if (l.streak > l.maxStreak) l.maxStreak = l.streak;
+    const milestone = streakMilestoneCrossed(prev, l.streak);
+    if (milestone !== null) playStreakMilestoneSound(milestone, sfxVolume);
+  };
+
   /** `pos`: chỗ đang gõ sai (vị trí kana, hoặc số ký tự đã khớp ở chế độ IME). */
   const registerMiss = (at: number, pos: number, kana: string | undefined, key: string | undefined) => {
     const l = liveRef.current!;
@@ -267,7 +280,7 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
     l.phraseMisses += 1;
     l.missTick += 1;
     l.streak = 0;
-    playMissSound(config.soundVolume);
+    playMissSound(sfxVolume);
     bump(l.missKana, kana);
     bump(l.missKeys, key);
     if (l.stuckAt !== pos) {
@@ -299,26 +312,16 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
         l.correct += 1;
         l.phraseKeys += 1;
         l.chars += run.pos - before;
-        l.streak += 1;
-        if (l.streak > l.maxStreak) l.maxStreak = l.streak;
-        playKeySound(config.soundTheme, config.soundVolume);
-        if (
-          l.streak === 10 ||
-          l.streak === 25 ||
-          l.streak === 50 ||
-          l.streak === 100 ||
-          (l.streak > 100 && l.streak % 50 === 0)
-        ) {
-          playStreakMilestoneSound(l.streak, config.soundVolume);
-        }
+        playKeySound(config.soundTheme, sfxVolume);
+        extendStreak(1);
         if (res.finished) {
-          playSentenceCompleteSound(config.soundVolume);
+          playSentenceCompleteSound(sfxVolume);
           completePhrase(at, l.phraseKeys);
         }
       }
       rerender();
     },
-    // begin/completePhrase/registerMiss chỉ đọc ref và config — ổn định trong suốt một ván.
+    // begin/completePhrase/registerMiss/extendStreak và sfxVolume chỉ đọc ref và config — ổn định trong suốt một ván.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [config],
   );
@@ -341,19 +344,8 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
 
       if (wrong && !l.imeWrong) registerMiss(at, matched, target[matched] ?? target.at(-1), undefined);
       if (!wrong && matched > l.imeMatched) {
-        const diff = matched - l.imeMatched;
-        l.streak += diff;
-        if (l.streak > l.maxStreak) l.maxStreak = l.streak;
-        playKeySound(config.soundTheme, config.soundVolume);
-        if (
-          l.streak === 10 ||
-          l.streak === 25 ||
-          l.streak === 50 ||
-          l.streak === 100 ||
-          (l.streak > 100 && l.streak % 50 === 0)
-        ) {
-          playStreakMilestoneSound(l.streak, config.soundVolume);
-        }
+        playKeySound(config.soundTheme, sfxVolume);
+        extendStreak(matched - l.imeMatched);
       }
       l.imeWrong = wrong;
       l.imeMatched = matched;
@@ -367,7 +359,7 @@ export function useTypingGame(config: GameConfig, onFinish: (r: GameResult) => v
         const whole = imeProgress(l.phrase, target.length);
         l.correct += whole.keys;
         l.chars += whole.chars;
-        playSentenceCompleteSound(config.soundVolume);
+        playSentenceCompleteSound(sfxVolume);
         completePhrase(at, whole.keys);
         rerender();
         return true;
