@@ -2,7 +2,9 @@
    Trạng thái được lưu trong trình duyệt (ProgressState) nằm ở lib/learning/state.ts. */
 
 export type CardState = "NEW" | "LEARNING" | "REVIEW" | "RELEARNING";
-export type ItemType = "KANA_WRITING" | "KANA_READING" | "VOCAB_MEANING" | "VOCAB_READING";
+/** Mọi loại thẻ, theo thứ tự dạy. Nguồn duy nhất: schema tiến độ (state.ts) và hàng đợi (cards.ts) đều lấy từ đây. */
+export const ITEM_TYPES = ["KANA_WRITING", "KANA_READING", "VOCAB_MEANING", "VOCAB_READING"] as const;
+export type ItemType = (typeof ITEM_TYPES)[number];
 export type PracticeMode = "TRACE" | "TEST";
 /** 1 = Quên · 2 = Khó · 3 = Được · 4 = Dễ */
 export type Grade = 1 | 2 | 3 | 4;

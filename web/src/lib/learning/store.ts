@@ -1,5 +1,5 @@
 import type { Grade, GradeResult, QuizResult, ReviewQueue, WritingResult, ItemType } from "../types";
-import { gradeCard, recordWriting, buildQueue, type Outcome, type WritingInput } from "./reviews";
+import { gradeCard, recordWriting, buildQueue, forgetUserCards, type Outcome, type WritingInput } from "./reviews";
 import { submitQuiz } from "./quiz";
 import {
   MAX_DAILY_GOAL_XP, MIN_DAILY_GOAL_XP, emptyState, parseState, type ProgressState,
@@ -24,6 +24,9 @@ export const SERVER_STATE: ProgressState = emptyState();
 
 let current: ProgressState | null = null;
 let persistent = true;
+/** Trong kho là dữ liệu của một phiên bản MỚI hơn (tab cũ chạy song song với bản vừa cập nhật — service worker
+ *  không `skipWaiting`). Khi đó tab này không bao giờ ghi: ghi là đè bản mới bằng bản cũ gần như rỗng. */
+let newer = false;
 let listening = false;
 const listeners = new Set<() => void>();
 
@@ -40,6 +43,7 @@ function storage(): Storage | null {
 }
 
 function load(): ProgressState {
+  if (newer) { newer = false; persistent = true; } // bỏ khoá của lần nạp trước; nhánh dưới đặt lại nếu vẫn vậy
   const ls = storage();
   if (!ls) {
     persistent = false;
@@ -56,11 +60,18 @@ function load(): ProgressState {
 
   const parsed = parseState(text);
   if (parsed.ok) return parsed.state;
+  if (parsed.newer) {
+    // Không hỏng, chỉ là bản này không đọc được: để nguyên trong kho, chạy trong bộ nhớ cho tới khi tải lại trang.
+    newer = true;
+    persistent = false;
+    return emptyState();
+  }
   try { ls.setItem(CORRUPT_KEY, text); } catch { /* hết dung lượng — đành chịu */ }
   return emptyState();
 }
 
 function persist(next: ProgressState) {
+  if (newer) return;
   const ls = storage();
   if (!ls) {
     persistent = false;
@@ -100,6 +111,9 @@ export const getServerState = (): ProgressState => SERVER_STATE;
 /** false khi trình duyệt không cho ghi localStorage — tiến độ chỉ sống đến khi đóng tab. */
 export const isPersistent = (): boolean => { getState(); return persistent; };
 
+/** true khi kho chứa dữ liệu của phiên bản mới hơn: tab này đang chạy bản cũ, phải tải lại trang mới thấy tiến độ. */
+export const isNewerData = (): boolean => { getState(); return newer; };
+
 function commit<T>(outcome: Outcome<T>): T {
   current = outcome.state;
   persist(current);
@@ -130,6 +144,12 @@ export function createReviewQueue(opts: { limit?: number; types?: readonly ItemT
   return buildQueue(getState(), { limit: ctx.study.sessionSize, ...opts }, systemClock(), ctx);
 }
 
+/** Gọi sau khi xoá thẻ/bộ thẻ tự soạn khỏi thư viện: lịch ôn của chúng không còn thẻ nào để ôn nữa. */
+export function forgetDeletedCards(cardIds: readonly string[]): void {
+  const outcome = forgetUserCards(getState(), cardIds);
+  if (outcome.result > 0) commit(outcome);
+}
+
 // ------------------------------------------------------------------ cài đặt & dữ liệu
 
 export function setDailyGoal(xp: number): void {
@@ -144,9 +164,11 @@ export function exportProgress(): string {
   return JSON.stringify(getState(), null, 2);
 }
 
-/** Thay toàn bộ tiến độ bằng một trạng thái đã được kiểm tra (phần `progress` của tệp sao lưu). */
-export function replaceProgress(state: ProgressState): void {
+/** Thay toàn bộ tiến độ bằng một trạng thái đã được kiểm tra (phần `progress` của tệp sao lưu).
+ *  Trả về false nếu chỉ thay được trong bộ nhớ (ghi localStorage thất bại). */
+export function replaceProgress(state: ProgressState): boolean {
   commit({ state, result: undefined });
+  return persistent;
 }
 
 /** Thay toàn bộ tiến độ bằng nội dung một tệp đã xuất trước đó. Trả về lỗi (tiếng Việt) nếu tệp không hợp lệ. */
@@ -157,6 +179,8 @@ export function importProgress(text: string): { ok: true } | { ok: false; error:
   return { ok: true };
 }
 
+/** Xoá tiến độ, kể cả bản hỏng đang giữ để cứu hộ — người học đã chủ động xoá việc học. */
 export function resetProgress(): void {
+  try { storage()?.removeItem(CORRUPT_KEY); } catch { /* bị chặn lưu trữ: không có gì để xoá */ }
   commit({ state: emptyState(), result: undefined });
 }

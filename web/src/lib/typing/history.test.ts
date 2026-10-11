@@ -85,6 +85,24 @@ describe("parseHistory", () => {
     const h = addSession(emptyHistory(), session()).history;
     expect(parseHistory(JSON.stringify(h))).toEqual(h);
   });
+
+  it("mục hỏng bị bỏ riêng lẻ, phần còn lại của lịch sử được giữ", () => {
+    const h = addSession(addSession(emptyHistory(), session()).history, session({ mode: "TIME_ATTACK" })).history;
+    const raw = JSON.parse(JSON.stringify(h));
+    raw.bests.push({ method: "ROMAJI" }, null, "x");
+    raw.recent.push({ ...session(), score: "999" });
+    raw.weakKana = { ぢ: 2, しゃ: "nhiều", ぬ: null };
+    const back = parseHistory(JSON.stringify(raw));
+    expect(back.bests).toEqual(h.bests);
+    expect(back.recent).toEqual(h.recent);
+    expect(back.weakKana).toEqual({ ぢ: 2 });
+    expect(back.totalSessions).toBe(2);
+  });
+
+  it("loại nội dung do bản sau thêm vào vẫn được giữ (không vứt kỷ lục khi ghi lại)", () => {
+    const h = addSession(emptyHistory(), session({ content: "FUTURE_CONTENT" as SessionRecord["content"] })).history;
+    expect(parseHistory(JSON.stringify(h))).toEqual(h);
+  });
 });
 
 describe("addWeak — chữ hay sai", () => {
@@ -174,7 +192,9 @@ describe("lưu trên localStorage", () => {
 
   it("trình duyệt chặn hoặc đầy bộ nhớ thì không ném lỗi, vẫn chơi được", () => {
     ls.failWrites = true;
-    expect(() => saveHistory(emptyHistory())).not.toThrow();
+    expect(saveHistory(emptyHistory())).toBe(false); // trang kết quả báo "chưa lưu được"
+    ls.failWrites = false;
+    expect(saveHistory(emptyHistory())).toBe(true);
     ls.blocked = true;
     expect(loadHistory()).toEqual(emptyHistory());
     expect(() => saveHistory(emptyHistory())).not.toThrow();

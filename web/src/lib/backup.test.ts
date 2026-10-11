@@ -73,9 +73,16 @@ describe("từ chối tệp không dùng được", () => {
 describe("nhập/xuất qua kho thật", () => {
   class FakeStorage {
     data = new Map<string, string>();
+    /** Khoá ghi thất bại như khi hết dung lượng. */
+    full = new Set<string>();
     getItem = (k: string) => this.data.get(k) ?? null;
-    setItem = (k: string, v: string) => void this.data.set(k, v);
+    setItem = (k: string, v: string) => {
+      if (this.full.has(k)) throw new DOMException("quota", "QuotaExceededError");
+      this.data.set(k, v);
+    };
     removeItem = (k: string) => void this.data.delete(k);
+    key = (i: number) => [...this.data.keys()][i] ?? null;
+    get length() { return this.data.size; }
   }
   let ls: FakeStorage;
 
@@ -142,5 +149,70 @@ describe("nhập/xuất qua kho thật", () => {
     b.resetEverything();
     expect(bs.getSpace().library.notes).toHaveLength(0);
     expect(bs.getSpace().onboarded).toBe(false);
+  });
+
+  it("xoá việc học bỏ cả bản tiến độ hỏng; xoá sạch bỏ mọi khoá kd.* trừ giao diện sáng/tối", async () => {
+    const b = await import("./backup");
+    for (const k of ["kd.progress.corrupt", "kd.space.corrupt", "kd.typing.config", "kd.theme", "other.app"]) ls.data.set(k, "x");
+
+    b.resetLearning();
+    expect(ls.data.has("kd.progress.corrupt")).toBe(false);
+    expect(ls.data.has("kd.space.corrupt")).toBe(true); // tài liệu và cài đặt được giữ
+    expect(ls.data.has("kd.typing.config")).toBe(true);
+
+    b.resetEverything();
+    expect([...ls.data.keys()].sort()).toEqual(["kd.progress.v1", "kd.space.v1", "kd.theme", "other.app"]);
+  });
+
+  describe("khôi phục là tất cả hoặc không gì cả", () => {
+    async function withData() {
+      const b = await import("./backup");
+      const bs = await import("./space/store");
+      const bl = await import("./learning/store");
+      bs.replaceSpace(richSpace());
+      bl.recordWritingAttempt({ character: "い", avgScore: 90, strokeErrors: [], durationMs: 1000 });
+      const file = buildBackup({ ...emptyState(), stats: { ...emptyState().stats, xpTotal: 777 } }, emptySpace());
+      const saved = { progress: ls.data.get("kd.progress.v1"), space: ls.data.get("kd.space.v1") };
+      return { b, bs, bl, file, saved };
+    }
+
+    it("không ghi được không gian riêng: tiến độ không bị đụng tới", async () => {
+      const { b, bs, bl, file, saved } = await withData();
+      ls.full.add("kd.space.v1");
+      expect(b.importBackup(file)).toMatchObject({ ok: false, error: expect.stringContaining("dung lượng") });
+      expect(bl.getState().cards["KANA_WRITING:い"]).toBeDefined();
+      expect(bs.getSpace().library.notes).toHaveLength(1);
+      expect(ls.data.get("kd.progress.v1")).toBe(saved.progress);
+      expect(ls.data.get("kd.space.v1")).toBe(saved.space);
+    });
+
+    it("không ghi được tiến độ sau khi đã ghi không gian riêng: không gian riêng được hoàn lại", async () => {
+      const { b, bs, bl, file, saved } = await withData();
+      ls.full.add("kd.progress.v1");
+      expect(b.importBackup(file)).toMatchObject({ ok: false });
+      expect(bl.getState().stats.xpTotal).not.toBe(777);
+      expect(bs.getSpace().library.notes).toHaveLength(1);
+      expect(ls.data.get("kd.progress.v1")).toBe(saved.progress);
+      expect(ls.data.get("kd.space.v1")).toBe(saved.space);
+      expect(bs.isPersistent()).toBe(true);
+    });
+
+    it("trình duyệt vốn đã không lưu được: vẫn khôi phục vào bộ nhớ như trước", async () => {
+      vi.stubGlobal("window", { get localStorage(): Storage { throw new DOMException("blocked", "SecurityError"); }, addEventListener: () => {} });
+      const b = await import("./backup");
+      const bl = await import("./learning/store");
+      expect(b.importBackup(buildBackup({ ...emptyState(), stats: { ...emptyState().stats, xpTotal: 777 } }, emptySpace())))
+        .toEqual({ ok: true, kind: "full" });
+      expect(bl.getState().stats.xpTotal).toBe(777);
+    });
+
+    it("tab cũ gặp dữ liệu của phiên bản mới hơn: từ chối khôi phục, không ghi gì", async () => {
+      const newer = JSON.stringify({ ...emptyState(), version: 99 });
+      ls.data.set("kd.progress.v1", newer);
+      const b = await import("./backup");
+      expect(b.importBackup(buildBackup(emptyState(), emptySpace()))).toMatchObject({ ok: false, error: expect.stringContaining("đóng mọi tab") });
+      expect(ls.data.get("kd.progress.v1")).toBe(newer);
+      expect(ls.data.has("kd.space.v1")).toBe(false);
+    });
   });
 });

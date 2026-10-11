@@ -110,6 +110,41 @@ describe("recordActivity — mục tiêu ngày và streak", () => {
     expect(statsOf(s, at("2026-09-14T03:00:00Z")).streakFreezes).toBe(2); // Thứ Hai: hồi đầy
   });
 
+  it("ngày địa phương lùi lại (bay về phía tây) không làm đứt streak", () => {
+    let s = studyDay(emptyState(), "2026-09-05T03:00:00Z");
+    s = studyDay(s, "2026-09-06T03:00:00Z");
+
+    // Ngày 7 chưa học ở VN; học lúc 00:30 ngày 8 giờ Tokyo (= 22:30 ngày 7 giờ VN) → tiêu thẻ băng cho ngày 7
+    const tokyo = structuredClone(s);
+    recordActivity(tokyo, reviewDelta(50, 0), at("2026-09-07T15:30:00Z", "Asia/Tokyo"));
+    expect(tokyo.stats).toMatchObject({ currentStreak: 3, lastActiveDate: "2026-09-08" });
+
+    // Bay về Hà Nội, vẫn là 23:30 ngày 7: ngày này chưa đạt mục tiêu nhưng streak đã tính tới ngày 8 rồi
+    s = studyDay(tokyo, "2026-09-07T16:30:00Z");
+    expect(s.stats).toMatchObject({ currentStreak: 3, longestStreak: 3, lastActiveDate: "2026-09-08" });
+
+    s = studyDay(s, "2026-09-08T03:00:00Z"); // ngày 8 giờ VN: đã tính ở Tokyo
+    expect(s.stats.currentStreak).toBe(3);
+    s = studyDay(s, "2026-09-09T03:00:00Z");
+    expect(s.stats.currentStreak).toBe(4);
+  });
+
+  it("đồng hồ lùi về một ngày chưa học vẫn giữ streak và ngày học gần nhất", () => {
+    let s = studyDay(emptyState(), "2026-09-07T03:00:00Z");
+    s = studyDay(s, "2026-09-08T03:00:00Z");
+    s = studyDay(s, "2026-09-05T03:00:00Z"); // chỉnh đồng hồ lùi 3 ngày
+    expect(s.stats).toMatchObject({ currentStreak: 2, lastActiveDate: "2026-09-08" });
+  });
+
+  it("lùi qua Thứ Hai không hồi thêm thẻ băng", () => {
+    let s = studyDay(emptyState(), "2026-09-14T03:00:00Z"); // Thứ Hai
+    s = studyDay(s, "2026-09-16T03:00:00Z"); // tiêu 1 thẻ
+    expect(s.stats).toMatchObject({ streakFreezes: 1, freezeWeek: "2026-09-14" });
+    s = studyDay(s, "2026-09-13T03:00:00Z"); // Chủ nhật tuần trước
+    expect(s.stats).toMatchObject({ streakFreezes: 1, freezeWeek: "2026-09-14" });
+    expect(statsOf(s, at("2026-09-13T03:00:00Z")).streakFreezes).toBe(1);
+  });
+
   it("ngày mới bắt đầu theo giờ máy: 00:30 giờ VN là ngày hôm sau", () => {
     let s = studyDay(emptyState(), "2026-09-07T16:30:00Z"); // 23:30 ngày 7 (VN)
     s = studyDay(s, "2026-09-07T17:30:00Z"); //            00:30 ngày 8 (VN)

@@ -164,13 +164,14 @@ export function emptySpace(now = Date.now()): Space {
 
 // ------------------------------------------------------------------ đọc tệp
 
-export type ParseResult = { ok: true; space: Space } | { ok: false; error: string };
+/** `newer`: dữ liệu do một phiên bản Kana Dōjō MỚI hơn ghi — không hỏng, chỉ là bản này không đọc được. */
+export type ParseResult = { ok: true; space: Space } | { ok: false; error: string; newer?: true };
 
 /** Kiểm tra một giá trị đã parse JSON (từ localStorage hoặc từ tệp sao lưu). */
 export function parseSpaceValue(raw: unknown): ParseResult {
   const version = (raw as { version?: unknown } | null)?.version;
   if (typeof version === "number" && version > SPACE_VERSION) {
-    return { ok: false, error: "Không gian riêng trong tệp được tạo bởi phiên bản Kana Dōjō mới hơn. Hãy tải lại trang để cập nhật rồi thử lại." };
+    return { ok: false, newer: true, error: "Không gian riêng trong tệp được tạo bởi phiên bản Kana Dōjō mới hơn. Hãy tải lại trang để cập nhật rồi thử lại." };
   }
   const parsed = spaceSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Phần không gian riêng trong tệp không đúng định dạng." };

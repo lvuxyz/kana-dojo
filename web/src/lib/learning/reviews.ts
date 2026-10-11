@@ -11,7 +11,7 @@ import {
   ALL_TYPES, cardKey, findKana, findUserCard, findVocab, inStudy, isKanaType, itemExists, itemIdsOf, parseCardKey,
   userItemsOf,
 } from "./cards";
-import { DEFAULT_CONTEXT, NEW_CARDS_PER_DAY, type LearnContext } from "./context";
+import { DEFAULT_CONTEXT, NEW_CARDS_PER_DAY, userItemId, type LearnContext } from "./context";
 import type { CardRecord, ProgressState } from "./state";
 import { DAY_MS, dayKey, type Clock } from "./time";
 
@@ -233,6 +233,17 @@ export function recordWriting(
     state: draft,
     result: { passed, avgScore: score, grade, xpEarned: outcome.xpAwarded, card: { ...card, xpEarned: outcome.xpAwarded }, newBadges },
   };
+}
+
+/** Bỏ lịch ôn của các thẻ tự soạn đã bị xoá khỏi thư viện (cả hai chiều hỏi). Trả về số thẻ đã bỏ.
+ *  Chỉ gọi khi thẻ bị XOÁ: bộ thẻ tắt vẫn giữ lịch ôn để bật lại là học tiếp. XP, streak và huy hiệu đã nhận không đổi. */
+export function forgetUserCards(state: ProgressState, cardIds: readonly string[]): Outcome<number> {
+  const items = new Set(cardIds.map(userItemId));
+  const keys = Object.keys(state.cards).filter((k) => items.has(state.cards[k].itemId));
+  if (keys.length === 0) return { state, result: 0 };
+  const draft = structuredClone(state);
+  for (const k of keys) delete draft.cards[k];
+  return { state: draft, result: keys.length };
 }
 
 // ------------------------------------------------------------------ tiến độ

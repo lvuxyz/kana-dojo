@@ -130,6 +130,20 @@ describe("kho không gian riêng", () => {
     store.resetSpace();
     expect(store.getSpace()).toMatchObject({ onboarded: false, profile: { name: "" } });
   });
+
+  it("không gian của phiên bản mới hơn: không coi là hỏng và không bao giờ ghi đè", async () => {
+    const newer = JSON.stringify({ ...emptySpace(), version: 99, profile: { name: "Bản mới" } });
+    ls.data.set("kd.space.v1", newer);
+    const store = await freshStore();
+
+    expect(store.isNewerData()).toBe(true);
+    expect(store.isPersistent()).toBe(false);
+    expect(ls.data.has(store.SPACE_CORRUPT_KEY)).toBe(false);
+
+    store.updateSpace((s) => setProfile(s, { name: "Bản cũ" }));
+    store.resetSpace();
+    expect(ls.data.get("kd.space.v1")).toBe(newer);
+  });
 });
 
 describe("ngữ cảnh học từ không gian", () => {

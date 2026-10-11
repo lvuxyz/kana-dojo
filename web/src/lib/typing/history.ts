@@ -1,10 +1,11 @@
+import { z } from "zod";
 import type { InputMethod } from "./engine";
 import type { ContentType } from "./phrases";
 import { isTypeable } from "./romaji";
 import type { TypingMode } from "./score";
 
-/* Kỷ lục và lịch sử luyện gõ — hiện chỉ lưu trên trình duyệt (localStorage), chưa đồng bộ lên
- * tài khoản. Mọi phép tính là hàm thuần để test được; đọc/ghi bộ nhớ nằm riêng ở cuối file. */
+/* Kỷ lục và lịch sử luyện gõ — chỉ lưu trên trình duyệt này (localStorage), không nằm trong tệp sao lưu.
+ * Mọi phép tính là hàm thuần để test được; đọc/ghi bộ nhớ nằm riêng ở cuối file. */
 
 export interface SessionRecord {
   method: InputMethod;
@@ -122,10 +123,27 @@ export function addSession(
   };
 }
 
+/* Hình dạng từng mục. Cách nhập / nội dung / chế độ chỉ cần là chuỗi: một bản sau có thể thêm loại mới, và bản này
+ * không được vì thế mà vứt kỷ lục đó đi khi ghi lại. */
+const num = z.number().finite();
+const sessionSchema = z.object({
+  method: z.string(), content: z.string(), mode: z.string(),
+  score: num, kpm: num, accuracy: num, durationMs: num, at: z.string(),
+});
+const bestSchema = z.object({
+  method: z.string(), content: z.string(), mode: z.string(),
+  bestScore: num, bestKpm: num, bestAccuracy: num, plays: num, lastPlayedAt: z.string(),
+});
+
+/** Giữ các mục đúng hình dạng, bỏ mục hỏng — một mục sửa tay sai không được xoá cả lịch sử, cũng không được lọt vào giao diện. */
+function validItems<T>(items: unknown[], schema: z.ZodType<unknown>): T[] {
+  return items.filter((x) => schema.safeParse(x).success) as T[];
+}
+
 /** Đọc một khối đã lưu. `null` = hỏng hoặc sai hình dạng (khác với "chưa có gì": đó là `raw === null`). */
 export function parseHistoryStrict(raw: string): TypingHistory | null {
   try {
-    const h = JSON.parse(raw) as Partial<TypingHistory> | null;
+    const h = JSON.parse(raw) as Record<string, unknown> | null;
     if (
       h &&
       typeof h.totalSessions === "number" &&
@@ -134,8 +152,14 @@ export function parseHistoryStrict(raw: string): TypingHistory | null {
       Array.isArray(h.recent)
     ) {
       // Bản lưu cũ chưa có weakKana.
-      const weakKana = h.weakKana && typeof h.weakKana === "object" && !Array.isArray(h.weakKana) ? h.weakKana : {};
-      return { ...(h as TypingHistory), weakKana };
+      const weak = h.weakKana && typeof h.weakKana === "object" && !Array.isArray(h.weakKana) ? h.weakKana : {};
+      return {
+        totalSessions: h.totalSessions,
+        totalDurationMs: h.totalDurationMs,
+        bests: validItems<BestRecord>(h.bests, bestSchema),
+        recent: validItems<SessionRecord>(h.recent, sessionSchema),
+        weakKana: Object.fromEntries(Object.entries(weak).filter(([, w]) => typeof w === "number" && Number.isFinite(w))),
+      };
     }
   } catch {
     /* JSON hỏng */
@@ -173,11 +197,13 @@ export function loadHistory(): TypingHistory {
   return emptyHistory();
 }
 
-export function saveHistory(h: TypingHistory): void {
+/** false nếu không ghi được (đầy bộ nhớ hoặc bị chặn): kỷ lục của lượt này chỉ còn đến khi đóng tab. */
+export function saveHistory(h: TypingHistory): boolean {
   try {
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+    return true;
   } catch {
-    /* đầy bộ nhớ hoặc bị chặn: bỏ qua */
+    return false;
   }
 }
 

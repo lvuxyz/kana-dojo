@@ -109,8 +109,9 @@ khoảng 150–250; người gõ thi đấu vượt 400.
   nhất và số lượt. Màn chọn bài hiện kỷ lục của tổ hợp đang chọn và 5 lượt gần nhất.
 - Lưu ở `localStorage` qua `web/src/lib/typing/history.ts`, khoá `kd.typing.history.v1` (cùng tiền tố `kd.` với
   `kd.progress.v1`; không có tài khoản nên một trình duyệt là một kỷ lục). Giữ 10 lượt gần nhất và tối đa 40 chữ yếu.
-  Dữ liệu hỏng được giữ lại ở `kd.typing.history.corrupt` rồi bắt đầu lại (như tiến độ chính); trình duyệt chặn lưu trữ
-  (ẩn danh) hoặc đầy bộ nhớ thì vẫn chơi được, chỉ không nhớ kỷ lục.
+  Dữ liệu hỏng được giữ lại ở `kd.typing.history.corrupt` rồi bắt đầu lại (như tiến độ chính); một mục kỷ lục/lượt sai hình dạng
+  thì chỉ bỏ riêng mục đó. Trình duyệt chặn lưu trữ (ẩn danh) hoặc đầy bộ nhớ thì vẫn chơi được, chỉ không nhớ kỷ lục — trang kết quả
+  báo "chưa lưu được" thay vì "lưu trên trình duyệt này".
 - Kỷ lục luyện gõ **lưu riêng**, chưa nằm trong tệp sao lưu tiến độ ([SPEC §2.1](SPEC.md#21-tệp-sao-lưu)) — trang Cài đặt nói
   rõ điều này. Nút *Xoá toàn bộ tiến độ* có xoá cả kỷ lục luyện gõ.
 - Lượt chưa gõ đúng phím nào không được ghi. Lựa chọn lần trước (nội dung, cách nhập, chế độ…) cũng được nhớ trên máy.
@@ -226,7 +227,7 @@ và cập nhật lời ở Cài đặt › Dữ liệu. Quyết định *giữ n
 | Web — `phrases.test.ts` | Phân tích furigana; **từng câu trong kho** gõ trọn bằng romaji và kana; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được; lọc đúng nhóm kana; "Chữ hay sai" chỉ rút từ danh sách yếu, đúng tỉ lệ; câu cố định gõ lần lượt |
 | Web — `ime.test.ts` | Chuẩn hoá chữ IME (NFKC, bỏ dấu câu), so khớp chữ đã chốt, quy đổi số phím; cụm kanji chỉ tính khi đổi đúng trọn cụm |
 | Web — `score.test.ts` | KPM, độ chính xác, điểm, sinh tử, thang đai |
-| Web — `history.test.ts` | Kỷ lục theo tổ hợp, chỉ đổi khi điểm cao hơn, giới hạn số lượt gần đây, dữ liệu hỏng thì bắt đầu lại; chữ yếu cộng dồn, giảm dần và bỏ kanji; khoá cố định `kd.typing.history.v1`, dữ liệu hỏng giữ lại ở `.corrupt`, trình duyệt chặn hoặc đầy bộ nhớ thì không ném lỗi |
+| Web — `history.test.ts` | Kỷ lục theo tổ hợp, chỉ đổi khi điểm cao hơn, giới hạn số lượt gần đây, dữ liệu hỏng thì bắt đầu lại; chữ yếu cộng dồn, giảm dần và bỏ kanji; khoá cố định `kd.typing.history.v1`, dữ liệu hỏng giữ lại ở `.corrupt`, mục hỏng bị bỏ riêng lẻ (phần còn lại giữ nguyên), trình duyệt chặn hoặc đầy bộ nhớ thì không ném lỗi và `saveHistory` trả false để trang kết quả báo "chưa lưu được" |
 
 ---
 

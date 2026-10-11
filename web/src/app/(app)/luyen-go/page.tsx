@@ -155,9 +155,9 @@ export default function TypingPage() {
           at: new Date().toISOString(),
         });
         next = added.history;
-        recorded = { kind: "record", personalBest: added.personalBest, newBest: added.newBest };
+        recorded = { kind: "record", personalBest: added.personalBest, newBest: added.newBest, saved: true };
       }
-      saveHistory(next);
+      if (!saveHistory(next) && recorded?.kind === "record") recorded = { ...recorded, saved: false };
       setHistory(next);
       setOutcome(recorded);
     },

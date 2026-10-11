@@ -87,8 +87,9 @@ Mỗi thao tác học **sao chép trạng thái, sửa bản sao, rồi trả `{
 | Hai tab cùng mở | Sự kiện `storage` → tab kia nạp lại bản mới nhất, nên không ghi đè lên nhau |
 | Dữ liệu hỏng / sửa tay | Kiểm tra bằng zod khi nạp. Nếu sai: bản hỏng được **giữ lại** ở khoá `kd.progress.corrupt` rồi bắt đầu từ rỗng — không âm thầm xoá dữ liệu người học |
 | Trình duyệt chặn / đầy `localStorage` | Vẫn học được trong bộ nhớ của tab; `isPersistent()` = false và khung ứng dụng hiện cảnh báo kèm đường dẫn tới nút sao lưu |
-| Tệp nhập vào | Kiểm tra schema + phiên bản (từ chối tệp của phiên bản mới hơn); tệp sai không đụng tới tiến độ hiện có |
-| Nâng cấp định dạng | `version` nằm trong khối dữ liệu; thêm hàm migrate khi cần đổi `STATE_VERSION` |
+| Tệp nhập vào | Kiểm tra schema + phiên bản (từ chối tệp của phiên bản mới hơn); tệp sai không đụng tới tiến độ hiện có. Hai kho ghi theo kiểu tất cả hoặc không gì cả: hết dung lượng giữa chừng thì phần đã ghi được hoàn lại |
+| Tab cũ gặp dữ liệu của phiên bản mới hơn | Service worker không `skipWaiting` nên tab bản cũ có thể chạy song song với bản vừa nâng `STATE_VERSION`. Tab cũ **không coi đó là dữ liệu hỏng và không bao giờ ghi đè** (`isNewerData`): chạy trong bộ nhớ, khung ứng dụng nhắc đóng mọi tab rồi mở lại |
+| Nâng cấp định dạng | `version` nằm trong khối dữ liệu; thêm hàm migrate khi cần đổi `STATE_VERSION`. Bản cũ còn mở được bảo vệ ở dòng trên |
 
 ### Ngày và múi giờ
 
@@ -268,6 +269,9 @@ Level = floor(sqrt(xp_tổng / 100)) + 1
 
 **Streak freeze:** tối đa 2 lần dự trữ, hồi đầy mỗi Thứ Hai (theo giờ thiết bị). Tính lười khi đọc/ghi: so khoá tuần của lần hồi gần nhất với tuần hiện tại,
 nên không cần tác vụ nền.
+
+**Ngày địa phương có thể lùi** (bay về phía tây, chỉnh đồng hồ): ngày lùi về trước `lastActiveDate` không làm đổi streak, và tuần lùi về trước tuần đã hồi không hồi thêm thẻ băng
+(SPEC §4.2). Trước đây trường hợp này đặt streak về 1.
 
 ---
 

@@ -49,11 +49,13 @@ export const quizDelta = (xp: number, durationMs: number): ActivityDelta =>
 /** Kết quả ghi nhận: tổng XP thực nhận (đã gồm thưởng) và streak sau khi cập nhật. */
 export interface ActivityOutcome { xpAwarded: number; goalMetNow: boolean; currentStreak: number; level: number }
 
-/** Thẻ băng được hồi đầy vào mỗi Thứ Hai (giờ địa phương). Trả về số thẻ hiện có sau khi xét tuần. */
+/** Thẻ băng được hồi đầy vào mỗi Thứ Hai (giờ địa phương). Trả về số thẻ hiện có sau khi xét tuần.
+ *  Chỉ hồi khi sang tuần MỚI hơn tuần đã hồi: ngày địa phương có thể lùi (bay về phía tây, chỉnh đồng hồ) và
+ *  lùi qua Thứ Hai không được tính là một tuần mới. */
 function freezesFor(stats: ProgressState["stats"], today: string): { freezes: number; week: string } {
   const week = weekStart(today);
-  return stats.freezeWeek === week
-    ? { freezes: stats.streakFreezes, week }
+  return stats.freezeWeek !== null && week <= stats.freezeWeek
+    ? { freezes: stats.streakFreezes, week: stats.freezeWeek }
     : { freezes: MAX_STREAK_FREEZES, week };
 }
 
@@ -91,7 +93,7 @@ export function recordActivity(draft: ProgressState, delta: ActivityDelta, clock
 }
 
 /** Luật streak theo ngày địa phương:
- *  - cùng ngày → giữ nguyên;
+ *  - cùng ngày, hoặc ngày địa phương lùi về trước ngày đã tính (đổi múi giờ, chỉnh đồng hồ) → giữ nguyên;
  *  - đúng ngày kế tiếp → +1;
  *  - hở đúng một ngày và còn thẻ băng → tiêu một thẻ, streak vẫn +1;
  *  - các trường hợp còn lại → đặt lại về 1. */
@@ -99,11 +101,11 @@ function advanceStreak(stats: ProgressState["stats"], today: string): void {
   const last = stats.lastActiveDate;
   if (last === null) {
     stats.currentStreak = 1;
-  } else if (last === today) {
-    return; // đã tính cho hôm nay rồi
   } else {
     const gap = daysBetween(last, today);
-    if (gap === 1) {
+    if (gap <= 0) {
+      return; // đã tính cho ngày này hoặc một ngày sau nó rồi
+    } else if (gap === 1) {
       stats.currentStreak += 1;
     } else if (gap === 2 && stats.streakFreezes > 0) {
       stats.streakFreezes -= 1;

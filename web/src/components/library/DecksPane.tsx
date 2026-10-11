@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge, Button, Card, Empty, Field, Notice, Switch, TextArea } from "@/components/ui";
 import { downloadText, safeFileName } from "@/components/app/download";
 import { useProgress } from "@/lib/learning/hooks";
+import { forgetDeletedCards } from "@/lib/learning/store";
 import { systemClock } from "@/lib/learning/time";
 import {
   addCards, addDeck, deckToTsv, deleteCard, deleteDeck, parseCardLines, updateCard, updateDeck, type AddCardsResult,
@@ -12,7 +13,13 @@ import {
 import { cardSchedule, deckSchedule } from "@/lib/space/schedule";
 import { LIMITS, type Deck, type DeckCard } from "@/lib/space/space";
 import { useSpace } from "@/lib/space/hooks";
-import { updateSpace } from "@/lib/space/store";
+import { getSpace, updateSpace } from "@/lib/space/store";
+
+/** Sau khi xoá: bỏ lịch ôn của những thẻ không còn nằm ở bộ nào (một mã có thể có ở hai bộ nếu nhập từ tệp ngoài). */
+function forgetIfGone(cardIds: readonly string[]) {
+  const left = new Set(getSpace().library.decks.flatMap((d) => d.cards.map((c) => c.id)));
+  forgetDeletedCards(cardIds.filter((id) => !left.has(id)));
+}
 
 /* Bộ thẻ tự soạn: mỗi thẻ có mặt trước (câu hỏi), mặt sau (đáp án) và gợi ý tuỳ chọn. Thẻ vào hàng đợi ôn FSRS cùng
    thẻ kana và từ vựng có sẵn — người học quyết định bộ nào đang ôn, có hỏi ngược không. */
@@ -159,8 +166,9 @@ function DeckDetail({ deck, onBack }: { deck: Deck; onBack: () => void }) {
   };
 
   const remove = () => {
-    if (!window.confirm(`Xoá bộ “${deck.name}” cùng ${deck.cards.length} thẻ? Lịch ôn của các thẻ này cũng không còn dùng được. Không thể hoàn tác.`)) return;
-    updateSpace((s) => deleteDeck(s, deck.id));
+    if (!window.confirm(`Xoá bộ “${deck.name}” cùng ${deck.cards.length} thẻ? Lịch ôn của các thẻ này cũng bị xoá. Không thể hoàn tác.`)) return;
+    const ids = deck.cards.map((c) => c.id);
+    if (updateSpace((s) => deleteDeck(s, deck.id)).ok) forgetIfGone(ids);
     onBack();
   };
 
@@ -308,7 +316,7 @@ function CardRow({ deckId, card, schedule }: { deckId: string; card: DeckCard; s
         </span>
         <span className="flex gap-1">
           <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Sửa</Button>
-          <Button size="sm" variant="ghost" className="text-shu hover:text-shu-2" onClick={() => updateSpace((s) => deleteCard(s, deckId, card.id))}>Xoá</Button>
+          <Button size="sm" variant="ghost" className="text-shu hover:text-shu-2" onClick={() => { if (updateSpace((s) => deleteCard(s, deckId, card.id)).ok) forgetIfGone([card.id]); }}>Xoá</Button>
         </span>
       </Card>
     </li>

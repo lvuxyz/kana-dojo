@@ -122,7 +122,10 @@ Nhập (`parseBackup`) nhận hai dạng:
 | `ProgressState` trần của bản cũ (không có `format`) | Chỉ thay tiến độ; **không đụng** ghi chú, bộ thẻ, cài đặt hiện có (giao diện nói rõ điều này trước khi hỏi xác nhận) |
 
 `format` lớn hơn 2 bị từ chối ("phiên bản mới hơn"), không đoán. Mọi thứ được kiểm xong *trước* khi ghi: tệp sai không bao giờ làm đổi dữ liệu hiện có.
-Dữ liệu hỏng ở `localStorage` được giữ ở `kd.progress.corrupt` / `kd.space.corrupt`.
+Ghi cũng là tất cả hoặc không gì cả: không gian riêng ghi trước, tiến độ sau; lần ghi nào thất bại (hết dung lượng) thì phần đã ghi được hoàn lại và người học nhận
+thông báo "không đủ dung lượng" — không bao giờ để lại tiến độ của tệp đi cùng tài liệu cũ. Trình duyệt vốn đã không lưu được (chế độ riêng tư, bị chặn) thì vẫn khôi phục vào bộ nhớ như trước.
+Dữ liệu hỏng ở `localStorage` được giữ ở `kd.progress.corrupt` / `kd.space.corrupt`. Dữ liệu của **phiên bản mới hơn** (tab cũ còn mở sau khi site cập nhật) không bị coi là hỏng:
+tab đó không đọc được nên chạy trong bộ nhớ, **không bao giờ ghi đè** lên nó, khung ứng dụng nhắc đóng mọi tab rồi mở lại, và từ chối khôi phục tệp cho tới khi được mở lại.
 
 **Vì sao bọc thay vì thêm trường vào tệp tiến độ:** bản Kana Dōjō cũ đọc tệp bọc sẽ báo "sai định dạng" và từ chối rõ ràng, thay vì nhập phần tiến độ rồi âm thầm
 vứt tài liệu của người học (zod bỏ khoá lạ). Phần `progress` bên trong giữ nguyên `ProgressState` v1 từng byte nên hợp đồng web ↔ mobile ([CONTRACT.md §2](CONTRACT.md)) không đổi.
@@ -140,6 +143,9 @@ Kỷ lục luyện gõ vẫn **ngoài** tệp (quyết định đã chốt, [TYP
 | `kd.typing.history.corrupt` | bản sao khối luyện gõ bị hỏng, để cứu hộ |
 | `kd.typing.config` | lựa chọn lần trước của phòng luyện gõ (nội dung, cách nhập, chế độ…) — tiện ích, mất cũng không sao |
 | Cache Storage `kd-<phiên bản>` | tệp tĩnh cho chế độ offline (§8). Xoá lúc nào cũng được — không chứa tiến độ |
+
+Cài đặt › Dữ liệu: *Xoá việc học* xoá tiến độ (kể cả `kd.progress.corrupt`) và `kd.typing.history.*`, giữ không gian riêng và `kd.typing.config`.
+*Xoá sạch mọi thứ* xoá **mọi khoá `kd.*`** trừ `kd.theme` (tuỳ chọn hiển thị của máy, giữ để trang không chớp đổi màu).
 
 ### 2.3 Không gian riêng (`Space`)
 
@@ -206,8 +212,10 @@ Thẻ tự soạn đi vào `ProgressState.cards` bằng các loại thẻ **sẵ
 | `VOCAB_MEANING:u:<mã>` | mặt trước → mặt sau (gợi ý hiện kèm) | luôn có |
 | `VOCAB_READING:u:<mã>` | mặt sau → mặt trước | bộ thẻ bật `reverse` |
 
-Xoá thẻ, tắt bộ thẻ hay tắt `reverse` làm mục "không còn tồn tại" với `itemExists`: thẻ bị bỏ qua khỏi hàng đợi và bộ đếm nhưng **lịch ôn vẫn nằm trong tiến độ** (cơ chế vốn có cho nội dung bị gỡ) —
+Tắt bộ thẻ hay tắt `reverse` làm mục "không còn tồn tại" với `itemExists`: thẻ bị bỏ qua khỏi hàng đợi và bộ đếm nhưng **lịch ôn vẫn nằm trong tiến độ** (cơ chế vốn có cho nội dung bị gỡ) —
 bật lại bộ thẻ là thẻ quay lại đúng lịch cũ. Bản không biết tới không gian riêng cũng chỉ coi chúng là nội dung đã gỡ, không báo lỗi tệp.
+**Xoá** thẻ hay bộ thẻ thì khác: không còn cách nào học lại thẻ đó, nên lịch ôn của nó (cả hai chiều) bị bỏ khỏi tiến độ (`forgetUserCards`) để tiến độ không phình mãi.
+XP, streak và huy hiệu đã nhận không đổi. Nhập tệp chỉ có tiến độ thì không dọn gì.
 Ngữ cảnh học (`LearnContext` = `StudyOptions` + `Catalog` thẻ tự soạn của các bộ đang bật, `lib/learning/context.ts`) đi vào bộ máy học qua tham số, xem §5.
 
 ---
@@ -309,7 +317,7 @@ Phòng luyện gõ (`docs/TYPING.md`) **không** cộng XP và không tính vào
 d  = ngày hôm nay theo múi giờ thiết bị
 d0 = stats.lastActiveDate
 d0 == null         → current_streak = 1
-d == d0            → không đổi
+d <= d0            → không đổi (cùng ngày; hoặc ngày địa phương lùi: bay về phía tây, chỉnh đồng hồ) — lastActiveDate giữ nguyên
 d == d0 + 1        → current_streak += 1
 d == d0 + 2        → nếu còn streak_freezes: trừ 1 freeze, streak += 1
                      ngược lại: current_streak = 1
@@ -318,7 +326,8 @@ longest_streak = max(longest_streak, current_streak)
 ```
 
 Streak chỉ cộng khi **đạt mục tiêu XP ngày** (`settings.dailyGoalXp`), không phải chỉ mở app.
-Thẻ băng hồi đầy về 2 vào mỗi Thứ Hai (giờ thiết bị): nếu `weekStart(hôm nay) ≠ stats.freezeWeek` thì coi như đã hồi.
+Thẻ băng hồi đầy về 2 vào mỗi Thứ Hai (giờ thiết bị): nếu `freezeWeek` là null hoặc `weekStart(hôm nay) > stats.freezeWeek` thì coi như đã hồi.
+Tuần lùi về trước `freezeWeek` (ngày địa phương lùi qua Thứ Hai) không hồi thêm và không kéo `freezeWeek` lùi theo.
 
 ### 4.3 Huy hiệu
 
