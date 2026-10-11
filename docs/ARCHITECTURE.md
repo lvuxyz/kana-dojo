@@ -120,17 +120,17 @@ nên không đại diện — luôn thiết kế theo mốc 5 MiB.
 
 | Tình huống | Chuyện gì xảy ra | Ứng dụng đang làm gì |
 |---|---|---|
-| Người dùng xoá dữ liệu trang web | Mất hết | Sao lưu/khôi phục bằng tệp JSON ở `/cai-dat` |
+| Người dùng xoá dữ liệu trang web | Mất hết | Sao lưu/khôi phục bằng tệp JSON ở `/cai-dat`; banner **nhắc sao lưu** khi đã học ≥ 3 ngày từ lần tải tệp trước và lần đó cũ ≥ 7 ngày ("Để sau" im 7 ngày) |
 | Cửa sổ riêng tư / ẩn danh | Ghi vẫn được nhưng xoá khi đóng — **không phát hiện được** (banner chỉ báo khi *ghi thất bại*) | Chưa có cảnh báo riêng |
 | **Safari (iPhone/Mac), tab thường** | Script-writable storage (`localStorage`, IndexedDB…) bị xoá sau **7 ngày không có click/chạm/gõ phím** trên site | Cài ra Màn hình chính — bản đã cài được miễn trừ |
-| Máy sắp hết dung lượng | Dữ liệu "best-effort" bị xoá theo LRU; dữ liệu đã xin lưu bền (`navigator.storage.persist()`) thì được tha | **Chưa gọi `persist()`.** Chrome/Safari tự quyết theo mức tương tác (đo thực tế: origin mới bị từ chối), Firefox hỏi người dùng |
+| Máy sắp hết dung lượng | Dữ liệu "best-effort" bị xoá theo LRU; dữ liệu đã xin lưu bền (`navigator.storage.persist()`) thì được tha | Tự gọi `persist()` khi đã có thẻ đầu tiên, tối đa một lần mỗi 30 ngày (Firefox hỏi người dùng); Cài đặt › Dữ liệu hiện "đã bảo vệ / chưa", dung lượng và nút xin lại. Chrome/Safari tự quyết theo mức tương tác (đo thực tế: origin mới bị từ chối) |
 | Đổi domain, `http`↔`https`, `www`↔không `www`, đổi cổng | Mỗi origin có kho riêng → mở ra rỗng | Chỉ là quy ước triển khai: chốt một domain chính và redirect (xem [DEPLOYMENT.md](DEPLOYMENT.md)) |
 | iOS: bản đã cài vs Safari | **Kho tách biệt hoàn toàn** (localStorage, IndexedDB, service worker, cache) → bản đã cài mở ra rỗng | Thẻ cài đặt ở `/cai-dat` cảnh báo và hướng dẫn tải về → khôi phục |
 | Origin dùng chung (`<user>.github.io/<repo>`) | Mọi repo của cùng tài khoản chia sẻ một kho; một dự án khác có thể xoá `localStorage` | Khoá có tiền tố `kd.`; nên dùng domain riêng |
 
 `navigator.storage` (và vì thế `persist()`/`estimate()`) chỉ có ở **ngữ cảnh an toàn** (HTTPS hoặc `localhost`). Bản triển khai thật phải là HTTPS — vừa để cài PWA, vừa để xin lưu bền.
 
-**Việc có thể làm tiếp:** gọi `persist()` sau lần học đầu; hiện trạng "đã bảo vệ / chưa" và dung lượng đã dùng ở Cài đặt; nhắc sao lưu khi đã lâu chưa tải tệp (hữu ích nhất cho Safari 7 ngày).
+Lần sao lưu gần nhất và lần xin lưu bền được ghi ở `kd.device.v1` (`lib/device.ts`): ghi chép của riêng máy này, **không** nằm trong tệp sao lưu. Khôi phục từ tệp cũng tính là đã sao lưu (dữ liệu lúc đó đúng bằng một tệp đang có).
 
 ---
 

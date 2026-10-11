@@ -1,3 +1,7 @@
+import { exportBackup } from "@/lib/backup";
+import { markBackedUp } from "@/lib/device";
+import { dayKey, systemClock } from "@/lib/learning/time";
+
 /** Tải một đoạn văn bản về máy dưới dạng tệp (không cần máy chủ). */
 export function downloadText(filename: string, text: string, type = "text/plain;charset=utf-8"): void {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -12,4 +16,11 @@ export function downloadText(filename: string, text: string, type = "text/plain;
 export function safeFileName(name: string, fallback: string): string {
   const cleaned = name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "").replace(/\s+/g, "-").replace(/^[.-]+|[.-]+$/g, "").slice(0, 60);
   return cleaned || fallback;
+}
+
+/** Tải tệp sao lưu đầy đủ về máy và ghi nhận lần sao lưu (để thôi nhắc). */
+export function downloadBackup(): void {
+  const { now, zone } = systemClock();
+  downloadText(`kana-dojo-sao-luu-${dayKey(now, zone)}.json`, exportBackup(new Date(now)), "application/json");
+  markBackedUp(now);
 }

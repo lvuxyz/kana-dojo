@@ -141,6 +141,7 @@ Kỷ lục luyện gõ vẫn **ngoài** tệp (quyết định đã chốt, [TYP
 | `kd.space.corrupt` | bản sao khối không gian riêng bị hỏng, để cứu hộ |
 | `kd.typing.history.v1` | kỷ lục, lịch sử và chữ hay sai của phòng luyện gõ — **ngoài** `ProgressState`, không nằm trong tệp sao lưu; "Xoá toàn bộ tiến độ" có xoá (`docs/TYPING.md`) |
 | `kd.typing.history.corrupt` | bản sao khối luyện gõ bị hỏng, để cứu hộ |
+| `kd.device.v1` | ghi chép của riêng máy này: `lastBackupAt`, `backupSnoozeUntil`, `persistAskedAt` (mili-giây epoch hoặc `null`) — để nhắc sao lưu và xin lưu bền; **ngoài** tệp sao lưu, mất cũng không sao |
 | `kd.typing.config` | lựa chọn lần trước của phòng luyện gõ (nội dung, cách nhập, chế độ…) — tiện ích, mất cũng không sao |
 | Cache Storage `kd-<phiên bản>` | tệp tĩnh cho chế độ offline (§8). Xoá lúc nào cũng được — không chứa tiến độ |
 

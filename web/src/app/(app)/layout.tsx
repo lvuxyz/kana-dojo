@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Brand } from "@/components/app/Brand";
+import { downloadBackup } from "@/components/app/download";
 import { BottomNav, SideNav } from "@/components/app/Nav";
 import { Onboarding } from "@/components/app/Onboarding";
 import { ThemeToggle } from "@/components/app/ThemeToggle";
-import { Progress } from "@/components/ui";
+import { Button, Progress } from "@/components/ui";
+import { ensurePersistence, shouldRemindBackup, snoozeBackupReminder, studyDaysSince } from "@/lib/device";
+import { useDevice } from "@/lib/device-hooks";
+import { systemClock } from "@/lib/learning/time";
 import { useNewerData, usePersistent, useProgress, useStats } from "@/lib/learning/hooks";
 import { useSpace, useSpaceNewerData, useSpacePersistent } from "@/lib/space/hooks";
 import { completeOnboarding } from "@/lib/space/space";
@@ -33,6 +37,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (spaceReady && !space.onboarded && returning) updateSpace(completeOnboarding);
   }, [spaceReady, space.onboarded, returning]);
+
+  // Đã học thật thì xin trình duyệt đừng tự dọn dữ liệu khi máy thiếu chỗ (tự giới hạn số lần hỏi, xem lib/device.ts).
+  useEffect(() => {
+    if (progressReady && persistent && !newer) void ensurePersistence(state);
+  }, [progressReady, persistent, newer, state]);
+
+  const device = useDevice();
+  const remindBackup = useMemo(
+    () => progressReady && shouldRemindBackup(state, device, systemClock()),
+    [progressReady, state, device],
+  );
 
   if (needsOnboarding) return <Onboarding />;
 
@@ -98,12 +113,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Dữ liệu trên trình duyệt này được ghi bởi phiên bản Kana Dōjō mới hơn, còn tab này vẫn chạy bản cũ nên không đọc
               được — tiến độ của bạn vẫn còn nguyên và tab này sẽ không ghi đè lên. Hãy đóng mọi tab Kana Dōjō rồi mở lại để dùng bản mới.
             </p>
-          ) : !persistent && (
+          ) : !persistent ? (
             <p role="alert" className="mb-5 rounded-2xl border border-gold/40 bg-gold-tint/80 px-4.5 py-3 text-xs font-semibold text-sumi-2 shadow-xs">
               Trình duyệt đang không cho lưu dữ liệu (có thể bạn đang ở chế độ riêng tư, hoặc bộ nhớ đã đầy), nên tiến độ,
               ghi chú và bộ thẻ chỉ giữ được đến khi đóng tab này. Bạn vẫn dùng bình thường — vào{" "}
               <Link href="/cai-dat?tab=data" className="underline">Cài đặt › Dữ liệu</Link> để tải bản sao lưu về máy trước khi thoát.
             </p>
+          ) : remindBackup && (
+            <div role="status" className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-2xl border border-genko/30 bg-genko-tint/80 px-4.5 py-3 shadow-xs">
+              <p className="min-w-0 flex-1 basis-64 text-xs font-semibold leading-relaxed text-sumi-2">
+                {device.lastBackupAt === null
+                  ? "Bạn chưa tải bản sao lưu nào."
+                  : `Bạn đã học ${studyDaysSince(state, device.lastBackupAt, systemClock().zone)} ngày kể từ lần sao lưu gần nhất.`}{" "}
+                Tiến độ chỉ nằm trong trình duyệt này — một tệp sao lưu giúp bạn không mất nó nếu trình duyệt dọn dữ liệu hay đổi máy.
+              </p>
+              <div className="flex shrink-0 gap-2">
+                <Button variant="solid" onClick={downloadBackup}>Tải bản sao lưu</Button>
+                <Button variant="ghost" onClick={() => snoozeBackupReminder()}>Để sau</Button>
+              </div>
+            </div>
           )}
 
           <main>{children}</main>
