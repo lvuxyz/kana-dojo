@@ -1,3 +1,4 @@
+import { reloadDevice } from "./device";
 import { parseStateValue, type ProgressState } from "./learning/state";
 import {
   getState, isNewerData as progressIsNewer, isPersistent as progressPersistent, replaceProgress, resetProgress,
@@ -131,4 +132,5 @@ export function resetEverything(): void {
   }
   resetLearning();
   resetSpace();
+  reloadDevice();
 }
