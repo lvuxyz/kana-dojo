@@ -139,6 +139,46 @@ describe("kho tiến độ localStorage", () => {
     onStorage({ key: "kd.theme" });
     expect(listener).not.toHaveBeenCalled();
   });
+
+  describe("dữ liệu của phiên bản mới hơn (tab cũ còn mở sau khi cập nhật)", () => {
+    const newerBlob = JSON.stringify({ ...emptyState(), version: STATE_VERSION + 1, stats: { ...emptyState().stats, xpTotal: 9999 } });
+
+    it("không coi là hỏng, không bao giờ ghi đè, báo isNewerData", async () => {
+      ls.setItem("kd.progress.v1", newerBlob);
+      const store = await freshStore();
+
+      expect(store.getState()).toEqual(emptyState());
+      expect(store.isNewerData()).toBe(true);
+      expect(store.isPersistent()).toBe(false);
+      expect(ls.data.has("kd.progress.corrupt")).toBe(false);
+
+      // Học tiếp trong bộ nhớ được, nhưng bản mới trong kho còn nguyên từng byte
+      store.recordWritingAttempt(attempt);
+      store.setDailyGoal(60);
+      store.resetProgress();
+      expect(ls.getItem("kd.progress.v1")).toBe(newerBlob);
+    });
+
+    it("tab mới ghi định dạng mới trong khi tab cũ đang mở: tab cũ dừng ghi; bản mới bị gỡ thì ghi lại bình thường", async () => {
+      const old = await freshStore();
+      old.recordWritingAttempt(attempt);
+      old.subscribe(() => {});
+      const onStorage = storageHandler!;
+
+      ls.setItem("kd.progress.v1", newerBlob); // bản mới vừa nâng định dạng
+      onStorage({ key: old.STORAGE_KEY });
+      expect(old.isNewerData()).toBe(true);
+      old.setDailyGoal(60);
+      expect(ls.getItem("kd.progress.v1")).toBe(newerBlob);
+
+      ls.removeItem("kd.progress.v1"); // vd. người học xoá dữ liệu trang ở bản mới
+      onStorage({ key: null });
+      expect(old.isNewerData()).toBe(false);
+      old.setDailyGoal(70);
+      expect(old.isPersistent()).toBe(true);
+      expect(parseState(ls.getItem("kd.progress.v1")!)).toMatchObject({ ok: true });
+    });
+  });
 });
 
 describe("cài đặt và dữ liệu", () => {

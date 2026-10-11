@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ITEM_TYPES } from "../types";
 
 /* Toàn bộ tiến độ của người học — thứ duy nhất được lưu, và chỉ lưu trong trình duyệt (xem store.ts).
    Không có tài khoản, không có máy chủ: dữ liệu này là của người học, đi theo thiết bị. */
@@ -15,7 +16,7 @@ const count = z.number().int().min(0);
 
 /** Thẻ đã được học ít nhất một lần. Thẻ NEW chỉ tồn tại "ảo" trong hàng đợi, nên không lưu ở đây. */
 const cardSchema = z.object({
-  itemType: z.enum(["KANA_WRITING", "KANA_READING", "VOCAB_MEANING", "VOCAB_READING"]),
+  itemType: z.enum(ITEM_TYPES),
   /** Kana: chính ký tự ("あ"). Từ vựng: id dạng chuỗi ("12"). */
   itemId: z.string().min(1),
   state: z.enum(["LEARNING", "REVIEW", "RELEARNING"]),
@@ -83,13 +84,14 @@ export function emptyState(): ProgressState {
   };
 }
 
-export type ParseResult = { ok: true; state: ProgressState } | { ok: false; error: string };
+/** `newer`: dữ liệu do một phiên bản Kana Dōjō MỚI hơn ghi — không hỏng, chỉ là bản này không đọc được. */
+export type ParseResult = { ok: true; state: ProgressState } | { ok: false; error: string; newer?: true };
 
 /** Kiểm tra một giá trị đã parse JSON — dùng chung cho localStorage, tệp tiến độ cũ và phần `progress` của tệp sao lưu bọc. */
 export function parseStateValue(raw: unknown): ParseResult {
   const version = (raw as { version?: unknown } | null)?.version;
   if (typeof version === "number" && version > STATE_VERSION) {
-    return { ok: false, error: "Tệp được tạo bởi phiên bản Kana Dōjō mới hơn. Hãy tải lại trang để cập nhật rồi thử lại." };
+    return { ok: false, newer: true, error: "Tệp được tạo bởi phiên bản Kana Dōjō mới hơn. Hãy tải lại trang để cập nhật rồi thử lại." };
   }
   const parsed = progressSchema.safeParse(raw);
   if (!parsed.success) {

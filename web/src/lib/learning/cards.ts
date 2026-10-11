@@ -1,6 +1,6 @@
 import { VOCABULARY } from "@/data/vocabulary";
 import { KANA, type KanaChar } from "../kana";
-import type { ItemType, Vocabulary } from "../types";
+import { ITEM_TYPES, type ItemType, type Vocabulary } from "../types";
 import {
   EMPTY_CATALOG, isUserItem, userCardIdOf, userItemId, type Catalog, type StudyOptions, type UserCard,
 } from "./context";
@@ -10,7 +10,7 @@ import {
    bảng id như khi có CSDL. Thẻ tự soạn dùng mã mục `u:<mã thẻ>` (xem context.ts). */
 
 /** Thứ tự này cũng là thứ tự ưu tiên khi cấp thẻ mới. */
-export const ALL_TYPES: readonly ItemType[] = ["KANA_WRITING", "KANA_READING", "VOCAB_MEANING", "VOCAB_READING"];
+export const ALL_TYPES: readonly ItemType[] = ITEM_TYPES;
 
 export const isKanaType = (t: ItemType) => t === "KANA_WRITING" || t === "KANA_READING";
 

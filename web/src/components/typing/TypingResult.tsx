@@ -9,10 +9,10 @@ import type { GameResult, PhraseRecord } from "./useTypingGame";
 
 /**
  * Kết quả ghi lượt: kỷ lục của tổ hợp vừa chơi; "practice" nếu là lượt luyện lại câu có lỗi (không tính
- * kỷ lục); null nếu chưa gõ đúng phím nào.
+ * kỷ lục); null nếu chưa gõ đúng phím nào. `saved` = false khi trình duyệt không cho ghi (kỷ lục chỉ còn đến khi đóng tab).
  */
 export type RecordOutcome =
-  | { kind: "record"; personalBest: number; newBest: boolean }
+  | { kind: "record"; personalBest: number; newBest: boolean; saved: boolean }
   | { kind: "practice" }
   | null;
 
@@ -153,7 +153,13 @@ function RecordLine({ outcome }: { outcome: RecordOutcome }) {
           Kỷ lục của bạn ở bài này: <b className="tnum text-sumi">{outcome.personalBest}</b>
         </span>
       )}
-      <span className="text-[11.5px] text-sumi-3">· lưu trên trình duyệt này</span>
+      {outcome.saved ? (
+        <span className="text-[11.5px] text-sumi-3">· lưu trên trình duyệt này</span>
+      ) : (
+        <span className="text-[11.5px] font-semibold text-shu">
+          · chưa lưu được (trình duyệt chặn lưu trữ hoặc đã đầy) — kỷ lục chỉ còn đến khi đóng tab
+        </span>
+      )}
     </div>
   );
 }

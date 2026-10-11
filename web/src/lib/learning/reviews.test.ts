@@ -4,7 +4,7 @@ import { KANA, charsOf } from "../kana";
 import { badgeStatuses } from "./badges";
 import { cardKey } from "./cards";
 import {
-  NEW_CARDS_PER_DAY, buildQueue, gradeCard, kanaProgress, recordWriting, summaryOf, type Outcome,
+  NEW_CARDS_PER_DAY, buildQueue, forgetUserCards, gradeCard, kanaProgress, recordWriting, summaryOf, type Outcome,
 } from "./reviews";
 import { emptyState, type ProgressState } from "./state";
 import type { Clock } from "./time";
@@ -108,6 +108,24 @@ describe("thẻ mồ côi (mục nội dung không còn tồn tại)", () => {
     expect(q.dueCount).toBe(1);
     expect(summaryOf(s, later).dueToday).toBe(1);
     expect(() => gradeCard(s, "VOCAB_MEANING:9999", 3, 0, later)).toThrow(/Không tìm thấy thẻ/);
+  });
+
+  it("xoá thẻ tự soạn thì bỏ lịch ôn của nó ở cả hai chiều; thẻ khác và XP giữ nguyên", () => {
+    const s = gradeCard(emptyState(), "KANA_WRITING:あ", 4, 0, MON).state;
+    const base = s.cards["KANA_WRITING:あ"];
+    s.cards["VOCAB_MEANING:u:c1"] = { ...base, itemType: "VOCAB_MEANING", itemId: "u:c1" };
+    s.cards["VOCAB_READING:u:c1"] = { ...base, itemType: "VOCAB_READING", itemId: "u:c1" };
+    s.cards["VOCAB_MEANING:u:c2"] = { ...base, itemType: "VOCAB_MEANING", itemId: "u:c2" };
+    s.cards["VOCAB_MEANING:1"] = { ...base, itemType: "VOCAB_MEANING", itemId: "1" };
+
+    const out = forgetUserCards(s, ["c1", "khong-co"]);
+    expect(out.result).toBe(2);
+    expect(Object.keys(out.state.cards).sort()).toEqual(["KANA_WRITING:あ", "VOCAB_MEANING:1", "VOCAB_MEANING:u:c2"]);
+    expect(out.state.stats).toEqual(s.stats);
+    expect(Object.keys(s.cards)).toHaveLength(5); // trạng thái cũ không bị đụng tới
+
+    const none = forgetUserCards(s, ["khong-co"]);
+    expect(none).toEqual({ state: s, result: 0 }); // không đổi gì thì không tạo bản mới (không ghi lại)
   });
 });
 

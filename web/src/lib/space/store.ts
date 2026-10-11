@@ -15,6 +15,8 @@ export const SERVER_SPACE: Space = emptySpace(0);
 
 let current: Space | null = null;
 let persistent = true;
+/** Trong kho là dữ liệu của phiên bản mới hơn: tab này không ghi (xem lib/learning/store.ts). */
+let newer = false;
 let listening = false;
 const listeners = new Set<() => void>();
 
@@ -29,6 +31,7 @@ function storage(): Storage | null {
 }
 
 function load(): Space {
+  if (newer) { newer = false; persistent = true; }
   const ls = storage();
   if (!ls) {
     persistent = false;
@@ -45,11 +48,17 @@ function load(): Space {
 
   const parsed = parseSpace(text);
   if (parsed.ok) return parsed.space;
+  if (parsed.newer) {
+    newer = true;
+    persistent = false;
+    return emptySpace();
+  }
   try { ls.setItem(SPACE_CORRUPT_KEY, text); } catch { /* hết dung lượng — đành chịu */ }
   return emptySpace();
 }
 
 function persist(text: string) {
+  if (newer) return;
   const ls = storage();
   if (!ls) {
     persistent = false;
@@ -88,6 +97,9 @@ export const getServerSpace = (): Space => SERVER_SPACE;
 /** false khi lần ghi gần nhất thất bại (đầy bộ nhớ, chế độ riêng tư): thay đổi chỉ sống đến khi đóng tab. */
 export const isPersistent = (): boolean => { getSpace(); return persistent; };
 
+/** true khi kho chứa không gian riêng của phiên bản mới hơn — phải tải lại trang. */
+export const isNewerData = (): boolean => { getSpace(); return newer; };
+
 function commit(next: Space, text: string = JSON.stringify(next)) {
   current = next;
   persist(text);
@@ -120,9 +132,10 @@ export function updateSpace(fn: (space: Space) => Space): UpdateResult {
   return { ok: true };
 }
 
-/** Thay toàn bộ không gian (khôi phục từ tệp sao lưu). */
-export function replaceSpace(space: Space): void {
+/** Thay toàn bộ không gian (khôi phục từ tệp sao lưu). Trả về false nếu chỉ thay được trong bộ nhớ (ghi thất bại). */
+export function replaceSpace(space: Space): boolean {
   commit(space);
+  return persistent;
 }
 
 /** Về không gian trống, chưa dựng — màn chào lần đầu sẽ hiện lại. */

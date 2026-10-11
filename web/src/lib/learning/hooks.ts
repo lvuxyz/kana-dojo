@@ -6,7 +6,7 @@ import { heatmapOf, statsOf } from "./activity";
 import { badgeStatuses } from "./badges";
 import { kanaProgress, summaryOf } from "./reviews";
 import { getLearnContext, getServerLearnContext, subscribe as subscribeSpace } from "../space/store";
-import { SERVER_STATE, getServerState, getState, isPersistent, subscribe } from "./store";
+import { SERVER_STATE, getServerState, getState, isNewerData, isPersistent, subscribe } from "./store";
 import type { LearnContext } from "./context";
 import { systemClock } from "./time";
 
@@ -22,6 +22,11 @@ export function useProgress() {
 /** false nếu trình duyệt không cho lưu — tiến độ sẽ mất khi đóng tab. */
 export function usePersistent(): boolean {
   return useSyncExternalStore(subscribe, isPersistent, () => true);
+}
+
+/** true nếu tiến độ trong trình duyệt do phiên bản mới hơn ghi — tab này phải tải lại. */
+export function useNewerData(): boolean {
+  return useSyncExternalStore(subscribe, isNewerData, () => false);
 }
 
 export function useStats() {

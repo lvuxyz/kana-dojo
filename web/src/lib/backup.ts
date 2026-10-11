@@ -1,7 +1,11 @@
 import { parseStateValue, type ProgressState } from "./learning/state";
-import { getState, replaceProgress, resetProgress } from "./learning/store";
+import {
+  getState, isNewerData as progressIsNewer, isPersistent as progressPersistent, replaceProgress, resetProgress,
+} from "./learning/store";
 import { parseSpaceValue, type Space } from "./space/space";
-import { getSpace, replaceSpace, resetSpace } from "./space/store";
+import {
+  getSpace, isNewerData as spaceIsNewer, isPersistent as spacePersistent, replaceSpace, resetSpace,
+} from "./space/store";
 import { clearHistory } from "./typing/history";
 
 /* Tệp sao lưu: toàn bộ thứ thuộc về người học trên thiết bị này, trong một tệp JSON.
@@ -66,12 +70,39 @@ export function parseBackup(text: string): BackupParse {
 
 export const exportBackup = (now: Date = new Date()): string => buildBackup(getState(), getSpace(), now);
 
-/** Kiểm tra toàn bộ tệp TRƯỚC khi ghi bất cứ thứ gì: tệp hỏng không bao giờ làm mất một nửa dữ liệu hiện có. */
+const NO_ROOM =
+  "Trình duyệt không đủ dung lượng để khôi phục tệp này nên chưa có gì bị thay đổi. Hãy giải phóng dung lượng " +
+  "(hoặc dọn bớt ghi chú, bộ thẻ trong tệp) rồi thử lại.";
+const OLD_TAB =
+  "Tab này đang chạy phiên bản Kana Dōjō cũ hơn dữ liệu trên trình duyệt. Hãy đóng mọi tab Kana Dōjō rồi mở lại trước khi khôi phục.";
+
+/** Kiểm tra toàn bộ tệp TRƯỚC khi ghi bất cứ thứ gì: tệp hỏng không bao giờ làm mất một nửa dữ liệu hiện có.
+ *  Ghi cũng là "tất cả hoặc không gì cả": hai kho là hai lần ghi localStorage riêng, nên nếu lần sau thất bại (hết dung
+ *  lượng) thì lần trước được hoàn lại — không bao giờ để lại tiến độ của tệp đi với tài liệu cũ hay ngược lại.
+ *  Trình duyệt vốn đã không lưu được (chế độ riêng tư, bị chặn) thì vẫn khôi phục vào bộ nhớ như trước; banner đã cảnh báo. */
 export function importBackup(text: string): { ok: true; kind: "full" | "progress-only" } | { ok: false; error: string } {
   const parsed = parseBackup(text);
   if (!parsed.ok) return parsed;
-  replaceProgress(parsed.progress);
-  if (parsed.kind === "full") replaceSpace(parsed.space);
+  if (progressIsNewer() || spaceIsNewer()) return { ok: false, error: OLD_TAB };
+
+  const full = parsed.kind === "full";
+  if (!progressPersistent() || !spacePersistent()) {
+    replaceProgress(parsed.progress);
+    if (full) replaceSpace(parsed.space);
+    return { ok: true, kind: parsed.kind };
+  }
+
+  const before = { progress: getState(), space: getSpace() };
+  // Không gian riêng (có văn bản người dùng, lớn hơn) ghi trước: hết chỗ thì dừng khi tiến độ chưa bị đụng tới.
+  if (full && !replaceSpace(parsed.space)) {
+    replaceSpace(before.space);
+    return { ok: false, error: NO_ROOM };
+  }
+  if (!replaceProgress(parsed.progress)) {
+    replaceProgress(before.progress);
+    if (full) replaceSpace(before.space);
+    return { ok: false, error: NO_ROOM };
+  }
   return { ok: true, kind: parsed.kind };
 }
 
@@ -81,8 +112,23 @@ export function resetLearning(): void {
   clearHistory();
 }
 
-/** Xoá sạch mọi thứ trên trình duyệt này, kể cả không gian riêng. */
+/** Tuỳ chọn hiển thị của máy (sáng/tối), không phải dữ liệu của người học: giữ lại để trang không chớp đổi màu. */
+const KEPT_KEYS = new Set(["kd.theme"]);
+
+/** Xoá sạch mọi thứ trên trình duyệt này, kể cả không gian riêng: mọi khoá `kd.*` (lựa chọn màn luyện gõ, bản hỏng giữ
+ *  để cứu hộ, và cả khoá do bản sau thêm vào) trừ giao diện sáng/tối. */
 export function resetEverything(): void {
+  try {
+    const ls = window.localStorage;
+    const keys: string[] = [];
+    for (let i = 0; i < ls.length; i++) {
+      const k = ls.key(i);
+      if (k?.startsWith("kd.") && !KEPT_KEYS.has(k)) keys.push(k);
+    }
+    for (const k of keys) ls.removeItem(k);
+  } catch {
+    /* bị chặn lưu trữ: không có gì để xoá */
+  }
   resetLearning();
   resetSpace();
 }

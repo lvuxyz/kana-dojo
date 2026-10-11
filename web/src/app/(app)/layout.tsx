@@ -7,8 +7,8 @@ import { BottomNav, SideNav } from "@/components/app/Nav";
 import { Onboarding } from "@/components/app/Onboarding";
 import { ThemeToggle } from "@/components/app/ThemeToggle";
 import { Progress } from "@/components/ui";
-import { usePersistent, useProgress, useStats } from "@/lib/learning/hooks";
-import { useSpace, useSpacePersistent } from "@/lib/space/hooks";
+import { useNewerData, usePersistent, useProgress, useStats } from "@/lib/learning/hooks";
+import { useSpace, useSpaceNewerData, useSpacePersistent } from "@/lib/space/hooks";
 import { completeOnboarding } from "@/lib/space/space";
 import { updateSpace } from "@/lib/space/store";
 
@@ -21,10 +21,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const progressPersistent = usePersistent();
   const spacePersistent = useSpacePersistent();
   const persistent = progressPersistent && spacePersistent;
+  // Tab cũ còn mở sau khi site cập nhật và bản mới đã nâng định dạng dữ liệu: tab này không đọc được, cũng không ghi.
+  const progressNewer = useNewerData();
+  const spaceNewer = useSpaceNewerData();
+  const newer = progressNewer || spaceNewer;
 
   // Người đã học từ trước khi có "không gian riêng" không phải qua màn chào: họ đã có thói quen riêng của mình.
   const returning = progressReady && (state.stats.xpTotal > 0 || Object.keys(state.cards).length > 0);
-  const needsOnboarding = spaceReady && progressReady && !space.onboarded && !returning;
+  const needsOnboarding = spaceReady && progressReady && !space.onboarded && !returning && !newer;
 
   useEffect(() => {
     if (spaceReady && !space.onboarded && returning) updateSpace(completeOnboarding);
@@ -89,7 +93,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          {!persistent && (
+          {newer ? (
+            <p role="alert" className="mb-5 rounded-2xl border border-shu/40 bg-shu-tint/80 px-4.5 py-3 text-xs font-semibold text-sumi-2 shadow-xs">
+              Dữ liệu trên trình duyệt này được ghi bởi phiên bản Kana Dōjō mới hơn, còn tab này vẫn chạy bản cũ nên không đọc
+              được — tiến độ của bạn vẫn còn nguyên và tab này sẽ không ghi đè lên. Hãy đóng mọi tab Kana Dōjō rồi mở lại để dùng bản mới.
+            </p>
+          ) : !persistent && (
             <p role="alert" className="mb-5 rounded-2xl border border-gold/40 bg-gold-tint/80 px-4.5 py-3 text-xs font-semibold text-sumi-2 shadow-xs">
               Trình duyệt đang không cho lưu dữ liệu (có thể bạn đang ở chế độ riêng tư, hoặc bộ nhớ đã đầy), nên tiến độ,
               ghi chú và bộ thẻ chỉ giữ được đến khi đóng tab này. Bạn vẫn dùng bình thường — vào{" "}
