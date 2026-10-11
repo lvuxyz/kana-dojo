@@ -8,6 +8,7 @@ import { LIMITS, type UserText } from "@/lib/space/space";
 import { useSpace } from "@/lib/space/hooks";
 import { updateSpace } from "@/lib/space/store";
 import { parsePhrase, validateTypingText } from "@/lib/typing/phrases";
+import { TextImportPanel } from "./TextImport";
 
 /* Câu luyện gõ của riêng người học. Dùng cú pháp có sẵn của phòng luyện gõ: kanji kèm cách đọc {漢字|かんじ}.
    Câu phải gõ được trọn vẹn (xem validateTypingText) nên lỗi được báo ngay lúc soạn, không phải lúc đang gõ dở. */
@@ -53,6 +54,8 @@ export function TextsPane() {
         </form>
         {err && <Notice tone="err">{err}</Notice>}
       </Card>
+
+      <TextImportPanel existing={texts.length} count={texts.length} />
 
       {texts.length === 0 ? (
         <Empty title="Chưa có câu nào" hint="Thêm câu từ bài học, bài hát, truyện bạn đang đọc — rồi chọn “Câu của tôi” trong phòng luyện gõ." />

@@ -191,6 +191,35 @@ export function addText(space: Space, draft: { text: string; vi?: string }, env:
   return { space: withLibrary(space, { texts: [...space.library.texts, text] }), text };
 }
 
+export interface AddTextsResult { space: Space; added: number; duplicate: number; invalid: number }
+
+/** Nhập nhiều câu một lượt (từ văn bản dán vào hoặc tệp). Câu trùng với câu đã có bị bỏ qua, câu không gõ được bị đếm riêng. */
+export function addTexts(space: Space, drafts: readonly { text: string; vi?: string }[], env: Env = systemEnv()): AddTextsResult {
+  const seen = new Set(space.library.texts.map((t) => t.text));
+  let duplicate = 0;
+  let invalid = 0;
+  const fresh: { text: string; vi: string }[] = [];
+  for (const d of drafts) {
+    const text = clip(d.text.trim(), LIMITS.text);
+    if (validateTypingText(text)) { invalid++; continue; }
+    if (seen.has(text)) { duplicate++; continue; }
+    seen.add(text);
+    fresh.push({ text, vi: clip((d.vi ?? "").trim(), LIMITS.textVi) });
+  }
+  const have = space.library.texts.length;
+  if (have + fresh.length > LIMITS.texts) {
+    throw new SpaceError(`Tối đa ${LIMITS.texts} câu luyện gõ (hiện có ${have}, định thêm ${fresh.length}).`);
+  }
+
+  // Mã được cấp lần lượt: mỗi câu mới phải tránh cả những câu vừa cấp trong cùng lượt.
+  let working = space;
+  for (const t of fresh) {
+    const id = freshId(working, env);
+    working = withLibrary(working, { texts: [...working.library.texts, { id, ...t }] });
+  }
+  return { space: working, added: fresh.length, duplicate, invalid };
+}
+
 export function updateText(space: Space, id: string, patch: { text?: string; vi?: string }): Space {
   const current = space.library.texts.find((t) => t.id === id);
   if (!current) throw new SpaceError("Không tìm thấy câu này.");
