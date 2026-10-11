@@ -184,6 +184,17 @@ Vì một câu không gõ được (kanji trần, chữ Latin, ký hiệu lạ) 
 (tệp sao lưu sửa tay cũng không làm kẹt). Test `phrases.test.ts` kiểm rằng mọi câu mà `validateTypingText` nhận đều gõ trọn được bằng cả romaji lẫn kana JIS. Chưa có câu nào thì ván dùng kana ngẫu nhiên.
 Kỷ lục theo tổ hợp (cách nhập × nội dung × chế độ) coi `MINE` là một nội dung như các loại khác.
 
+**Nhập văn bản** (`lib/typing/import.ts`, giao diện `components/library/TextImport.tsx`): ngay trong phòng luyện gõ — chọn "Câu của tôi" sẽ hiện khung *Nhập văn bản để luyện gõ* (`TextImportPanel`, mở sẵn khi chưa có câu nào) — và ở Thư viện › Câu luyện gõ.
+Người học dán cả đoạn văn, chọn hoặc kéo thả tệp `.txt` (UTF-8, không phải UTF-8 thì đọc theo Shift_JIS; tối đa 256 KB):
+
+- Dòng không có nghĩa được **tự tách câu** sau 。！？!?… (kèm dấu đóng ngoặc theo sau), không bao giờ cắt giữa cụm `{漢字|かんじ}`.
+- Dòng `câu | nghĩa` hoặc `câu<Tab>nghĩa` (dán từ Excel) giữ nguyên một câu kèm nghĩa; `|` nằm trong cụm kanji không bị coi là dấu ngăn.
+- Bỏ dòng trống, dòng `#…`, câu trùng; katakana nửa độ rộng (ｺｰﾋｰ) đổi về katakana thường. Câu dài hơn `LIMITS.text` bị chặn kèm lời nhắc ngắt câu.
+- Mỗi câu qua `validateTypingText` (riêng kanji trần được báo gọn: `Kanji “水” chưa có cách đọc — viết {水|…}`); bảng xem trước đếm câu gõ được / cần sửa và chỉ ra lý do. Bấm *Thêm* chỉ nhập câu gõ được (`addTexts` ở `lib/space/library.ts`
+  bỏ câu đã có, không vượt `LIMITS.texts`); **câu cần sửa ở lại trong ô** để người học thêm cách đọc rồi nhập tiếp.
+
+Không tự sinh furigana cho kanji trần: việc đó cần từ điển hình thái (kuromoji… vài MB), không hợp với site tĩnh nhẹ — người học tự viết `{漢字|かんじ}`.
+
 ### 3.4 Quyết định khi gộp vào site không tài khoản
 
 Phòng luyện gõ được viết lúc site còn có backend và tài khoản (nhánh `claude/japanese-text-input-feature-df8fd6`, PR #2,
@@ -227,6 +238,7 @@ và cập nhật lời ở Cài đặt › Dữ liệu. Quyết định *giữ n
 | Web — `phrases.test.ts` | Phân tích furigana; **từng câu trong kho** gõ trọn bằng romaji và kana; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được; lọc đúng nhóm kana; "Chữ hay sai" chỉ rút từ danh sách yếu, đúng tỉ lệ; câu cố định gõ lần lượt |
 | Web — `ime.test.ts` | Chuẩn hoá chữ IME (NFKC, bỏ dấu câu), so khớp chữ đã chốt, quy đổi số phím; cụm kanji chỉ tính khi đổi đúng trọn cụm |
 | Web — `score.test.ts` | KPM, độ chính xác, điểm, sinh tử, thang đai |
+| Web — `import.test.ts` | Tách câu sau 。！？ không cắt cụm kanji, dòng có nghĩa (Tab / `|` ngoài cụm), bỏ dòng trống/`#`/trùng, lý do cho câu không gõ được và câu quá dài, katakana nửa độ rộng, câu cần sửa viết lại rồi đọc lại y hệt, đọc tệp UTF-8 và Shift_JIS. `library.test.ts` kiểm `addTexts`: bỏ câu trùng, đếm câu hỏng, mã không trùng, vượt giới hạn thì không thêm gì |
 | Web — `history.test.ts` | Kỷ lục theo tổ hợp, chỉ đổi khi điểm cao hơn, giới hạn số lượt gần đây, dữ liệu hỏng thì bắt đầu lại; chữ yếu cộng dồn, giảm dần và bỏ kanji; khoá cố định `kd.typing.history.v1`, dữ liệu hỏng giữ lại ở `.corrupt`, mục hỏng bị bỏ riêng lẻ (phần còn lại giữ nguyên), trình duyệt chặn hoặc đầy bộ nhớ thì không ném lỗi và `saveHistory` trả false để trang kết quả báo "chưa lưu được" |
 
 ---

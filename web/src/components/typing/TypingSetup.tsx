@@ -11,6 +11,7 @@ import { findBest, weakList, type TypingHistory } from "@/lib/typing/history";
 import { useSpace } from "@/lib/space/hooks";
 import { userPhrases } from "@/lib/typing/phrases";
 import { SOUND_THEMES, playKeySound } from "@/lib/typing/sound";
+import { TextImportPanel } from "@/components/library/TextImport";
 import type { GameConfig } from "./useTypingGame";
 
 export const METHOD_INFO: Record<InputMethod, { ja: string; label: string; hint: string }> = {
@@ -103,7 +104,7 @@ export function TypingSetup({
 
   const contentHint = (c: ContentType) => {
     if (c === "MINE") {
-      return mineCount > 0 ? `${mineCount} câu bạn đã soạn trong Thư viện` : "Chưa có câu nào — soạn ở Thư viện";
+      return mineCount > 0 ? `${mineCount} câu bạn đã soạn trong Thư viện` : "Chưa có câu nào — nhập văn bản bên dưới";
     }
     if (c !== "WEAK") return CONTENT_INFO[c].hint;
     return weak.length > 0 ? `Theo dõi ${weak.length} chữ bạn hay gõ sai` : "Chưa có dữ liệu chữ sai";
@@ -156,6 +157,12 @@ export function TypingSetup({
                 />
               ))}
             </div>
+
+            {config.content === "MINE" && (
+              <div className="mt-2.5">
+                <TextImportPanel existing={space.library.texts.length} count={mineCount} manageHref="/thu-vien?tab=texts" />
+              </div>
+            )}
 
             {drillOptions && (
               <div className="mt-2.5 flex flex-wrap items-center gap-2 rounded-xl border border-rule/70 bg-paper-sunk/50 px-3 py-2">

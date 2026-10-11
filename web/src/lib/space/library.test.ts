@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  addCards, addDeck, addNote, addText, deckToTsv, deleteCard, deleteDeck, deleteNote, deleteText, parseCardLines,
+  addCards, addDeck, addNote, addText, addTexts, deckToTsv, deleteCard, deleteDeck, deleteNote, deleteText, parseCardLines,
   searchNotes, sortNotes, totalCards, updateCard, updateDeck, updateNote, updateText,
 } from "./library";
 import { LIMITS, SpaceError, emptySpace, parseSpace, type Env, type Space } from "./space";
@@ -184,6 +184,22 @@ describe("câu luyện gõ", () => {
     expect(edited.library.texts[0].vi).toBe("Xin chào");
     expect(() => updateText(edited, text.id, { text: "abc" })).toThrow(SpaceError);
     expect(deleteText(edited, text.id).library.texts).toEqual([]);
+  });
+});
+
+describe("nhập nhiều câu luyện gõ", () => {
+  it("thêm câu gõ được, bỏ câu trùng (với câu đã có và trong lượt), đếm câu hỏng; mã không trùng", () => {
+    const env = makeEnv();
+    const start = addText(emptySpace(), { text: "こんにちは" }, env).space;
+    const r = addTexts(start, [{ text: "こんにちは" }, { text: " ありがとう ", vi: "Cảm ơn" }, { text: "ありがとう" }, { text: "水" }], env);
+    expect(r).toMatchObject({ added: 1, duplicate: 2, invalid: 1 });
+    expect(r.space.library.texts.map((t) => t.text)).toEqual(["こんにちは", "ありがとう"]);
+    expect(new Set(r.space.library.texts.map((t) => t.id)).size).toBe(2);
+  });
+
+  it("vượt giới hạn số câu thì không thêm gì", () => {
+    const many = Array.from({ length: LIMITS.texts + 1 }, (_, i) => ({ text: "あ".repeat(1 + (i % 100)) + "い".repeat(1 + Math.floor(i / 100)) }));
+    expect(() => addTexts(emptySpace(), many, makeEnv())).toThrow(/Tối đa/);
   });
 });
 
