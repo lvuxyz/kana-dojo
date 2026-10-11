@@ -455,7 +455,7 @@ trộn điểm của hai con trỏ vào một nét, và `pointercancel` bị coi
 
 **Cài đặt được.** `web/src/app/manifest.ts` sinh `/manifest.webmanifest`: `id "/"`, `start_url "/bang-dieu-khien"` (người đã cài là người quay lại học), `scope "/"`, `display "standalone"`,
 `lang "vi"`, icon 192 và 512 (`any`) cùng 512 `maskable` ở `web/public/icons/`, và bốn `shortcuts` (Luyện viết, Luyện gõ, Ôn tập, Quiz). Icon cảm ứng iOS là `web/src/app/apple-icon.png` (180×180, nền đặc —
-iOS tự bo góc); `appleWebApp` trong metadata thêm meta `mobile-web-app-capable`, tiêu đề và kiểu thanh trạng thái cho Safari iOS (việc mở toàn màn hình trên các bản iOS cũ dựa vào meta này,
+iOS tự bo góc); `/favicon.ico` (16/32/48, `web/public/`) chỉ để các trình khách tự xin tệp này không nhận 404 — trang khai báo `icon.svg`; `appleWebApp` trong metadata thêm meta `mobile-web-app-capable`, tiêu đề và kiểu thanh trạng thái cho Safari iOS (việc mở toàn màn hình trên các bản iOS cũ dựa vào meta này,
 chưa được kiểm trên thiết bị thật). Chrome/Edge cần HTTPS (hoặc `localhost`), manifest và icon 192/512; service worker không bắt buộc để cài được.
 
 **Service worker** (`web/scripts/sw.template.js`, sinh thành `out/sw.js` bởi `web/scripts/build-sw.mjs` ngay sau `next build`):

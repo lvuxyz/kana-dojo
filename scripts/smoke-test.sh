@@ -52,7 +52,7 @@ body=$(curl -sf "$BASE/sitemap.xml") || fail "Không đọc được /sitemap.xm
 # --- PWA: manifest, icon và service worker ---
 body=$(curl -sf "$BASE/manifest.webmanifest") || fail "Không đọc được /manifest.webmanifest"
 [[ "$body" == *'"start_url"'* && "$body" == *'icon-512.png'* && "$body" == *'maskable'* ]] && pass "manifest.webmanifest hợp lệ" || fail "manifest.webmanifest thiếu start_url/icon"
-for icon in /icons/icon-192.png /icons/icon-512.png /icons/icon-maskable-512.png /apple-icon.png; do
+for icon in /icons/icon-192.png /icons/icon-512.png /icons/icon-maskable-512.png /apple-icon.png /favicon.ico; do
   [ "$(status "$icon")" = 200 ] && pass "$icon 200" || fail "$icon không tải được"
 done
 sw=$(curl -sf "$BASE/sw.js") || fail "Không đọc được /sw.js"

@@ -292,3 +292,11 @@ Kiểm tự động không dựng được thiết bị thật; có thể bắn 
 `web/public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` và `web/src/app/apple-icon.png` (180×180) là ảnh tĩnh, vẽ lại đúng biểu tượng của `app/icon.svg` (chữ 仮 trắng trên nền `#C33C2B`):
 bản `any` bo góc 12,5%, bản `maskable` tràn nền với chữ nằm trong vùng an toàn giữa (≈ 50% cạnh), bản Apple nền đặc không bo góc (iOS tự bo; nền trong suốt sẽ thành đen). Đổi thương hiệu thì vẽ lại cả bốn tệp
 (ví dụ bằng `canvas.toBlob` trong trình duyệt) — `app/manifest.ts` và `scripts/smoke-test.sh` đã tham chiếu đúng các đường dẫn này.
+
+`web/public/favicon.ico` (16, 32, 48 px) thu nhỏ từ `icon-512.png`, cho trình duyệt cũ, trình thu thập và công cụ dấu trang vẫn tự xin `/favicon.ico` dù trang đã khai báo `icon.svg`
+(không có tệp này thì mỗi lần như vậy là một dòng 404 trong log). Nằm ở `public/` chứ không ở `app/` nên Next chỉ chép tệp, không thêm thẻ `<link>`: trình duyệt hiện đại vẫn dùng `icon.svg`.
+Sinh lại sau khi vẽ lại icon:
+
+```bash
+python -c "from PIL import Image; Image.open('web/public/icons/icon-512.png').convert('RGBA').save('web/public/favicon.ico', sizes=[(16,16),(32,32),(48,48)])"
+```
