@@ -357,6 +357,50 @@ export function Switch({
   );
 }
 
+/** Nút loa nhỏ: đổi màu và nhấp nháy sóng âm khi đang đọc đúng đoạn này. */
+export function SpeakButton({
+  active, label, className, ...rest
+}: { active: boolean; label: string } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label" | "aria-pressed">) {
+  return (
+    <button
+      type="button"
+      title="Phát âm"
+      aria-label={label}
+      aria-pressed={active}
+      className={clsx(
+        "grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-lg transition-colors hover:bg-paper-sunk",
+        active ? "text-genko" : "text-sumi-3 hover:text-sumi",
+        className,
+      )}
+      {...rest}
+    >
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
+        <g className={clsx(active && "animate-pulse motion-reduce:animate-none")}>
+          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+          {active && <path d="M18.5 5.5a9 9 0 0 1 0 13" />}
+        </g>
+      </svg>
+    </button>
+  );
+}
+
+/** Nhãn phím tắt mờ trên nút. Chỉ hiện khi có chuột/bàn di (pointer: fine) — trên điện thoại chỉ là nhiễu.
+ *  `aria-hidden`: nút mang phím tắt qua `aria-keyshortcuts`, không để trình đọc màn hình đọc thêm lần nữa. */
+export function Kbd({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <kbd
+      aria-hidden="true"
+      className={clsx(
+        "hidden pointer-fine:inline-block rounded border border-current border-b-2 px-1 font-sans text-[10px] leading-[14px] opacity-50",
+        className,
+      )}
+    >
+      {children}
+    </kbd>
+  );
+}
+
 /** Thông báo ngắn sau một thao tác (đã lưu / lỗi). `role=status` để trình đọc màn hình đọc lên. */
 export function Notice({ tone, children, className }: { tone: "ok" | "err"; children: ReactNode; className?: string }) {
   return (
