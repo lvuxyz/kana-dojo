@@ -30,7 +30,7 @@ kana-dojo/
 | Tính năng | Mô tả |
 |---|---|
 | **Dōjō của riêng bạn** | Lần đầu mở có màn dựng không gian (bỏ qua được): tên, điểm xuất phát (học đầy đủ / chỉ tập viết kana / tự soạn từ trang trắng), mục tiêu ngày. Bạn **bật/tắt và sắp xếp** công cụ trên thanh điều hướng, chọn **khối nào hiện ở Tổng quan**, viết **mục đích học** của mình. Tắt công cụ chỉ ẩn nó, dữ liệu vẫn giữ |
-| **Thư viện của tôi** | `/thu-vien`: **ghi chú/tài liệu** tự soạn (tự lưu, ghim, tìm, tải `.md`; cú pháp nhẹ + furigana `{漢字|かんじ}`), **bộ thẻ** tự soạn (thêm/sửa, dán nhiều thẻ từ Excel/Anki, xuất, bật/tắt từng bộ, hỏi cả hai chiều) vào thẳng hàng ôn FSRS, và **câu luyện gõ** riêng. Ghi chú ghim hiện ở Tổng quan |
+| **Thư viện của tôi** | `/thu-vien`: **ghi chú/tài liệu** tự soạn (tự lưu, ghim, tìm, tải `.md`; cú pháp nhẹ + furigana `{漢字|かんじ}`), **bộ thẻ** tự soạn (thêm/sửa, dán nhiều thẻ từ Excel/Anki, xuất, bật/tắt từng bộ, hỏi cả hai chiều) vào thẳng hàng ôn FSRS; nút **Học ngay** mở phiên học tập trung trên một bộ (lật thẻ 3D, tự đánh giá Đã nhớ/Chưa nhớ, tổng kết, ôn lại thẻ chưa nhớ, lưu phiên dở để học tiếp — không đổi lịch FSRS), và **câu luyện gõ** riêng. Ghi chú ghim hiện ở Tổng quan |
 | **Cách học do bạn chọn** | Cài đặt › Cách học: thẻ mới mỗi ngày (0–100), cỡ phiên ôn, **mức nhớ mục tiêu** của FSRS (70–97%), nguồn thẻ nào vào ôn (viết kana, đọc kana, từ vựng có sẵn, bộ thẻ của tôi), phạm vi kana, thứ tự cấp thẻ mới |
 | **Tập viết có hướng dẫn** | Vẽ nét trên canvas, so khớp với dữ liệu KanjiVG, điểm 0–100. Chuột, cảm ứng và bút; chỉ một con trỏ được viết cùng lúc nên ngón thứ hai/lòng bàn tay không phá nét |
 | **FSRS-6** | Lặp lại ngắt quãng thế hệ mới — điểm tập viết tự động xác định cấp độ ghi nhớ |

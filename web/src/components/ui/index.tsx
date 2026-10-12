@@ -39,7 +39,7 @@ export function Button({
   className,
   children,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: BtnSize }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: BtnSize; ref?: Ref<HTMLButtonElement> }) {
   return (
     <button className={clsx(BTN_BASE, BTN_VARIANT[variant], BTN_SIZE[size], className)} {...rest}>
       {children}
