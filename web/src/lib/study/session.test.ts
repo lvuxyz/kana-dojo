@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSaved } from "./saved";
+import { parseSaved, withSaved } from "./saved";
 import {
   currentCard, formatClock, formatDuration, isDone, resumeSession, shouldOfferSave, startSession, studyCta, studyKeyAction,
   studyReducer, summarize, toSaved, type Flashcard, type StudyEvent, type StudySession,
@@ -156,6 +156,16 @@ describe("phiên dở dang", () => {
     expect(back?.results).toEqual({});
     expect(back && currentCard(back)?.back).toBe("anh/chị");
     expect(resumeSession(saved, [deck[0]], T0)).toBeNull(); // chỉ còn thẻ đã học
+  });
+
+  it("lưu phiên mới dọn phiên của bộ đã bị xoá, giữ bộ còn sống, thay phiên cũ của chính bộ đó", () => {
+    const mk = (deckId: string, index: number) => ({ ...toSaved(answer(start(), "known"), T0), deckId, index });
+    const all = { d1: mk("d1", 1), gone: mk("gone", 1), d2: mk("d2", 2) };
+    const next = withSaved(all, mk("d1", 2), ["d1", "d2"]);
+    expect(Object.keys(next).sort()).toEqual(["d1", "d2"]);
+    expect(next.d1.index).toBe(2);
+    // Bộ vừa lưu luôn được giữ, kể cả khi danh sách bộ đang có chưa kịp có nó.
+    expect(Object.keys(withSaved(all, mk("d3", 1), []))).toEqual(["d3"]);
   });
 
   it("bản lưu hỏng hoặc sai hình dạng bị bỏ, mục tốt được giữ", () => {

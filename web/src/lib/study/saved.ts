@@ -55,9 +55,23 @@ export function loadSaved(deckId: string): SavedSession | null {
   return readAll()[deckId] ?? null;
 }
 
-/** false nếu không ghi được (đầy bộ nhớ hoặc bị chặn). */
-export function saveSession(s: SavedSession): boolean {
-  return writeAll({ ...readAll(), [s.deckId]: s });
+/**
+ * Thêm/thay phiên dở của một bộ và bỏ phiên của những bộ không còn trong `liveDeckIds` — bộ bị xoá ở tab khác (tab này
+ * không chạy `clearSaved` cho nó) hoặc qua "Khôi phục từ tệp". Không có bước dọn này, các mục mồ côi nằm mãi trong bộ nhớ.
+ */
+export function withSaved(
+  all: Record<string, SavedSession>,
+  s: SavedSession,
+  liveDeckIds: readonly string[],
+): Record<string, SavedSession> {
+  const live = new Set(liveDeckIds);
+  const kept = Object.fromEntries(Object.entries(all).filter(([id]) => live.has(id) && id !== s.deckId));
+  return { ...kept, [s.deckId]: s };
+}
+
+/** `liveDeckIds`: mã các bộ thẻ đang có, để dọn phiên của bộ đã bị xoá. false nếu không ghi được (đầy bộ nhớ hoặc bị chặn). */
+export function saveSession(s: SavedSession, liveDeckIds: readonly string[]): boolean {
+  return writeAll(withSaved(readAll(), s, liveDeckIds));
 }
 
 export function clearSaved(deckId: string): void {

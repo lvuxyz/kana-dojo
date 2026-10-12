@@ -400,11 +400,11 @@ function StudyBar({ deck, onStudy, savedTick }: { deck: Deck; onStudy: (how: Stu
       <div className="flex flex-wrap gap-2">
         {resumable && !cta.disabled ? (
           <>
-            <Button variant="solid" size="lg" onClick={() => onStudy("resume")}>Học tiếp ({resumable.at}/{resumable.total})</Button>
+            <Button data-study-return variant="solid" size="lg" onClick={() => onStudy("resume")}>Học tiếp ({resumable.at}/{resumable.total})</Button>
             <Button size="lg" onClick={() => onStudy({ from: 0 })}>Học lại từ đầu</Button>
           </>
         ) : (
-          <Button variant="solid" size="lg" disabled={cta.disabled} onClick={() => onStudy({ from: 0 })}>{cta.label}</Button>
+          <Button data-study-return variant="solid" size="lg" disabled={cta.disabled} onClick={() => onStudy({ from: 0 })}>{cta.label}</Button>
         )}
       </div>
     </Card>
