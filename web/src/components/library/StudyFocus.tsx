@@ -69,7 +69,9 @@ export function StudyFocus({
       // lúc dev: lần gắn lại đặt `mounted` về true trước khi hẹn giờ chạy, và màn học vẫn đang mở.
       setTimeout(() => {
         if (mounted.current) return;
-        const target = opener instanceof HTMLElement && opener.isConnected ? opener : document.querySelector<HTMLElement>("[data-study-return]");
+        // `<body>` không tính là nút mở: Safari không đưa focus vào nút khi bấm chuột/chạm, nên activeElement lúc mở là body.
+        const usable = opener instanceof HTMLElement && opener !== document.body && opener.isConnected;
+        const target = usable ? opener : document.querySelector<HTMLElement>("[data-study-return]");
         target?.focus({ preventScroll: true });
       }, 0);
     };
@@ -353,7 +355,9 @@ function ExitDialog({
 
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center p-4">
-      <button className="absolute inset-0 cursor-pointer bg-black/55 backdrop-blur-sm" onClick={onCancel} aria-label="Học tiếp" tabIndex={-1} />
+      {/* Nền mờ chỉ để bấm chuột ra ngoài; bàn phím và trình đọc màn hình dùng nút "Học tiếp" trong hộp thoại (và Esc),
+          nên nó không phải một nút thứ hai cùng tên trong cây trợ năng. */}
+      <div className="absolute inset-0 cursor-pointer bg-black/55 backdrop-blur-sm" onClick={onCancel} aria-hidden="true" />
       <div role="alertdialog" aria-modal="true" aria-labelledby="study-exit-title" aria-describedby="study-exit-desc"
         className="relative flex w-full max-w-sm flex-col gap-4 rounded-3xl border border-rule/80 bg-surface p-6 shadow-2xl">
         <div>

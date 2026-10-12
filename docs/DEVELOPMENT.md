@@ -63,7 +63,9 @@ npm run typecheck
 npm run build
 ```
 
-Unit test đặt cạnh mã nguồn, tên `*.test.ts`, chạy trong môi trường Node (không jsdom):
+Unit test đặt cạnh mã nguồn, tên `*.test.ts`, chạy trong môi trường Node (không jsdom).
+Widget test (component React) tên `*.test.tsx`, khai báo `// @vitest-environment jsdom` ở dòng đầu và dùng `@testing-library/react` —
+xem mục [Widget test](#widget-test-component-react) bên dưới.
 
 | Tệp | Kiểm tra gì |
 |---|---|
@@ -80,6 +82,7 @@ Unit test đặt cạnh mã nguồn, tên `*.test.ts`, chạy trong môi trườ
 | `lib/space/markup.test.ts` | Cú pháp ghi chú; cú pháp dang dở không nuốt nội dung; HTML/liên kết không bao giờ thành phần tử |
 | `lib/space/presets.test.ts` · `schedule.test.ts` | Điểm xuất phát của màn dựng lần đầu (hàng ôn đúng theo từng preset); tình trạng ôn của thẻ tự soạn |
 | `lib/backup.test.ts` | Tệp sao lưu bọc: vòng xuất–nhập, `progress` bên trong là v1 nguyên vẹn, nhập được tệp tiến độ trần của bản cũ (không đụng ghi chú), từ chối tệp hỏng/mới hơn/sai app, sai một phần là từ chối cả tệp, reset giữ tài liệu |
+| `components/library/StudyFlow.test.tsx` | **Widget test** (jsdom): luồng Học ngay → phiên học → tổng kết trên `DecksPane` thật — nút tắt khi bộ rỗng, thẻ đầu ở mặt trước và nhận focus, lật bằng nút/chạm/Space, cụm nút đánh giá khoá trong lúc lật, chuyển thẻ, phím tắt bị khoá trong lúc hiệu ứng chạy, Học từ thẻ này, tổng kết, ôn lại, hỏi lưu khi thoát giữa chừng, học tiếp đúng thẻ, focus trả về nút học |
 | `lib/study/session.test.ts` | Phiên học tập trung trên bộ thẻ: nút Học ngay tắt khi bộ trống, thẻ đầu ở mặt trước, chỉ đánh giá sau khi lật, khoá trong lúc lật/chuyển (bấm đúp không nhảy cóc), thẻ cuối → tổng kết, ôn lại thẻ chưa nhớ, lưu/khôi phục phiên dở (thẻ bị xoá/sửa trong lúc nghỉ), bản lưu hỏng, phím tắt |
 | `lib/pointer-gate.test.ts` | Cổng con trỏ: ngón thứ hai bị bỏ qua, bút thắng cảm ứng, `pointercancel` bỏ nét dở, chuột phải bị bỏ qua, `up` thất lạc không gây kẹt |
 | `lib/typing/engine.test.ts` | Mọi biến thể romaji (`shi/si/ci`, `nn`/`n'`/`xn`, `っ` gấp đôi, âm ghép, katakana mở rộng), kana JIS, phím "lẽ ra phải bấm" và gợi ý theo cách người học đang gõ |
@@ -100,6 +103,22 @@ Các hàm trong `lib/learning` nhận một `Clock { now: number; zone: string }
 const at = (iso: string): Clock => ({ now: Date.parse(iso), zone: "Asia/Ho_Chi_Minh" });
 const { state, result } = recordWriting(emptyState(), { character: "あ", avgScore: 95, strokeErrors: [], durationMs: 4000 }, at("2026-09-07T03:00:00Z"));
 ```
+
+### Widget test (component React)
+
+Logic vẫn kiểm bằng hàm thuần ở `lib/`. Widget test dành cho phần chỉ component mới có: focus, hộp thoại, phím tắt, việc nối
+nhiều bước giao diện với kho dữ liệu. Chúng render component thật với kho thật (`localStorage` của jsdom), không mock logic.
+
+- Dòng đầu tệp: `// @vitest-environment jsdom`. Môi trường mặc định vẫn là Node; `vitest.config.mts` bật `esbuild.jsx` vì
+  `tsconfig` của Next để `"jsx": "preserve"`.
+- `vitest` không bật `globals`, nên Testing Library không tự dọn: gọi `cleanup()` trong `afterEach`. Trước mỗi test,
+  `localStorage.clear()` và `resetSpace()` để không gian riêng bắt đầu trống.
+- `next/link` cần app router của Next: `vi.mock("next/link", …)` thành thẻ `<a>`.
+- Không có `@testing-library/jest-dom`: kiểm `disabled` trực tiếp (`(el as HTMLButtonElement).disabled`) thay cho `toBeDisabled()`.
+- Hiệu ứng mở khoá bằng `setTimeout`: dùng `vi.useFakeTimers()` và `act(() => vi.advanceTimersByTime(…))`. jsdom xếp
+  `history.back()` → `popstate` bằng chính `setTimeout` đó, nên thoát màn học cũng phải đẩy đồng hồ giả.
+- `fireEvent.click` render lại sau mỗi cú bấm. Muốn thử "hai cú bấm trong cùng một tick" thì gọi `el.click()` hai lần
+  trong một `act(…)`. `fireEvent.click` cũng không focus phần tử (giống Safari khi bấm nút).
 
 ---
 
