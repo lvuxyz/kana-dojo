@@ -7,6 +7,7 @@ import { parseSpaceValue, type Space } from "./space/space";
 import {
   getSpace, isNewerData as spaceIsNewer, isPersistent as spacePersistent, replaceSpace, resetSpace,
 } from "./space/store";
+import { clearAllSaved } from "./study/saved";
 import { clearHistory } from "./typing/history";
 
 /* Tệp sao lưu: toàn bộ thứ thuộc về người học trên thiết bị này, trong một tệp JSON.
@@ -107,10 +108,11 @@ export function importBackup(text: string): { ok: true; kind: "full" | "progress
   return { ok: true, kind: parsed.kind };
 }
 
-/** Xoá việc học (tiến độ, huy hiệu, kỷ lục gõ), GIỮ tài liệu, bộ thẻ và cài đặt của người học. */
+/** Xoá việc học (tiến độ, huy hiệu, kỷ lục gõ, phiên học dở), GIỮ tài liệu, bộ thẻ và cài đặt của người học. */
 export function resetLearning(): void {
   resetProgress();
   clearHistory();
+  clearAllSaved();
 }
 
 /** Tuỳ chọn hiển thị của máy (sáng/tối), không phải dữ liệu của người học: giữ lại để trang không chớp đổi màu. */

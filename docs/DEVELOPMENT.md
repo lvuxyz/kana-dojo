@@ -80,6 +80,7 @@ Unit test đặt cạnh mã nguồn, tên `*.test.ts`, chạy trong môi trườ
 | `lib/space/markup.test.ts` | Cú pháp ghi chú; cú pháp dang dở không nuốt nội dung; HTML/liên kết không bao giờ thành phần tử |
 | `lib/space/presets.test.ts` · `schedule.test.ts` | Điểm xuất phát của màn dựng lần đầu (hàng ôn đúng theo từng preset); tình trạng ôn của thẻ tự soạn |
 | `lib/backup.test.ts` | Tệp sao lưu bọc: vòng xuất–nhập, `progress` bên trong là v1 nguyên vẹn, nhập được tệp tiến độ trần của bản cũ (không đụng ghi chú), từ chối tệp hỏng/mới hơn/sai app, sai một phần là từ chối cả tệp, reset giữ tài liệu |
+| `lib/study/session.test.ts` | Phiên học tập trung trên bộ thẻ: nút Học ngay tắt khi bộ trống, thẻ đầu ở mặt trước, chỉ đánh giá sau khi lật, khoá trong lúc lật/chuyển (bấm đúp không nhảy cóc), thẻ cuối → tổng kết, ôn lại thẻ chưa nhớ, lưu/khôi phục phiên dở (thẻ bị xoá/sửa trong lúc nghỉ), bản lưu hỏng, phím tắt |
 | `lib/pointer-gate.test.ts` | Cổng con trỏ: ngón thứ hai bị bỏ qua, bút thắng cảm ứng, `pointercancel` bỏ nét dở, chuột phải bị bỏ qua, `up` thất lạc không gây kẹt |
 | `lib/typing/engine.test.ts` | Mọi biến thể romaji (`shi/si/ci`, `nn`/`n'`/`xn`, `っ` gấp đôi, âm ghép, katakana mở rộng), kana JIS, phím "lẽ ra phải bấm" và gợi ý theo cách người học đang gõ |
 | `lib/typing/phrases.test.ts` | Phân tích `{kanji|cách đọc}`; **từng câu trong kho** gõ trọn bằng cả romaji lẫn kana JIS; nguồn câu không lặp; 600 chuỗi kana ngẫu nhiên đều gõ được; "Chữ hay sai" |

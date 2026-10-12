@@ -170,6 +170,12 @@
   80% { transform: translateX(2px); }
 }
 
+/* Thẻ kế trượt vào ở phiên học tập trung (thư viện › bộ thẻ › Học ngay) */
+@keyframes studyCardIn {
+  0% { transform: translateX(28px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
 @keyframes shimmerSweep {
   0% { transform: translateX(-100%) rotate(25deg); }
   100% { transform: translateX(250%) rotate(25deg); }
@@ -289,6 +295,13 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .type-shake { animation: none; }
+  }
+
+  .study-card-in {
+    animation: studyCardIn 0.26s ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .study-card-in { animation: none; }
   }
 
   .float-slow {

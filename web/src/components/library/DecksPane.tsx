@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Badge, Button, Card, Empty, Field, Notice, Switch, TextArea } from "@/components/ui";
 import { downloadText, safeFileName } from "@/components/app/download";
+import { StudyFocus } from "@/components/library/StudyFocus";
 import { useProgress } from "@/lib/learning/hooks";
 import { forgetDeletedCards } from "@/lib/learning/store";
 import { systemClock } from "@/lib/learning/time";
@@ -14,6 +15,8 @@ import { cardSchedule, deckSchedule } from "@/lib/space/schedule";
 import { LIMITS, type Deck, type DeckCard } from "@/lib/space/space";
 import { useSpace } from "@/lib/space/hooks";
 import { getSpace, updateSpace } from "@/lib/space/store";
+import { clearSaved, loadSaved } from "@/lib/study/saved";
+import { resumeSession, startSession, studyCta, type StudySession } from "@/lib/study/session";
 
 /** Sau khi xoá: bỏ lịch ôn của những thẻ không còn nằm ở bộ nào (một mã có thể có ở hai bộ nếu nhập từ tệp ngoài). */
 function forgetIfGone(cardIds: readonly string[]) {
@@ -26,17 +29,48 @@ function forgetIfGone(cardIds: readonly string[]) {
 
 type Msg = { tone: "ok" | "err"; text: string } | null;
 
+/** Cách mở phiên học: từ một vị trí trong bộ (0 = từ đầu, khác 0 = "Học từ thẻ này") hoặc học tiếp phiên đã lưu. */
+type StudyStart = { from: number } | "resume";
+
 export function DecksPane() {
   const { space } = useSpace();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [study, setStudy] = useState<{ session: StudySession; deckName: string } | null>(null);
+  // Tăng sau mỗi phiên để nút "Học tiếp" đọc lại phiên dở vừa lưu/xoá.
+  const [savedTick, setSavedTick] = useState(0);
   const deck = space.library.decks.find((d) => d.id === openId) ?? null;
 
-  return deck ? <DeckDetail key={deck.id} deck={deck} onBack={() => setOpenId(null)} /> : <DeckList onOpen={setOpenId} />;
+  const startStudy = (d: Deck, how: StudyStart) => {
+    const now = Date.now();
+    const saved = how === "resume" ? loadSaved(d.id) : null;
+    const session = saved ? resumeSession(saved, d.cards, now) : startSession(d.id, d.cards, now, how === "resume" ? 0 : how.from);
+    // Bắt đầu mới thì bỏ phiên dở cũ; học tiếp thì giữ đến khi người học chọn lưu lại hay bỏ lúc thoát.
+    if (!saved) clearSaved(d.id);
+    if (session) setStudy({ session, deckName: d.name });
+    else setSavedTick((t) => t + 1);
+  };
+
+  return (
+    <>
+      {deck ? (
+        <DeckDetail key={deck.id} deck={deck} onBack={() => setOpenId(null)} onStudy={(how) => startStudy(deck, how)} savedTick={savedTick} />
+      ) : (
+        <DeckList onOpen={setOpenId} onStudy={(d) => startStudy(d, { from: 0 })} />
+      )}
+      {study && (
+        <StudyFocus
+          initial={study.session}
+          deckName={study.deckName}
+          onExit={() => { setStudy(null); setSavedTick((t) => t + 1); }}
+        />
+      )}
+    </>
+  );
 }
 
 // ------------------------------------------------------------------ danh sách bộ thẻ
 
-function DeckList({ onOpen }: { onOpen: (id: string) => void }) {
+function DeckList({ onOpen, onStudy }: { onOpen: (id: string) => void; onStudy: (deck: Deck) => void }) {
   const { space } = useSpace();
   const { state } = useProgress();
   const [name, setName] = useState("");
@@ -78,6 +112,7 @@ function DeckList({ onOpen }: { onOpen: (id: string) => void }) {
         <ul className="grid gap-3 md:grid-cols-2">
           {decks.map((d) => {
             const st = deckSchedule(state, d, now);
+            const cta = studyCta(d.cards.length);
             return (
               <li key={d.id}>
                 <Card className="flex h-full flex-col gap-3 px-5 py-4">
@@ -102,7 +137,12 @@ function DeckList({ onOpen }: { onOpen: (id: string) => void }) {
                       hint="Thêm thẻ mặt sau → mặt trước cho mỗi thẻ."
                     />
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => onOpen(d.id)} className="mt-auto self-start">Mở bộ thẻ</Button>
+                  <div className="mt-auto flex flex-wrap gap-2">
+                    <Button variant="solid" size="sm" onClick={() => onStudy(d)} disabled={cta.disabled} title={cta.hint ?? undefined}>
+                      {cta.label}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => onOpen(d.id)}>Mở bộ thẻ</Button>
+                  </div>
                 </Card>
               </li>
             );
@@ -117,7 +157,9 @@ function DeckList({ onOpen }: { onOpen: (id: string) => void }) {
 
 const PAGE = 100;
 
-function DeckDetail({ deck, onBack }: { deck: Deck; onBack: () => void }) {
+function DeckDetail({
+  deck, onBack, onStudy, savedTick,
+}: { deck: Deck; onBack: () => void; onStudy: (how: StudyStart) => void; savedTick: number }) {
   const { state } = useProgress();
   const now = useMemo(() => systemClock().now, [state]); // eslint-disable-line react-hooks/exhaustive-deps
   const [draft, setDraft] = useState({ front: "", back: "", hint: "" });
@@ -168,7 +210,7 @@ function DeckDetail({ deck, onBack }: { deck: Deck; onBack: () => void }) {
   const remove = () => {
     if (!window.confirm(`Xoá bộ “${deck.name}” cùng ${deck.cards.length} thẻ? Lịch ôn của các thẻ này cũng bị xoá. Không thể hoàn tác.`)) return;
     const ids = deck.cards.map((c) => c.id);
-    if (updateSpace((s) => deleteDeck(s, deck.id)).ok) forgetIfGone(ids);
+    if (updateSpace((s) => deleteDeck(s, deck.id)).ok) { forgetIfGone(ids); clearSaved(deck.id); }
     onBack();
   };
 
@@ -205,6 +247,8 @@ function DeckDetail({ deck, onBack }: { deck: Deck; onBack: () => void }) {
         {deck.active ? "đang ôn" : "đang tắt"}{deck.reverse ? " · hỏi cả hai chiều" : ""} ·{" "}
         <Link href="/on-tap" className="underline">Ôn tập</Link>
       </p>
+
+      <StudyBar deck={deck} onStudy={onStudy} savedTick={savedTick} />
 
       <Card className="flex flex-col gap-3 px-5 py-4">
         <span className="label-xs">Thêm thẻ</span>
@@ -254,7 +298,10 @@ function DeckDetail({ deck, onBack }: { deck: Deck; onBack: () => void }) {
           )}
           <ul className="flex flex-col gap-2">
             {shown.slice(0, limit).map((c) => (
-              <CardRow key={c.id} deckId={deck.id} card={c} schedule={cardSchedule(state, c.id, now)} />
+              <CardRow
+                key={c.id} deckId={deck.id} card={c} schedule={cardSchedule(state, c.id, now)}
+                onStudyFrom={() => onStudy({ from: deck.cards.indexOf(c) })}
+              />
             ))}
           </ul>
           {shown.length > limit && (
@@ -269,7 +316,9 @@ function DeckDetail({ deck, onBack }: { deck: Deck; onBack: () => void }) {
   );
 }
 
-function CardRow({ deckId, card, schedule }: { deckId: string; card: DeckCard; schedule: ReturnType<typeof cardSchedule> }) {
+function CardRow({
+  deckId, card, schedule, onStudyFrom,
+}: { deckId: string; card: DeckCard; schedule: ReturnType<typeof cardSchedule>; onStudyFrom: () => void }) {
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState({ front: card.front, back: card.back, hint: card.hint });
   const [err, setErr] = useState<string | null>(null);
@@ -315,10 +364,49 @@ function CardRow({ deckId, card, schedule }: { deckId: string; card: DeckCard; s
           {schedule.kind === "later" && `Ôn sau ${schedule.inDays} ngày`}
         </span>
         <span className="flex gap-1">
+          <Button size="sm" variant="ghost" onClick={onStudyFrom} aria-label={`Học từ thẻ “${card.front}”`} title="Học từ thẻ này">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5L7 4.5Z" /></svg>
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Sửa</Button>
           <Button size="sm" variant="ghost" className="text-shu hover:text-shu-2" onClick={() => { if (updateSpace((s) => deleteCard(s, deckId, card.id)).ok) forgetIfGone([card.id]); }}>Xoá</Button>
         </span>
       </Card>
     </li>
+  );
+}
+
+// ------------------------------------------------------------------ nút học
+
+/** Nút chính của bộ thẻ: "Học ngay (N thẻ)", hoặc "Học tiếp" khi có phiên dở; tắt kèm hướng dẫn khi bộ trống. */
+function StudyBar({ deck, onStudy, savedTick }: { deck: Deck; onStudy: (how: StudyStart) => void; savedTick: number }) {
+  const cta = studyCta(deck.cards.length);
+  // Đọc lại bộ nhớ khi bộ thẻ đổi hoặc vừa rời một phiên (savedTick). Bản lưu không còn thẻ nào để học thì coi như không có.
+  const resumable = useMemo(() => {
+    const saved = loadSaved(deck.id);
+    const s = saved && resumeSession(saved, deck.cards, 0);
+    return s ? { at: s.index + 1, total: s.cards.length } : null;
+  }, [deck, savedTick]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <Card className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-sumi">Học tập trung</p>
+        <p className="text-[12.5px] text-sumi-3">
+          {cta.hint ?? (resumable
+            ? `Phiên trước đang dừng ở thẻ ${resumable.at} / ${resumable.total}.`
+            : "Lần lượt từng thẻ: tự nhớ đáp án, lật để kiểm tra, rồi tự đánh giá Đã nhớ / Chưa nhớ.")}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {resumable && !cta.disabled ? (
+          <>
+            <Button variant="solid" size="lg" onClick={() => onStudy("resume")}>Học tiếp ({resumable.at}/{resumable.total})</Button>
+            <Button size="lg" onClick={() => onStudy({ from: 0 })}>Học lại từ đầu</Button>
+          </>
+        ) : (
+          <Button variant="solid" size="lg" disabled={cta.disabled} onClick={() => onStudy({ from: 0 })}>{cta.label}</Button>
+        )}
+      </div>
+    </Card>
   );
 }
