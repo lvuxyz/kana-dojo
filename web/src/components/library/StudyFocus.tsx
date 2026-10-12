@@ -3,6 +3,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import clsx from "clsx";
 import { Button, Kbd, Progress, Stat } from "@/components/ui";
+import { getSpace } from "@/lib/space/store";
 import { clearSaved, saveSession } from "@/lib/study/saved";
 import {
   currentCard, formatClock, formatDuration, isDone, shouldOfferSave, studyKeyAction, studyReducer, summarize, toSaved,
@@ -50,12 +51,29 @@ export function StudyFocus({
     if (done) clearSaved(s.deckId);
   }, [done, s.deckId]);
 
-  // Khoá cuộn trang phía sau lớp phủ.
+  // Nút đã mở màn học — đọc ngay lần render đầu, trước khi effect của FlipCard kéo focus vào thẻ.
+  const [opener] = useState(() => (typeof document === "undefined" ? null : document.activeElement));
+
+  // Khoá cuộn trang phía sau lớp phủ; rời màn học thì trả focus về chỗ cũ, để người dùng bàn phím/trình đọc màn hình
+  // không bị đẩy về đầu trang.
+  const mounted = useRef(false);
   useEffect(() => {
+    mounted.current = true;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, []);
+    return () => {
+      mounted.current = false;
+      document.body.style.overflow = prev;
+      // Chờ React vẽ xong trang phía sau: nút "Học ngay" có thể vừa được thay bằng "Học tiếp" (phần tử mới), khi đó
+      // dùng nút học chính của bộ thẻ. Ref (không phải biến cục bộ) để bắt được việc StrictMode gỡ rồi gắn lại effect
+      // lúc dev: lần gắn lại đặt `mounted` về true trước khi hẹn giờ chạy, và màn học vẫn đang mở.
+      setTimeout(() => {
+        if (mounted.current) return;
+        const target = opener instanceof HTMLElement && opener.isConnected ? opener : document.querySelector<HTMLElement>("[data-study-return]");
+        target?.focus({ preventScroll: true });
+      }, 0);
+    };
+  }, [opener]);
 
   // `latest` cho các handler đăng ký một lần (popstate, beforeunload) luôn thấy phiên mới nhất.
   const latest = useRef(s);
@@ -103,7 +121,8 @@ export function StudyFocus({
   };
 
   const saveAndExit = () => {
-    if (!saveSession(toSaved(s, Date.now()))) return setSaveError(true);
+    const liveDeckIds = getSpace().library.decks.map((d) => d.id);
+    if (!saveSession(toSaved(s, Date.now()), liveDeckIds)) return setSaveError(true);
     leave();
   };
 
