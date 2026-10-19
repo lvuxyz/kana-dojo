@@ -26,6 +26,8 @@ Nằm trong `web/src/data/`, đóng gói vào bundle lúc build. Muốn đổi n
 |---|---|---|
 | `kana-data.json` | `viewBox` (109), `rowLabels`, `glyphs` (đường nét SVG theo glyph), `chars` (ký tự hiển thị) | 208 ký tự · 148 glyph |
 | `vocabulary.ts` | `Vocabulary[]` — `id`, `word`, `reading`, `romaji`, `meaningVi`, `meaningEn`, `jlptLevel`, `partOfSpeech`, `exampleJa`, `exampleVi` | 80 (70 N5 + 10 N4) |
+| `kanji.ts` | `KanjiEntry[]` — `c`, `hv` (âm Hán Việt), `vi`, `jlpt`, `on[]`, `kun[]` (okurigana sau dấu `.`), `radical` (bộ Khang Hy), `parts[]` (chiết tự), `memo`, `words[]` (`[từ, cách đọc, nghĩa]`). Số nét không ghi ở đây mà lấy từ `kanji-strokes.json` | 96 (N5) |
+| `kanji-strokes.json` | `viewBox` (109), `strokes` (chữ → path `d` từng nét theo thứ tự viết). Sinh bằng `node web/scripts/build-kanji-strokes.mjs` từ KanjiVG (CC BY-SA 3.0) cho đúng các chữ trong `kanji.ts` | 96 chữ |
 | `quizzes.ts` | `Quiz[]` — `id`, `title`, `description`, `quizType`, `jlptLevel`, `timeLimitSec`, `questions[]` | 4 quiz · 38 câu |
 | `badges.ts` | `BadgeDef[]` — `code`, `nameVi`, `descriptionVi`, `icon`, `tier` | 9 |
 
@@ -33,6 +35,8 @@ Nằm trong `web/src/data/`, đóng gói vào bundle lúc build. Muốn đổi n
 
 - `Vocabulary.id` là số nguyên liên tục từ 1. Thẻ ôn tham chiếu tới nó (`VOCAB_MEANING:12`) nên **không được đánh số lại hay xoá** — chỉ thêm vào cuối.
 - Mã ký tự kana (`"あ"`, `"きゃ"`) là khoá của mọi thẻ kana, nên là duy nhất qua cả hai bảng chữ (Hiragana ≠ Katakana về mặt ký tự).
+- Kanji chưa phải một nguồn thẻ FSRS và không cộng XP: tập viết ở `/kanji` chỉ để luyện tay. Muốn ôn theo lịch thì thêm chữ vào một bộ thẻ (thẻ của bộ thẻ, khoá theo mã thẻ trong không gian riêng). Vì vậy thêm/bớt chữ trong `kanji.ts` không đụng tới tệp tiến độ.
+- Âm Hán Việt của một từ được ghép từ `kanji.ts` (`hanVietOf`); từ có chữ Hán chưa có trong dữ liệu thì không hiện âm, thay vì hiện nửa vời.
 - Thứ tự phần tử trong `kana-data.json → chars` là **thứ tự dạy học**: Hiragana (cơ bản → biến âm → ghép) rồi Katakana.
 
 ### 1.1 Nguồn gốc dữ liệu nét

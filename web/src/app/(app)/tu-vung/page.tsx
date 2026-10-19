@@ -2,15 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { WordsTabs } from "@/components/kanji/WordsTabs";
+import { ManageDecksLink, useAddToDeck, type AddMsg } from "@/components/library/useAddToDeck";
 import { useSpeech } from "@/components/typing/useSpeech";
-import { Button, Card, Chip, Empty, Notice, Select, SpeakButton } from "@/components/ui";
-import { addCards, addDeck, type CardDraft } from "@/lib/space/library";
-import { useSpace } from "@/lib/space/hooks";
-import { updateSpace } from "@/lib/space/store";
+import { Button, Card, Chip, Empty, Notice, SpeakButton } from "@/components/ui";
+import { hanVietOf, kanjiInWord } from "@/lib/kanji";
+import type { CardDraft } from "@/lib/space/library";
 import type { Vocabulary } from "@/lib/types";
 import { VOCAB_LEVELS, searchVocabulary } from "@/lib/vocabulary";
 
-const NEW_DECK = "new";
 const DEFAULT_DECK_NAME = "Từ vựng của tôi";
 
 /** Một từ có sẵn thành một thẻ: hỏi chữ, đáp nghĩa, kèm cách đọc làm gợi ý (không lặp lại khi từ vốn đã là kana). */
@@ -23,11 +23,10 @@ const toDraft = (v: Vocabulary): CardDraft => ({
 const SPEECH_RATE = 0.8;
 
 export default function VocabPage() {
-  const { space } = useSpace();
   const [level, setLevel] = useState(VOCAB_LEVELS[0]);
   const [q, setQ] = useState("");
-  const [picked, setPicked] = useState<string | null>(null);
-  const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  const [msg, setMsg] = useState<AddMsg | null>(null);
+  const deck = useAddToDeck(DEFAULT_DECK_NAME, "từ");
 
   const { speak: speakJa, speaking, supported: canSpeak, missingVoice } = useSpeech();
   // Nút loa luôn hiển thị (tránh lệch HTML giữa server và client), trình duyệt không hỗ trợ thì báo khi bấm.
@@ -38,40 +37,17 @@ export default function VocabPage() {
 
   const words = useMemo(() => searchVocabulary(level, q), [level, q]);
 
-  const decks = space.library.decks;
-  // Bộ đích: bộ người học chọn nếu còn tồn tại, không thì bộ đầu tiên, chưa có bộ nào thì sẽ tự tạo "Từ vựng của tôi".
-  const target = picked && decks.some((d) => d.id === picked) ? picked : (decks[0]?.id ?? NEW_DECK);
-  const targetDeck = decks.find((d) => d.id === target);
-  const have = useMemo(() => new Set((targetDeck?.cards ?? []).map((c) => `${c.front}\u0000${c.back}`)), [targetDeck]);
-  const has = (v: Vocabulary) => have.has(`${v.word}\u0000${v.meaningVi}`);
-
+  const has = (v: Vocabulary) => deck.has(toDraft(v));
   const add = (list: Vocabulary[]) => {
-    const drafts = list.filter((v) => !has(v)).map(toDraft);
-    if (drafts.length === 0) return;
-    let deckId = target;
-    let deckName = DEFAULT_DECK_NAME;
-    let added = 0;
-    const res = updateSpace((s) => {
-      let next = s;
-      if (deckId === NEW_DECK) {
-        const r = addDeck(next, DEFAULT_DECK_NAME);
-        next = r.space;
-        deckId = r.deck.id;
-      }
-      deckName = next.library.decks.find((d) => d.id === deckId)?.name ?? DEFAULT_DECK_NAME;
-      const r = addCards(next, deckId, drafts);
-      added = r.added;
-      return r.space;
-    });
-    if (!res.ok) return setMsg({ tone: "err", text: res.error });
-    setPicked(deckId);
-    setMsg({ tone: "ok", text: `Đã thêm ${added} từ vào “${deckName}”.` });
+    const m = deck.add(list.map(toDraft));
+    if (m) setMsg(m);
   };
 
   const addable = words.filter((v) => !has(v));
 
   return (
     <div className="flex flex-col gap-5">
+      <WordsTabs />
       <div>
         <h1 className="font-mincho text-2xl font-semibold">Từ vựng</h1>
         <p className="mt-0.5 text-sm text-sumi-3">
@@ -93,14 +69,11 @@ export default function VocabPage() {
       </div>
 
       <Card className="flex flex-wrap items-end gap-3 px-4 py-3">
-        <Select label="Thêm vào bộ thẻ" value={target} onChange={(e) => setPicked(e.target.value)} className="min-w-52">
-          {decks.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>)}
-          {decks.length === 0 && <option value={NEW_DECK}>{DEFAULT_DECK_NAME} (tự tạo)</option>}
-        </Select>
+        {deck.picker}
         <Button variant="outline" size="sm" disabled={addable.length === 0} onClick={() => add(addable)}>
           Thêm {addable.length} từ đang hiển thị
         </Button>
-        <Link href="/thu-vien?tab=decks" className="ml-auto text-[12.5px] text-sumi-3 underline">Quản lý bộ thẻ</Link>
+        <ManageDecksLink />
       </Card>
       {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
       {missingVoice && <Notice tone="err">Máy chưa cài giọng tiếng Nhật — âm thanh phát âm có thể sai.</Notice>}
@@ -121,7 +94,10 @@ export default function VocabPage() {
               </span>
               {v.jlptLevel && <span className="rounded border border-rule px-1.5 text-[10.5px] text-sumi-3">N{v.jlptLevel}</span>}
             </div>
-            <div className="mt-0.5 text-[12.5px] text-sumi-3">{v.reading} · {v.romaji}</div>
+            <div className="mt-0.5 text-[12.5px] text-sumi-3">
+              {v.reading} · {v.romaji}
+              {hanVietOf(v.word) && <span className="ml-1.5 font-semibold tracking-wide text-genko">{hanVietOf(v.word)}</span>}
+            </div>
             <div className="mt-1 text-sm">{v.meaningVi}</div>
             {v.exampleJa && (
               <div className="mt-2 border-l-2 border-genko/40 pl-2.5 text-[12.5px] text-sumi-2">
@@ -136,12 +112,23 @@ export default function VocabPage() {
                 {v.exampleVi && <div className="text-sumi-3">{v.exampleVi}</div>}
               </div>
             )}
-            <div className="mt-2.5">
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
               {has(v) ? (
                 <span className="text-[12px] font-semibold text-genko">✓ Đã có trong bộ thẻ</span>
               ) : (
                 <Button size="sm" variant="outline" onClick={() => add([v])} aria-label={`Thêm “${v.word}” vào bộ thẻ`}>＋ Thêm vào bộ thẻ</Button>
               )}
+              {kanjiInWord(v.word).map((k) => (
+                <Link
+                  key={k.c}
+                  href={`/kanji?c=${encodeURIComponent(k.c)}`}
+                  title={`${k.hv} — ${k.vi}`}
+                  aria-label={`Xem chữ Hán ${k.c} (${k.hv})`}
+                  className="font-mincho rounded-md border border-rule px-1.5 text-[15px] text-sumi-2 hover:border-rule-firm hover:text-sumi"
+                >
+                  {k.c}
+                </Link>
+              ))}
             </div>
           </Card>
         ))}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useSpace } from "@/lib/space/hooks";
-import { navItemsOf, type ModuleInfo } from "@/lib/space/modules";
+import { isActiveModule, navItemsOf, type ModuleInfo } from "@/lib/space/modules";
 
 const ICONS: Record<ModuleInfo["icon"] | "more", React.ReactNode> = {
   home: <><path d="M4 10.5 12 4l8 6.5" /><path d="M6 10v9h12v-9" /></>,
@@ -41,7 +41,7 @@ export function SideNav() {
   return (
     <nav className="hidden lg:flex lg:flex-col lg:gap-1" aria-label="Điều hướng chính">
       {items.map((item) => {
-        const active = path.startsWith(item.href);
+        const active = isActiveModule(item, path);
         return (
           <Link
             key={item.href}
@@ -85,10 +85,10 @@ export function BottomNav() {
   const overflow = all.length > MAX_BAR;
   const bar = overflow ? all.slice(0, MAX_BAR - 1) : all;
   const rest = overflow ? all.slice(MAX_BAR - 1) : [];
-  const restActive = rest.some((i) => path.startsWith(i.href));
+  const restActive = rest.some((i) => isActiveModule(i, path));
 
   const tab = (item: ModuleInfo) => {
-    const active = path.startsWith(item.href);
+    const active = isActiveModule(item, path);
     return (
       <Link
         key={item.href}
@@ -122,10 +122,10 @@ export function BottomNav() {
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  aria-current={path.startsWith(item.href) ? "page" : undefined}
+                  aria-current={isActiveModule(item, path) ? "page" : undefined}
                   className={clsx(
                     "flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium",
-                    path.startsWith(item.href) ? "bg-shu-tint text-shu" : "text-sumi-2 hover:bg-paper-sunk",
+                    isActiveModule(item, path) ? "bg-shu-tint text-shu" : "text-sumi-2 hover:bg-paper-sunk",
                   )}
                 >
                   <Icon name={item.icon} />

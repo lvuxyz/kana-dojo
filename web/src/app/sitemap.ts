@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/luyen-viet`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${base}/luyen-go`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/tu-vung`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${base}/kanji`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/quiz`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     ...QUIZZES.map((q) => ({ url: `${base}/quiz/${q.id}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.6 })),
   ];
