@@ -4,7 +4,7 @@ import { fold } from "./vocabulary";
 
 /* Tra cứu Kanji: tìm theo chữ, âm Hán Việt (gõ không dấu được), nghĩa, âm On/Kun; lọc theo cấp JLPT và bộ thủ;
    ghép âm Hán Việt cho cả một từ. Dữ liệu nét nằm riêng (lib/kanji-strokes.ts) để trang Từ vựng — chỉ cần âm Hán Việt —
-   không phải tải thêm ~50 KB nét chữ. */
+   không phải tải thêm ~190 KB nét chữ. */
 
 export interface KanjiEntry {
   c: string;
@@ -38,6 +38,19 @@ export const RADICAL_NAMES: Record<string, string> = {
   王: "VƯƠNG", 生: "SINH", 田: "ĐIỀN", 白: "BẠCH", 目: "MỤC", 示: "KỲ", 礻: "KỲ", 立: "LẬP", 羽: "VŨ", 耳: "NHĨ",
   聿: "DUẬT", 舌: "THIỆT", 艸: "THẢO", 艹: "THẢO", 襾: "Á", 見: "KIẾN", 言: "NGÔN", 足: "TÚC", 車: "XA", 辵: "SƯỚC",
   辶: "SƯỚC", 金: "KIM", 門: "MÔN", 隹: "CHUY", 雨: "VŨ", 食: "THỰC", 飠: "THỰC", 長: "TRƯỜNG", 高: "CAO", 行: "HÀNH", 手: "THỦ",
+  // Bộ thủ có thêm từ N4
+  丶: "CHỦ", 亅: "QUYẾT", 厶: "KHƯ", 夊: "TUY", 寸: "THỐN", 尸: "THI", 巾: "CÂN", 广: "NGHIỄM", 弓: "CUNG", 匸: "HỆ",
+  冫: "BĂNG", 心: "TÂM", 戸: "HỘ", 攴: "PHỘC", 攵: "PHỘC", 文: "VĂN", 斗: "ĐẨU", 方: "PHƯƠNG", 歹: "NGẠT", 氏: "THỊ",
+  牛: "NGƯU", 犬: "KHUYỂN", 用: "DỤNG", 疒: "NẠCH", 癶: "BÁT", 矢: "THỈ", 石: "THẠCH", 禾: "HÒA", 穴: "HUYỆT", 竹: "TRÚC",
+  糸: "MỊCH", 老: "LÃO", 耂: "LÃO", 肉: "NHỤC", 自: "TỰ", 色: "SẮC", 貝: "BỐI", 赤: "XÍCH", 走: "TẨU", 邑: "ẤP",
+  阜: "PHỤ", 阝: "PHỤ", 里: "LÝ", 青: "THANH", 音: "ÂM", 頁: "HIỆT", 風: "PHONG", 首: "THỦ", 馬: "MÃ", 魚: "NGƯ",
+  鳥: "ĐIỂU", 黒: "HẮC", 士: "SĨ",
+  // Thành phần hay gặp khi chiết tự
+  氵: "THỦY", 扌: "THỦ", 灬: "HỎA", 罒: "VÕNG", 虫: "TRÙNG", 几: "KỶ", 豆: "ĐẬU", 羊: "DƯƠNG", 己: "KỶ", 彐: "KỆ",
+  米: "MỄ", 豕: "THỈ", 厂: "HÁN", 卩: "TIẾT", 夫: "PHU", 未: "VỊ", 央: "ƯƠNG", 至: "CHÍ", 尺: "XÍCH", 弋: "DẶC",
+  勿: "VẬT", 反: "PHẢN", 占: "CHIÊM", 官: "QUAN", 完: "HOÀN", 介: "GIỚI", 式: "THỨC", 是: "THỊ", 軍: "QUÂN", 昔: "TÍCH",
+  免: "MIỄN", 孝: "HIẾU", 良: "LƯƠNG", 可: "KHẢ", 交: "GIAO", 化: "HÓA", 周: "CHU", 吾: "NGÔ", 云: "VÂN", 也: "DÃ",
+  予: "DƯ", 艮: "CẤN", 丙: "BÍNH", 丁: "ĐINH", 亜: "Á", 与: "DỮ", 吏: "LẠI", 哥: "CA", 彦: "NGẠN", 昜: "DƯƠNG",
 };
 
 /** Các cấp JLPT có chữ, dễ trước (N5, N4…). */
