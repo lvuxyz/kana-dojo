@@ -106,6 +106,24 @@ describe("bộ thẻ", () => {
     expect(addCards(first, deckId, [{ front: "a", back: "b" }], env)).toMatchObject({ added: 0, duplicate: 1 });
   });
 
+  it("nhập đúng trần số thẻ một lượt: đủ thẻ, đúng thứ tự, mã không trùng", () => {
+    const { space, deckId, env } = withDeck();
+    const drafts = Array.from({ length: LIMITS.cards }, (_, i) => ({ front: `f${i}`, back: `b${i}` }));
+    const r = addCards(space, deckId, drafts, env);
+    const cards = r.space.library.decks[0].cards;
+    expect(r.added).toBe(LIMITS.cards);
+    expect(cards.map((c) => c.front)).toEqual(drafts.map((d) => d.front));
+    expect(new Set([deckId, ...cards.map((c) => c.id)]).size).toBe(LIMITS.cards + 1);
+  });
+
+  it("nguồn mã lặp lại mã vừa cấp trong cùng lượt: vẫn né được, không có hai thẻ cùng mã", () => {
+    const { space, deckId } = withDeck();
+    const seq = ["x1", "x1", "x2", deckId, "x3"];
+    const env: Env = { now: 1, id: () => seq.shift() ?? "end" };
+    const r = addCards(space, deckId, [{ front: "a", back: "1" }, { front: "b", back: "2" }, { front: "c", back: "3" }], env);
+    expect(r.space.library.decks[0].cards.map((c) => c.id)).toEqual(["x1", "x2", "x3"]);
+  });
+
   it("vượt giới hạn tổng số thẻ: không thêm gì cả", () => {
     const { space, deckId, env } = withDeck();
     const drafts = Array.from({ length: LIMITS.cards + 1 }, (_, i) => ({ front: `f${i}`, back: `b${i}` }));
@@ -149,6 +167,23 @@ describe("nhập / xuất thẻ dạng văn bản", () => {
       { front: "木", back: "cây, gỗ", hint: "" },
       { front: "山", back: "núi", hint: "" },
     ]);
+  });
+
+  it("dấu | trong furigana {漢字|かな} không phải ranh giới cột", () => {
+    const { drafts, ignored } = parseCardLines(
+      "{食|た}べる;ăn\n{水|みず}\tnước\t{水|みず}\n{今日|きょう} | hôm nay | {今|いま}\n{漢字|かんじ}",
+    );
+    expect(drafts).toEqual([
+      { front: "{食|た}べる", back: "ăn", hint: "" },
+      { front: "{水|みず}", back: "nước", hint: "{水|みず}" },
+      { front: "{今日|きょう}", back: "hôm nay", hint: "{今|いま}" },
+    ]);
+    // Chỉ có một cụm furigana, không có dấu tách nào bên ngoài: không tách được hai mặt.
+    expect(ignored).toBe(1);
+  });
+
+  it("ngoặc nhọn không thành cụm furigana thì | vẫn là dấu tách như trước", () => {
+    expect(parseCardLines("{abc|nghĩa").drafts).toEqual([{ front: "{abc", back: "nghĩa", hint: "" }]);
   });
 
   it("xuất rồi nhập lại ra đúng bộ thẻ (kể cả mặt có xuống dòng bị gộp thành khoảng trắng)", () => {

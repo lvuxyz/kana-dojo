@@ -1,7 +1,7 @@
 import { fold } from "../vocabulary";
 import { validateTypingText } from "../typing/phrases";
 import {
-  LIMITS, SpaceError, freshId, systemEnv, type Deck, type DeckCard, type Env, type Note, type Space, type UserText,
+  LIMITS, SpaceError, freshId, idMinter, systemEnv, type Deck, type DeckCard, type Env, type Note, type Space, type UserText,
 } from "./space";
 
 /* Thư viện của người học: ghi chú (tài liệu), bộ thẻ và câu luyện gõ. Hàm thuần như space.ts — mỗi thao tác trả
@@ -120,17 +120,13 @@ export function addCards(space: Space, deckId: string, drafts: readonly CardDraf
     throw new SpaceError(`Tối đa ${LIMITS.cards} thẻ trên mọi bộ (hiện có ${totalCards(space)}, định thêm ${fresh.length}).`);
   }
 
-  // Mã được cấp lần lượt: mỗi thẻ mới phải tránh cả những thẻ vừa cấp trong cùng lượt.
-  let working = space;
-  const cards: DeckCard[] = [];
-  for (const c of fresh) {
-    const id = freshId(working, env);
-    cards.push({ id, ...c });
-    working = withLibrary(working, {
-      decks: working.library.decks.map((d) => (d.id === deckId ? { ...d, cards: [...d.cards, { id, ...c }] } : d)),
-    });
-  }
-  return { space: working, added: cards.length, empty, duplicate };
+  // Mỗi thẻ mới phải tránh cả những mã vừa cấp trong cùng lượt — idMinter nhớ chúng; bộ thẻ chỉ dựng lại một lần.
+  const mint = idMinter(space, env);
+  const cards: DeckCard[] = fresh.map((c) => ({ id: mint(), ...c }));
+  const next = withLibrary(space, {
+    decks: space.library.decks.map((d) => (d.id === deckId ? { ...d, cards: [...d.cards, ...cards] } : d)),
+  });
+  return { space: next, added: cards.length, empty, duplicate };
 }
 
 export function updateCard(space: Space, deckId: string, cardId: string, patch: Partial<CardDraft>): Space {
@@ -156,6 +152,7 @@ export const deleteCard = (space: Space, deckId: string, cardId: string): Space 
  * Đọc thẻ từ văn bản dán vào: mỗi dòng một thẻ, các mặt cách nhau bằng TAB (dán từ Excel/Google Sheets/Anki),
  * hoặc dấu `|`, hoặc `;` nếu dòng không có tab. Cột 1 = mặt trước, cột 2 = mặt sau, cột 3 (tuỳ chọn) = gợi ý.
  * Dòng trống và dòng bắt đầu bằng `#` (tiêu đề tệp xuất của Anki) được bỏ qua; dòng không tách được hai mặt được đếm vào `ignored`.
+ * Dấu tách nằm trong cụm furigana `{漢字|かんじ}` không phải ranh giới cột: `{食|た}べる;ăn` là hai mặt, tách ở `;`.
  */
 export function parseCardLines(input: string): { drafts: CardDraft[]; ignored: number } {
   const drafts: CardDraft[] = [];
@@ -163,12 +160,30 @@ export function parseCardLines(input: string): { drafts: CardDraft[]; ignored: n
   for (const raw of input.split(/\r\n|\r|\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
-    const sep = ["\t", "|", ";"].find((s) => raw.includes(s));
-    const cols = sep ? raw.split(sep).map((c) => c.trim()) : [];
+    const cols = splitColumns(raw);
     if (cols.length < 2 || !cols[0] || !cols[1]) { ignored++; continue; }
     drafts.push({ front: cols[0], back: cols[1], hint: cols[2] ?? "" });
   }
   return { drafts, ignored };
+}
+
+/** Cùng mẫu furigana với lib/space/markup.ts và phòng luyện gõ. */
+const FURIGANA = /\{[^|{}\n]+\|[^{}\n]+\}/g;
+
+/** Tách cột theo dấu tách đầu tiên (TAB, `|`, `;`) xuất hiện NGOÀI các cụm furigana; không có thì trả mảng rỗng.
+ *  Che các cụm furigana bằng ký tự đệm cùng độ dài để tìm vị trí tách, rồi cắt trên dòng gốc. */
+function splitColumns(raw: string): string[] {
+  const masked = raw.replace(FURIGANA, (m) => "\u0000".repeat(m.length));
+  const sep = ["\t", "|", ";"].find((s) => masked.includes(s));
+  if (!sep) return [];
+  const cols: string[] = [];
+  let start = 0;
+  for (let i = masked.indexOf(sep); i !== -1; i = masked.indexOf(sep, i + 1)) {
+    cols.push(raw.slice(start, i).trim());
+    start = i + 1;
+  }
+  cols.push(raw.slice(start).trim());
+  return cols;
 }
 
 const oneLine = (s: string) => s.replace(/[\t\r\n]+/g, " ");
@@ -211,13 +226,10 @@ export function addTexts(space: Space, drafts: readonly { text: string; vi?: str
     throw new SpaceError(`Tối đa ${LIMITS.texts} câu luyện gõ (hiện có ${have}, định thêm ${fresh.length}).`);
   }
 
-  // Mã được cấp lần lượt: mỗi câu mới phải tránh cả những câu vừa cấp trong cùng lượt.
-  let working = space;
-  for (const t of fresh) {
-    const id = freshId(working, env);
-    working = withLibrary(working, { texts: [...working.library.texts, { id, ...t }] });
-  }
-  return { space: working, added: fresh.length, duplicate, invalid };
+  // Mỗi câu mới phải tránh cả những mã vừa cấp trong cùng lượt — idMinter nhớ chúng.
+  const mint = idMinter(space, env);
+  const texts = fresh.map((t) => ({ id: mint(), ...t }));
+  return { space: withLibrary(space, { texts: [...space.library.texts, ...texts] }), added: texts.length, duplicate, invalid };
 }
 
 export function updateText(space: Space, id: string, patch: { text?: string; vi?: string }): Space {
