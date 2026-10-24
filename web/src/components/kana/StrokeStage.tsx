@@ -44,7 +44,10 @@ export interface StrokeStageHandle {
 export const HINT_AFTER_MISSES = { TRACE: 2, TEST: 3 } as const;
 
 interface Props {
-  char: KanaChar;
+  /** Chỉ cần ký tự; kana lấy nét từ kana-data.json. */
+  char: Pick<KanaChar, "c">;
+  /** Nét của chữ không nằm trong dữ liệu kana (Kanji). Đổi `char.c` khi đổi nét — khung chỉ dựng lại theo ký tự. */
+  strokes?: { glyph: string; paths: string[] }[];
   mode: "TRACE" | "TEST";
   onFeedback?: (f: StrokeFeedback) => void;
   onProgress?: (doneStrokes: number, total: number) => void;
@@ -68,7 +71,7 @@ function gridCell(dx: number, key: number) {
 }
 
 export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeStage(
-  { char, mode, onFeedback, onProgress, onComplete },
+  { char, strokes: given, mode, onFeedback, onProgress, onComplete },
   ref,
 ) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -99,7 +102,7 @@ export const StrokeStage = forwardRef<StrokeStageHandle, Props>(function StrokeS
   const [hint, setHint] = useState<number | null>(null);
   const [finished, setFinished] = useState(false);
 
-  const glyphs = strokesOf(char.c);
+  const glyphs = given ?? strokesOf(char.c);
   const glyphN = glyphs.length;
   const total = glyphs.reduce((s, g) => s + g.paths.length, 0);
   const vbW = VIEW_BOX * glyphN;

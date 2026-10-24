@@ -9,6 +9,8 @@ export interface ModuleInfo {
   label: string;
   icon: "home" | "review" | "brush" | "keyboard" | "book" | "quiz" | "library" | "settings";
   blurb: string;
+  /** Các trang khác thuộc cùng mô-đun (mục điều hướng sáng lên khi ở đó). */
+  also?: readonly string[];
 }
 
 export const MODULE_INFO: Record<ModuleId, ModuleInfo> = {
@@ -17,10 +19,14 @@ export const MODULE_INFO: Record<ModuleId, ModuleInfo> = {
   writing: { id: "writing", href: "/luyen-viet", label: "Luyện viết", icon: "brush", blurb: "Viết kana trên lưới, máy chấm từng nét." },
   library: { id: "library", href: "/thu-vien", label: "Thư viện", icon: "library", blurb: "Ghi chú, bộ thẻ và câu luyện gõ của riêng bạn." },
   typing: { id: "typing", href: "/luyen-go", label: "Luyện gõ", icon: "keyboard", blurb: "Gõ tiếng Nhật, bấm giờ và chấm điểm." },
-  vocab: { id: "vocab", href: "/tu-vung", label: "Từ vựng", icon: "book", blurb: "Từ JLPT có sẵn; thêm vào bộ thẻ của bạn." },
+  vocab: { id: "vocab", href: "/tu-vung", label: "Từ vựng", icon: "book", blurb: "Từ JLPT và Kanji N5 có sẵn; thêm vào bộ thẻ của bạn.", also: ["/kanji"] },
   quiz: { id: "quiz", href: "/quiz", label: "Quiz", icon: "quiz", blurb: "Bài kiểm tra có sẵn, có đồng hồ và giải thích." },
   settings: { id: "settings", href: "/cai-dat", label: "Cài đặt", icon: "settings", blurb: "Không gian của bạn, cách học và sao lưu." },
 };
+
+/** Mục điều hướng có đang được mở ở `path` không. */
+export const isActiveModule = (item: ModuleInfo, path: string): boolean =>
+  [item.href, ...(item.also ?? [])].some((h) => path.startsWith(h));
 
 /** Các mục điều hướng theo đúng thứ tự người học đã chọn. */
 export const navItemsOf = (space: Pick<Space, "modules">): ModuleInfo[] => space.modules.map((id) => MODULE_INFO[id]);
