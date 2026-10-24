@@ -26,8 +26,8 @@ Nằm trong `web/src/data/`, đóng gói vào bundle lúc build. Muốn đổi n
 |---|---|---|
 | `kana-data.json` | `viewBox` (109), `rowLabels`, `glyphs` (đường nét SVG theo glyph), `chars` (ký tự hiển thị) | 208 ký tự · 148 glyph |
 | `vocabulary.ts` | `Vocabulary[]` — `id`, `word`, `reading`, `romaji`, `meaningVi`, `meaningEn`, `jlptLevel`, `partOfSpeech`, `exampleJa`, `exampleVi` | 80 (70 N5 + 10 N4) |
-| `kanji.ts` | `KanjiEntry[]` — `c`, `hv` (âm Hán Việt), `vi`, `jlpt`, `on[]`, `kun[]` (okurigana sau dấu `.`), `radical` (bộ Khang Hy), `parts[]` (chiết tự), `memo`, `words[]` (`[từ, cách đọc, nghĩa]`). Số nét không ghi ở đây mà lấy từ `kanji-strokes.json` | 96 (N5) |
-| `kanji-strokes.json` | `viewBox` (109), `strokes` (chữ → path `d` từng nét theo thứ tự viết). Sinh bằng `node web/scripts/build-kanji-strokes.mjs` từ KanjiVG (CC BY-SA 3.0) cho đúng các chữ trong `kanji.ts` | 96 chữ |
+| `kanji.ts` | `KanjiEntry[]` — `c`, `hv` (âm Hán Việt), `vi`, `jlpt`, `on[]`, `kun[]` (okurigana sau dấu `.`), `radical` (bộ Khang Hy), `parts[]` (chiết tự), `memo`, `words[]` (`[từ, cách đọc, nghĩa]`). Số nét không ghi ở đây mà lấy từ `kanji-strokes.json` | 276 (96 N5, 180 N4) |
+| `kanji-strokes.json` | `viewBox` (109), `strokes` (chữ → path `d` từng nét theo thứ tự viết). Sinh bằng `node web/scripts/build-kanji-strokes.mjs` từ KanjiVG (CC BY-SA 3.0) cho đúng các chữ trong `kanji.ts` | 276 chữ |
 | `quizzes.ts` | `Quiz[]` — `id`, `title`, `description`, `quizType`, `jlptLevel`, `timeLimitSec`, `questions[]` | 4 quiz · 38 câu |
 | `badges.ts` | `BadgeDef[]` — `code`, `nameVi`, `descriptionVi`, `icon`, `tier` | 9 |
 
