@@ -202,17 +202,26 @@ const randomPart = () => {
 export const systemEnv = (): Env => ({ now: Date.now(), id: randomPart });
 
 /** Mã chưa dùng trong không gian (thẻ, ghi chú, bộ thẻ, câu gõ đều chung một miền mã, đủ ít để kiểm tra từng cái). */
-export function freshId(space: Space, env: Env): string {
+export const freshId = (space: Space, env: Env): string => idMinter(space, env)();
+
+/** Cấp nhiều mã liên tiếp cho một lượt nhập: tập mã đã dùng chỉ dựng MỘT lần và mỗi mã vừa cấp được thêm vào đó.
+ *  Gọi freshId cho từng thẻ thì mỗi lần lại quét cả không gian — dán 5.000 thẻ thành O(n²), treo trang cả giây. */
+export function idMinter(space: Space, env: Env): () => string {
   const used = new Set<string>([
     ...space.library.notes.map((n) => n.id),
     ...space.library.decks.flatMap((d) => [d.id, ...d.cards.map((c) => c.id)]),
     ...space.library.texts.map((t) => t.id),
   ]);
-  for (let i = 0; i < 20; i++) {
-    const candidate = env.id();
-    if (!used.has(candidate)) return candidate;
-  }
-  throw new SpaceError("Không tạo được mã mới, hãy thử lại.");
+  return () => {
+    for (let i = 0; i < 20; i++) {
+      const candidate = env.id();
+      if (!used.has(candidate)) {
+        used.add(candidate);
+        return candidate;
+      }
+    }
+    throw new SpaceError("Không tạo được mã mới, hãy thử lại.");
+  };
 }
 
 /** Dung lượng không gian đang dùng, tính bằng độ dài chuỗi JSON sẽ được lưu — đúng thứ chiếm chỗ trong localStorage. */
