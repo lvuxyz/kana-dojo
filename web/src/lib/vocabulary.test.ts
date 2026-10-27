@@ -20,6 +20,7 @@ describe("tìm từ vựng", () => {
 
   it("gõ không dấu vẫn ra từ có dấu; tìm theo từ, cách đọc, romaji và nghĩa", () => {
     expect(fold("Bạn bè Đi")).toBe("ban be di");
+    expect(fold("ゴ ぱ ガッコウ")).toBe("ゴ ぱ ガッコウ"); // dấu đục/bán đục của kana giữ nguyên
     expect(searchVocabulary(5, "ban").map((v) => v.word)).toEqual(["あなた", "友達", "日本", "夜"]);
     expect(searchVocabulary(5, "SAKANA").map((v) => v.word)).toEqual(["魚"]); // romaji, không phân biệt hoa thường
     expect(searchVocabulary(5, "たべる").map((v) => v.word)).toEqual(["食べる"]); // cách đọc

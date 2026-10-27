@@ -5,7 +5,9 @@ import type { Vocabulary } from "./types";
 export const VOCAB_LEVELS = [...new Set(VOCABULARY.map((v) => v.jlptLevel).filter((l): l is number => l !== null))].sort((a, b) => b - a);
 
 /** Bỏ dấu và hoa/thường để gõ "ban" vẫn tìm ra "bạn". */
-export const fold = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "d");
+// Bỏ dấu tiếng Việt nhưng giữ dấu đục/bán đục của kana (U+3099/U+309A): ゴ không được thành コ.
+export const fold = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/(?![゙゚])\p{M}/gu, "").normalize("NFC").replace(/đ/g, "d");
 
 const SEARCHABLE = VOCABULARY.map((v) => ({ v, text: fold([v.word, v.reading, v.romaji, v.meaningVi].join("\n")) }));
 

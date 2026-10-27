@@ -219,7 +219,7 @@ export const KANJI: KanjiEntry[] = [
   { c: "行", hv: "HÀNH", vi: "đi", jlpt: 5, on: ["コウ", "ギョウ"], kun: ["い.く", "おこな.う"], radical: "行", parts: ["彳", "亍"],
     memo: "Ngã tư đường: bước chân trái (彳) và chân phải (亍) — đi.",
     words: [["行く", "いく", "đi"], ["銀行", "ぎんこう", "ngân hàng"], ["旅行", "りょこう", "du lịch"]] },
-  { c: "来", hv: "LAI", vi: "đến", jlpt: 5, on: ["ライ"], kun: ["く.る", "き.ます"], radical: "木", parts: [],
+  { c: "来", hv: "LAI", vi: "đến", jlpt: 5, on: ["ライ"], kun: ["く.る"], radical: "木", parts: [],
     memo: "Bông lúa mì trĩu hạt — mùa gặt lại đến.",
     words: [["来る", "くる", "đến"], ["来年", "らいねん", "năm sau"], ["来週", "らいしゅう", "tuần sau"]] },
   { c: "食", hv: "THỰC", vi: "ăn", jlpt: 5, on: ["ショク"], kun: ["た.べる"], radical: "食", parts: ["人", "良"],

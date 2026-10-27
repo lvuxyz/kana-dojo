@@ -25,6 +25,13 @@ describe("dữ liệu kanji", () => {
     }
   });
 
+  it("mọi thành phần chiết tự là chữ có trong dữ liệu hoặc có tên Hán Việt", () => {
+    // Các nét không có một âm Hán Việt chuẩn, cố ý để trống tên (xem RADICAL_NAMES).
+    const unnamed = new Set(["䒑", "𠂉", "メ", "⺍"]);
+    for (const k of KANJI)
+      for (const p of k.parts) if (!unnamed.has(p)) expect(kanjiOf(p)?.hv ?? RADICAL_NAMES[p], `${p} trong ${k.c}`).toBeTruthy();
+  });
+
   it("số nét lấy từ KanjiVG", () => {
     expect(strokeCount("一")).toBe(1);
     expect(strokeCount("日")).toBe(4);
@@ -51,6 +58,13 @@ describe("searchKanji", () => {
     expect(chars(searchKanji(5, "mua"))).toContain("雨");
     expect(chars(searchKanji(5, "ニチ"))).toContain("日");
     expect(chars(searchKanji(5, "たべる"))).toContain("食");
+  });
+
+  it("âm On/Kun phân biệt dấu đục: ゴ không ra chữ đọc コ", () => {
+    const go = chars(searchKanji(5, "ゴ"));
+    expect(go).toEqual(expect.arrayContaining(["五", "午", "後", "語"]));
+    for (const c of ["今", "金", "口", "校", "国", "高", "古"]) expect(go, c).not.toContain(c);
+    expect(chars(searchKanji(5, "デン"))).not.toContain("天");
   });
 
   it("dán một từ tiếng Nhật ra từng chữ theo thứ tự", () => {

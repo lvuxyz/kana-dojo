@@ -41,9 +41,12 @@ function KanjiBrowser() {
 
   // Chữ đang mở nằm trên URL (?c=日) để chia sẻ được và nút Back của trình duyệt đóng nó.
   const current = kanjiOf(params.get("c") ?? "") ?? null;
-  const open = (c: string | null) => {
+  // ← → chỉ thay chữ tại chỗ (replace), không chồng thêm lịch sử: Back vẫn đóng khung chi tiết ngay một lần.
+  const open = (c: string | null, replace = false) => {
     setMsg(null);
-    router.push(c ? `${path}?c=${encodeURIComponent(c)}` : path, { scroll: false });
+    const url = c ? `${path}?c=${encodeURIComponent(c)}` : path;
+    if (replace) router.replace(url, { scroll: false });
+    else router.push(url, { scroll: false });
   };
 
   const list = useMemo(() => searchKanji(level, q, radical), [level, q, radical]);
@@ -52,7 +55,7 @@ function KanjiBrowser() {
   const nav = current && list.some((k) => k.c === current.c) ? list : searchKanji(current?.jlpt ?? level, "");
   const index = current ? nav.findIndex((k) => k.c === current.c) : -1;
   const step = (d: number) => {
-    if (nav.length) open(nav[(index + d + nav.length) % nav.length].c);
+    if (nav.length) open(nav[(index + d + nav.length) % nav.length].c, true);
   };
 
   useEffect(() => {
