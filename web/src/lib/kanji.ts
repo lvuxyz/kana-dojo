@@ -51,6 +51,10 @@ export const RADICAL_NAMES: Record<string, string> = {
   勿: "VẬT", 反: "PHẢN", 占: "CHIÊM", 官: "QUAN", 完: "HOÀN", 介: "GIỚI", 式: "THỨC", 是: "THỊ", 軍: "QUÂN", 昔: "TÍCH",
   免: "MIỄN", 孝: "HIẾU", 良: "LƯƠNG", 可: "KHẢ", 交: "GIAO", 化: "HÓA", 周: "CHU", 吾: "NGÔ", 云: "VÂN", 也: "DÃ",
   予: "DƯ", 艮: "CẤN", 丙: "BÍNH", 丁: "ĐINH", 亜: "Á", 与: "DỮ", 吏: "LẠI", 哥: "CA", 彦: "NGẠN", 昜: "DƯƠNG",
+  巴: "BA", 丂: "KHẢO", 乍: "SẠ", 甬: "DŨNG", 兑: "ĐOÀI", 氐: "ĐỂ", 廿: "TRẤP", 乂: "NGHỆ", 亍: "XÚC", 𠂇: "TẢ",
+  // Dạng biến thể hoặc giản lược trong chữ ghép, gọi theo chữ gốc: ⺈ ← 刀, ⺧ ← 牛, ⺌ ← 小, 丷 ← 八, 圣 ← 巠, 电 ← 電, 开 ← 開, 佥 ← 僉.
+  // Không đặt tên cho 䒑, 𠂉, メ, ⺍: các nét này không có một âm Hán Việt chuẩn.
+  "⺈": "ĐAO", "⺧": "NGƯU", "⺌": "TIỂU", 丷: "BÁT", 圣: "KINH", 电: "ĐIỆN", 开: "KHAI", 佥: "THIÊM",
 };
 
 /** Các cấp JLPT có chữ, dễ trước (N5, N4…). */

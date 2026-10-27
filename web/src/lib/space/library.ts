@@ -119,6 +119,8 @@ export function addCards(space: Space, deckId: string, drafts: readonly CardDraf
   if (totalCards(space) + fresh.length > LIMITS.cards) {
     throw new SpaceError(`Tối đa ${LIMITS.cards} thẻ trên mọi bộ (hiện có ${totalCards(space)}, định thêm ${fresh.length}).`);
   }
+  // Không có thẻ nào mới: trả nguyên không gian để updateSpace thấy không đổi gì, không lưu lại và không phát sự kiện.
+  if (!fresh.length) return { space, added: 0, empty, duplicate };
 
   // Mỗi thẻ mới phải tránh cả những mã vừa cấp trong cùng lượt — idMinter nhớ chúng; bộ thẻ chỉ dựng lại một lần.
   const mint = idMinter(space, env);
@@ -167,8 +169,9 @@ export function parseCardLines(input: string): { drafts: CardDraft[]; ignored: n
   return { drafts, ignored };
 }
 
-/** Cùng mẫu furigana với lib/space/markup.ts và phòng luyện gõ. */
-const FURIGANA = /\{[^|{}\n]+\|[^{}\n]+\}/g;
+/** Cùng mẫu furigana với lib/space/markup.ts và phòng luyện gõ, thêm điều kiện không chứa TAB: TAB luôn là ranh giới
+ *  cột (một mặt thẻ không thể chứa TAB), nên `{` lẻ ở cột trước không được nuốt TAB sang cột sau. */
+const FURIGANA = /\{[^|{}\n\t]+\|[^{}\n\t]+\}/g;
 
 /** Tách cột theo dấu tách đầu tiên (TAB, `|`, `;`) xuất hiện NGOÀI các cụm furigana; không có thì trả mảng rỗng.
  *  Che các cụm furigana bằng ký tự đệm cùng độ dài để tìm vị trí tách, rồi cắt trên dòng gốc. */
@@ -225,6 +228,7 @@ export function addTexts(space: Space, drafts: readonly { text: string; vi?: str
   if (have + fresh.length > LIMITS.texts) {
     throw new SpaceError(`Tối đa ${LIMITS.texts} câu luyện gõ (hiện có ${have}, định thêm ${fresh.length}).`);
   }
+  if (!fresh.length) return { space, added: 0, duplicate, invalid };
 
   // Mỗi câu mới phải tránh cả những mã vừa cấp trong cùng lượt — idMinter nhớ chúng.
   const mint = idMinter(space, env);

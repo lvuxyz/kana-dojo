@@ -106,6 +106,12 @@ describe("bộ thẻ", () => {
     expect(addCards(first, deckId, [{ front: "a", back: "b" }], env)).toMatchObject({ added: 0, duplicate: 1 });
   });
 
+  it("không thêm được thẻ nào thì trả lại đúng không gian cũ (để không lưu lại vô ích)", () => {
+    const { space, deckId, env } = withDeck();
+    const first = addCards(space, deckId, [{ front: "a", back: "b" }], env).space;
+    expect(addCards(first, deckId, [{ front: "a", back: "b" }, { front: " ", back: "x" }], env).space).toBe(first);
+  });
+
   it("nhập đúng trần số thẻ một lượt: đủ thẻ, đúng thứ tự, mã không trùng", () => {
     const { space, deckId, env } = withDeck();
     const drafts = Array.from({ length: LIMITS.cards }, (_, i) => ({ front: `f${i}`, back: `b${i}` }));
@@ -186,6 +192,15 @@ describe("nhập / xuất thẻ dạng văn bản", () => {
     expect(parseCardLines("{abc|nghĩa").drafts).toEqual([{ front: "{abc", back: "nghĩa", hint: "" }]);
   });
 
+  it("TAB luôn là ranh giới cột, kể cả khi { lẻ ở cột trước và |…} ở cột sau", () => {
+    const { space, deckId, env } = withDeck();
+    const s = addCards(space, deckId, [{ front: "f(x)={", back: "a|b}", hint: "set" }], env).space;
+    const tsv = deckToTsv(s.library.decks[0]);
+    expect(tsv).toBe("f(x)={\ta|b}\tset");
+    expect(parseCardLines(tsv).drafts).toEqual([{ front: "f(x)={", back: "a|b}", hint: "set" }]);
+    expect(parseCardLines("{漢字|かんじ\tchữ}").drafts).toEqual([{ front: "{漢字|かんじ", back: "chữ}", hint: "" }]);
+  });
+
   it("xuất rồi nhập lại ra đúng bộ thẻ (kể cả mặt có xuống dòng bị gộp thành khoảng trắng)", () => {
     const { space, deckId, env } = withDeck();
     const s = addCards(space, deckId, [
@@ -230,6 +245,14 @@ describe("nhập nhiều câu luyện gõ", () => {
     expect(r).toMatchObject({ added: 1, duplicate: 2, invalid: 1 });
     expect(r.space.library.texts.map((t) => t.text)).toEqual(["こんにちは", "ありがとう"]);
     expect(new Set(r.space.library.texts.map((t) => t.id)).size).toBe(2);
+  });
+
+  it("chỉ toàn câu trùng hoặc hỏng thì trả lại đúng không gian cũ", () => {
+    const env = makeEnv();
+    const start = addText(emptySpace(), { text: "こんにちは" }, env).space;
+    const r = addTexts(start, [{ text: "こんにちは" }, { text: "水" }], env);
+    expect(r).toMatchObject({ added: 0, duplicate: 1, invalid: 1 });
+    expect(r.space).toBe(start);
   });
 
   it("vượt giới hạn số câu thì không thêm gì", () => {
