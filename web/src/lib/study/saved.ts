@@ -11,8 +11,8 @@ const savedSchema = z.object({
   deckId: z.string().min(1),
   order: z.array(z.string()),
   index: z.number().int().min(0),
-  results: z.record(z.enum(["known", "again"])),
-  elapsedMs: z.number().finite().min(0),
+  results: z.record(z.string(), z.enum(["known", "again"])),
+  elapsedMs: z.number().min(0),
   round: z.number().int().min(1),
 });
 
