@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BACKUP_FORMAT, buildBackup, parseBackup } from "./backup";
 import { emptyState } from "./learning/state";
@@ -12,6 +13,20 @@ function richSpace() {
   const d = addDeck(s, "Bộ", env);
   s = addCards(d.space, d.deck.id, [{ front: "水", back: "nước" }], env).space;
   return s;
+}
+
+/* Tệp do bản cũ xuất ra, đóng băng trong __fixtures__: tệp tiến độ trần (trước định dạng 2) và tệp bọc định dạng 2 đời
+   đầu (hồ sơ khi đó còn trường `accent`, bản sau đã bỏ). Không sinh lại hai tệp này từ code hiện tại — test sẽ mất ý nghĩa. */
+const fixture = (name: string) => readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url), "utf8");
+const LEGACY_PROGRESS = fixture("backup-progress-v1.json");
+const LEGACY_FORMAT2 = fixture("backup-format2.json");
+/** Đúng cách kho ghi tệp ra: thụt 2 dấu cách, giữ thứ tự khoá — so chuỗi này là so cả định dạng lẫn thứ tự. */
+const pretty = (v: unknown) => JSON.stringify(v, null, 2);
+/** Tệp định dạng 2 đời đầu sau khi khôi phục: y nguyên, chỉ mất trường `accent` đã ngừng dùng. */
+function legacyFormat2Restored() {
+  const file = JSON.parse(LEGACY_FORMAT2);
+  delete file.space.profile.accent;
+  return file;
 }
 
 describe("tệp sao lưu bọc (định dạng 2)", () => {
@@ -37,6 +52,19 @@ describe("tương thích tệp cũ", () => {
   it("tệp tiến độ trần của bản cũ vẫn nhập được, chỉ có phần tiến độ", () => {
     const r = parseBackup(JSON.stringify(emptyState()));
     expect(r).toMatchObject({ ok: true, kind: "progress-only" });
+  });
+
+  it("tệp tiến độ trần do bản cũ xuất: khôi phục đúng từng giá trị, xuất lại ra y hệt", () => {
+    const r = parseBackup(LEGACY_PROGRESS);
+    expect(r).toMatchObject({ ok: true, kind: "progress-only" });
+    expect(pretty(r.ok && r.progress)).toBe(pretty(JSON.parse(LEGACY_PROGRESS)));
+  });
+
+  it("tệp định dạng 2 đời đầu: khôi phục đúng từng giá trị, xuất lại ra y hệt (trừ accent đã bỏ)", () => {
+    const want = legacyFormat2Restored();
+    const r = parseBackup(LEGACY_FORMAT2);
+    if (!r.ok || r.kind !== "full") throw new Error(`không khôi phục được: ${JSON.stringify(r)}`);
+    expect(buildBackup(r.progress, r.space, new Date(want.exportedAt))).toBe(pretty(want));
   });
 
   it("tệp tiến độ cũ sai hình dạng bị từ chối với thông báo cũ", () => {
@@ -121,6 +149,23 @@ describe("nhập/xuất qua kho thật", () => {
     expect(b.importBackup(legacy)).toEqual({ ok: true, kind: "progress-only" });
     expect(bl.getState().stats.xpTotal).toBe(777);
     expect(bs.getSpace().library.notes).toHaveLength(1);
+  });
+
+  it("tệp cũ qua kho thật và localStorage, mở lại trang: không mất, không đổi gì", async () => {
+    const want = legacyFormat2Restored();
+    const at = new Date(want.exportedAt);
+    const a = await import("./backup");
+    expect(a.importBackup(LEGACY_FORMAT2)).toEqual({ ok: true, kind: "full" });
+    expect(a.exportBackup(at)).toBe(pretty(want));
+
+    vi.resetModules(); // mở lại trang: hai kho đọc lại từ localStorage
+    const b = await import("./backup");
+    expect(b.exportBackup(at)).toBe(pretty(want));
+    // Tệp tiến độ trần nhập sau đó chỉ thay tiến độ, không gian vừa khôi phục giữ nguyên.
+    expect(b.importBackup(LEGACY_PROGRESS)).toEqual({ ok: true, kind: "progress-only" });
+    vi.resetModules();
+    const c = await import("./backup");
+    expect(c.exportBackup(at)).toBe(pretty({ ...want, progress: JSON.parse(LEGACY_PROGRESS) }));
   });
 
   it("tệp hỏng không làm mất gì của dữ liệu hiện có", async () => {

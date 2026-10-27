@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "settings": {
+    "dailyGoalXp": 30
+  },
+  "stats": {
+    "xpTotal": 412,
+    "currentStreak": 2,
+    "longestStreak": 6,
+    "lastActiveDate": "2026-09-21",
+    "streakFreezes": 1,
+    "freezeWeek": "2026-09-21",
+    "totalReviews": 57,
+    "totalWritingMs": 418250
+  },
+  "daily": {
+    "2026-09-20": {
+      "xp": 35,
+      "reviews": 21,
+      "chars": 3,
+      "studyMs": 1260000,
+      "goalMet": true
+    },
+    "2026-09-21": {
+      "xp": 12,
+      "reviews": 8,
+      "chars": 0,
+      "studyMs": 305500,
+      "goalMet": false
+    }
+  },
+  "cards": {
+    "KANA_WRITING:あ": {
+      "itemType": "KANA_WRITING",
+      "itemId": "あ",
+      "state": "REVIEW",
+      "stability": 8.2956,
+      "difficulty": 4.9312,
+      "dueAt": 1790294400000,
+      "lastReviewedAt": 1789898400000,
+      "reps": 4,
+      "lapses": 0,
+      "learningStep": 0,
+      "introducedDay": "2026-09-12"
+    },
+    "KANA_READING:シ": {
+      "itemType": "KANA_READING",
+      "itemId": "シ",
+      "state": "RELEARNING",
+      "stability": 0.8471,
+      "difficulty": 7.1,
+      "dueAt": 1789994400000,
+      "lastReviewedAt": 1789993800000,
+      "reps": 6,
+      "lapses": 2,
+      "learningStep": 0,
+      "introducedDay": null
+    },
+    "VOCAB_MEANING:12": {
+      "itemType": "VOCAB_MEANING",
+      "itemId": "12",
+      "state": "LEARNING",
+      "stability": 0.212,
+      "difficulty": 6.4,
+      "dueAt": 1789994400000,
+      "lastReviewedAt": 1789993800000,
+      "reps": 1,
+      "lapses": 0,
+      "learningStep": 1,
+      "introducedDay": "2026-09-21"
+    }
+  },
+  "writing": {
+    "best": {
+      "あ": 91.4,
+      "い": 78
+    },
+    "passed": [
+      "あ",
+      "い"
+    ],
+    "recent": [
+      78,
+      85.5,
+      91.4
+    ]
+  },
+  "badges": {
+    "FIRST_STROKE": 1789203600000
+  }
+}
