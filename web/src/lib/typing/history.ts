@@ -125,7 +125,7 @@ export function addSession(
 
 /* Hình dạng từng mục. Cách nhập / nội dung / chế độ chỉ cần là chuỗi: một bản sau có thể thêm loại mới, và bản này
  * không được vì thế mà vứt kỷ lục đó đi khi ghi lại. */
-const num = z.number().finite();
+const num = z.number(); // zod 4: z.number() vốn đã từ chối Infinity và NaN.
 const sessionSchema = z.object({
   method: z.string(), content: z.string(), mode: z.string(),
   score: num, kpm: num, accuracy: num, durationMs: num, at: z.string(),

@@ -1,0 +1,212 @@
+{
+  "app": "kana-dojo",
+  "format": 2,
+  "exportedAt": "2026-10-05T08:30:00.000Z",
+  "progress": {
+    "version": 1,
+    "settings": {
+      "dailyGoalXp": 30
+    },
+    "stats": {
+      "xpTotal": 655,
+      "currentStreak": 3,
+      "longestStreak": 6,
+      "lastActiveDate": "2026-10-04",
+      "streakFreezes": 1,
+      "freezeWeek": "2026-09-28",
+      "totalReviews": 96,
+      "totalWritingMs": 418250
+    },
+    "daily": {
+      "2026-09-20": {
+        "xp": 35,
+        "reviews": 21,
+        "chars": 3,
+        "studyMs": 1260000,
+        "goalMet": true
+      },
+      "2026-09-21": {
+        "xp": 12,
+        "reviews": 8,
+        "chars": 0,
+        "studyMs": 305500,
+        "goalMet": false
+      },
+      "2026-10-04": {
+        "xp": 50,
+        "reviews": 39,
+        "chars": 0,
+        "studyMs": 1830000,
+        "goalMet": true
+      }
+    },
+    "cards": {
+      "KANA_WRITING:あ": {
+        "itemType": "KANA_WRITING",
+        "itemId": "あ",
+        "state": "REVIEW",
+        "stability": 8.2956,
+        "difficulty": 4.9312,
+        "dueAt": 1790294400000,
+        "lastReviewedAt": 1789898400000,
+        "reps": 4,
+        "lapses": 0,
+        "learningStep": 0,
+        "introducedDay": "2026-09-12"
+      },
+      "KANA_READING:シ": {
+        "itemType": "KANA_READING",
+        "itemId": "シ",
+        "state": "RELEARNING",
+        "stability": 0.8471,
+        "difficulty": 7.1,
+        "dueAt": 1789994400000,
+        "lastReviewedAt": 1789993800000,
+        "reps": 6,
+        "lapses": 2,
+        "learningStep": 0,
+        "introducedDay": null
+      },
+      "VOCAB_MEANING:12": {
+        "itemType": "VOCAB_MEANING",
+        "itemId": "12",
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 6.4,
+        "dueAt": 1789994400000,
+        "lastReviewedAt": 1789993800000,
+        "reps": 1,
+        "lapses": 0,
+        "learningStep": 1,
+        "introducedDay": "2026-09-21"
+      },
+      "VOCAB_MEANING:u:k3m9x2": {
+        "itemType": "VOCAB_MEANING",
+        "itemId": "u:k3m9x2",
+        "state": "REVIEW",
+        "stability": 3.1262,
+        "difficulty": 5.2834,
+        "dueAt": 1791244800000,
+        "lastReviewedAt": 1791118800000,
+        "reps": 2,
+        "lapses": 0,
+        "learningStep": 0,
+        "introducedDay": "2026-10-04"
+      },
+      "VOCAB_READING:u:k3m9x2": {
+        "itemType": "VOCAB_READING",
+        "itemId": "u:k3m9x2",
+        "state": "LEARNING",
+        "stability": 0.4,
+        "difficulty": 6.81,
+        "dueAt": 1791119400000,
+        "lastReviewedAt": 1791118800000,
+        "reps": 1,
+        "lapses": 1,
+        "learningStep": 0,
+        "introducedDay": "2026-10-04"
+      }
+    },
+    "writing": {
+      "best": {
+        "あ": 91.4,
+        "い": 78
+      },
+      "passed": [
+        "あ",
+        "い"
+      ],
+      "recent": [
+        78,
+        85.5,
+        91.4
+      ]
+    },
+    "badges": {
+      "FIRST_STROKE": 1789203600000
+    }
+  },
+  "space": {
+    "version": 1,
+    "createdAt": 1790294400000,
+    "onboarded": true,
+    "profile": {
+      "name": "Vũ",
+      "goal": "Đỗ N5 tháng 12",
+      "accent": "ai"
+    },
+    "modules": [
+      "home",
+      "library",
+      "review",
+      "typing",
+      "settings"
+    ],
+    "home": {
+      "widgets": [
+        "today",
+        "notes",
+        "goal"
+      ]
+    },
+    "study": {
+      "newCardsPerDay": 8,
+      "sessionSize": 30,
+      "desiredRetention": 0.92,
+      "kanaWriting": false,
+      "kanaReading": true,
+      "vocab": true,
+      "decks": true,
+      "kanaScripts": [
+        "k"
+      ],
+      "kanaGroups": [
+        "basic",
+        "yoon"
+      ],
+      "newOrder": "mixed"
+    },
+    "library": {
+      "notes": [
+        {
+          "id": "p8dw1q",
+          "title": "Trợ từ は",
+          "body": "は đọc là \"wa\" khi làm trợ từ.\nVí dụ: わたしは学生です。",
+          "pinned": true,
+          "createdAt": 1790294400000,
+          "updatedAt": 1791118800000
+        }
+      ],
+      "decks": [
+        {
+          "id": "z0c4ya",
+          "name": "Bài 1 — Minna",
+          "active": true,
+          "reverse": true,
+          "createdAt": 1790294400000,
+          "cards": [
+            {
+              "id": "k3m9x2",
+              "front": "学生",
+              "back": "học sinh",
+              "hint": "がくせい"
+            },
+            {
+              "id": "r7b2nf",
+              "front": "先生",
+              "back": "giáo viên",
+              "hint": ""
+            }
+          ]
+        }
+      ],
+      "texts": [
+        {
+          "id": "t5vq0h",
+          "text": "{学生|がくせい}です",
+          "vi": "Tôi là học sinh"
+        }
+      ]
+    }
+  }
+}

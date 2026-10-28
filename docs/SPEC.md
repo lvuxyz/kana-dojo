@@ -12,7 +12,7 @@ Các thuật toán (§3–§4) **giữ nguyên** so với v1.
 |---|---|---|
 | Giao diện | Next.js 15 App Router, React 19, TypeScript, Tailwind CSS v4 | `output: "export"` — xuất bản tĩnh |
 | Lưu trữ | `localStorage` (một khoá JSON) | không có máy chủ, không có CSDL |
-| Kiểm tra dữ liệu | zod 3 | validate khi nạp và khi nhập tệp |
+| Kiểm tra dữ liệu | zod 4 | validate khi nạp và khi nhập tệp |
 | PWA | `app/manifest.ts`, service worker sinh lúc build (`web/scripts/`) | cài ra màn hình chính, chạy offline — xem §8 |
 | Kiểm thử | Vitest | chạy trong Node: `localStorage` giả, Cache API giả cho service worker |
 
