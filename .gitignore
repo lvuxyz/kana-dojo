@@ -17,3 +17,7 @@ node_modules/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local toolchains and leftover build output (Maven/PostgreSQL in .tools, the removed Spring Boot backend)
+.tools/
+backend/target/
